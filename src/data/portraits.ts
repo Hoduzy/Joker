@@ -41,14 +41,15 @@ export function getPortraits(id: string): PortraitSet | undefined {
   return portraits.get(id);
 }
 
-/** 표정 이미지. 해당 표정이 없으면 기본 표정으로 대체한다. */
-export function faceUrl(id: string, expr: Expression = 'neutral'): string | undefined {
+/** 표정 이미지. 해당 표정이 없으면 기본 표정, 의상 폴더에 없으면 fallback(부원) 폴더에서 찾는다. */
+export function faceUrl(id: string, expr: Expression = 'neutral', fallback?: string): string | undefined {
   const set = portraits.get(id);
-  return set?.faces[expr] ?? set?.faces.neutral;
+  const url = set?.faces[expr] ?? set?.faces.neutral;
+  return url ?? (fallback && fallback !== id ? faceUrl(fallback, expr) : undefined);
 }
 
-export function sdUrl(id: string): string | undefined {
-  return portraits.get(id)?.sd;
+export function sdUrl(id: string, fallback?: string): string | undefined {
+  return portraits.get(id)?.sd ?? (fallback ? portraits.get(fallback)?.sd : undefined);
 }
 
 export function portraitIds(): string[] {
@@ -68,9 +69,12 @@ for (const [file, url] of Object.entries(cardFiles)) {
   if (match) cardArt.set(match[1], url);
 }
 
-/** 카드 일러스트 URL과, 전용 일러스트인지(아니면 전신 이미지 대체) 여부 */
-export function cardArtUrl(cardId: string, memberId: string): { url?: string; dedicated: boolean } {
+/**
+ * 카드 일러스트 URL과, 전용 일러스트인지(아니면 전신 이미지 대체) 여부.
+ * key는 의상 폴더(없으면 부원) — 의상이 있는 카드는 그 의상의 전신 이미지를 쓴다.
+ */
+export function cardArtUrl(cardId: string, key: string, memberId = key): { url?: string; dedicated: boolean } {
   const dedicated = cardArt.get(cardId);
   if (dedicated) return { url: dedicated, dedicated: true };
-  return { url: portraits.get(memberId)?.full, dedicated: false };
+  return { url: portraits.get(key)?.full ?? portraits.get(memberId)?.full, dedicated: false };
 }

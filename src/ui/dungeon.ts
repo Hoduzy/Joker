@@ -123,9 +123,9 @@ function startBattle(game: Game, stage: number): void {
     'div',
     { class: 'battle__team' },
     ...Object.values(game.state.assignments)
-      .map((id) => (id ? getMember(getCard(id)?.member ?? '') : undefined))
-      .filter((m): m is NonNullable<typeof m> => !!m)
-      .map((m) => h('div', { class: 'battle__member' }, memberSd(m))),
+      .map((id) => (id ? getCard(id) : undefined))
+      .filter((c): c is NonNullable<typeof c> => !!c)
+      .map((c) => h('div', { class: 'battle__member' }, memberSd(getMember(c.member)!, c.outfit))),
   );
   const result = h('div', { class: 'battle__result', hidden: true });
   const root = h(

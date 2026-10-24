@@ -17,5 +17,10 @@
 
   { "id": "dahye-r",    "member": "dahye",  "rarity": "R",   "title": "방송부장의 완장",      "slot": "engineer", "stats": { "voice": 17, "tech": 16, "writing": 16, "charm": 15 }, "quote": "완장 찬 사람 말은 들어." },
   { "id": "dahye-sr",   "member": "dahye",  "rarity": "SR",  "title": "사고 없는 방송",       "slot": "writer",   "stats": { "voice": 22, "tech": 22, "writing": 26, "charm": 18 }, "quote": "큐시트는 세 번 확인했어." },
-  { "id": "dahye-ssr",  "member": "dahye",  "rarity": "SSR", "title": "심야방송부 부장",      "slot": "dj",       "stats": { "voice": 44, "tech": 30, "writing": 30, "charm": 30 }, "quote": "이 방송부는 내가 지킨다. 끝까지." }
+  { "id": "dahye-ssr",  "member": "dahye",  "rarity": "SSR", "title": "심야방송부 부장",      "slot": "dj",       "stats": { "voice": 44, "tech": 30, "writing": 30, "charm": 30 }, "quote": "이 방송부는 내가 지킨다. 끝까지." },
+
+  { "id": "dahye-redcoat-ssr", "member": "dahye", "outfit": "dahye-redcoat", "limited": "winter-festival", "rarity": "SSR", "title": "방송제의 붉은 지휘자", "slot": "dj",       "stats": { "voice": 52, "tech": 34, "writing": 30, "charm": 40 }, "quote": "오늘 무대, 큐는 내가 준다." },
+  { "id": "mirae-lab-ssr",     "member": "mirae", "outfit": "mirae-lab",     "limited": "winter-festival", "rarity": "SSR", "title": "심야 연구실",          "slot": "engineer", "stats": { "voice": 18, "tech": 70, "writing": 26, "charm": 28 }, "quote": "고글 쓰면… 집중 모드야. 말 걸지 마." },
+  { "id": "dahye-winter-sr",   "member": "dahye", "outfit": "dahye-winter",  "limited": "winter-festival", "rarity": "SR",  "title": "겨울밤 귀갓길",        "slot": "writer",   "stats": { "voice": 26, "tech": 24, "writing": 32, "charm": 22 }, "quote": "…추우니까 빨리 들어가. 방송 듣고 자." },
+  { "id": "mirae-work-sr",     "member": "mirae", "outfit": "mirae-work",    "limited": "winter-festival", "rarity": "SR",  "title": "현장 출동 엔지니어",   "slot": "engineer", "stats": { "voice": 12, "tech": 46, "writing": 14, "charm": 18 }, "quote": "케이블 다 깔았어. …칭찬해도 돼." }
 ]

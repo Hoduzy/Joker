@@ -29,7 +29,10 @@ const RARITY_RANK = { R: 0, SR: 1, SSR: 2 } as const;
 
 /** 화면 전체를 조립하고 게임 이벤트와 연결한다. */
 export function mountApp(root: HTMLElement, game: Game): void {
-  const dialogue = createDialogue();
+  const dialogue = createDialogue((memberId) => {
+    const cardId = Object.values(game.state.assignments).find((id) => id && getCard(id)?.member === memberId);
+    return cardId ? getCard(cardId)?.outfit : undefined;
+  });
   const header = createHeader(game);
   const studio = createStudio(game, (id) => dialogue.say(id, 'poke'));
   const cardList = createCardList(game);

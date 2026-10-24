@@ -60,7 +60,7 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): St
     const lb = limitBreakOf(game.state, card.id);
     const matched = card.slot === slot.id;
     // SD를 탭하면 대사, 아래 버튼으로 교체
-    const stage = h('button', { class: 'slot__stage', type: 'button', 'aria-label': `${member.name}에게 말 걸기` }, memberSd(member));
+    const stage = h('button', { class: 'slot__stage', type: 'button', 'aria-label': `${member.name}에게 말 걸기` }, memberSd(member, card.outfit));
     onTap(stage, () => {
       stage.classList.remove('is-bounce');
       void stage.offsetWidth;

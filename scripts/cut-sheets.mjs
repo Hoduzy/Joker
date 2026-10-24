@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * 캐릭터 시트(assets/sheets/<id>.png, 1024x1536)를 잘라 assets/characters/<id>/ 에 저장한다.
+ * 캐릭터 시트(assets/sheets/<id>.png|webp|jpg, 세로 2:3)를 잘라 assets/characters/<id>/ 에 저장한다.
+ * 의상 바리에이션은 시트 이름을 <부원>-<의상> 으로 (예: dahye-winter)
  *
  * 시트 레이아웃
  *   - 왼쪽 절반: 전신 스탠딩            → full.png
@@ -8,7 +9,9 @@
  *   - 오른쪽 아래: SD                    → sd.png
  *
  * 처리 순서
- *   1. 시트 바깥 테두리와 이어진 흰 배경을 투명으로 바꾼다.
+ *   0. 너비 1024보다 큰 시트는 줄이고, 오른쪽 아래 단색 배지(생성 서비스 워터마크)가 있으면 지운다.
+ *   1. 시트 바깥 테두리와 이어진 흰 배경을 투명으로 바꾼다. 배경 밝기를 테두리에서 재서
+ *      그보다 조금이라도 어두운 '거의 흰' 옷(셔츠·가운)은 남긴다.
  *      (머리카락의 흰 하이라이트는 테두리와 이어져 있지 않으므로 남는다)
  *   2. 타일 위치가 시트마다 조금씩 달라서 좌표를 고정하지 않고,
  *      알파 채널의 연결 영역(connected component)으로 조각을 찾는다.
@@ -38,19 +41,25 @@ const ALPHA_ON = 8;
 const HALO = 16;
 /** 흰 배경 판정: RGB 최소값이 이 이상이고 */
 const WHITE_MIN = 236;
+/** 배경 밝기(테두리 측정값)보다 이만큼까지 어두운 픽셀만 배경으로 본다 */
+const BG_TOLERANCE = 6;
 /** 채도(최대-최소)가 이 이하인 픽셀 */
 const WHITE_MAX_SPREAD = 16;
+/** 시트를 이 너비보다 크면 줄여서 처리한다 */
+const MAX_WIDTH = 1024;
+/** 흰 배경을 지운 시트에서 이 비율(전체 픽셀 대비)보다 작은 조각은 노이즈로 본다 */
+const SPECK_RATIO = 0.00005;
 /** 잘라낸 이미지 둘레 여백(px) */
 const PAD = 4;
 
 async function main() {
   const only = process.argv.slice(2);
-  const files = (await fs.readdir(SHEET_DIR)).filter((f) => f.endsWith('.png')).sort();
+  const files = (await fs.readdir(SHEET_DIR)).filter((f) => /\.(png|webp|jpe?g)$/i.test(f)).sort();
   if (files.length === 0) throw new Error(`${SHEET_DIR}에 시트가 없습니다`);
 
   const done = [];
   for (const file of files) {
-    const id = path.basename(file, '.png');
+    const id = path.basename(file).replace(/\.[^.]+$/, '');
     if (only.length && !only.includes(id)) continue;
     await cutSheet(id, path.join(SHEET_DIR, file));
     done.push(id);
@@ -59,17 +68,26 @@ async function main() {
 }
 
 async function cutSheet(id, file) {
-  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  // 큰 시트는 기존 시트와 같은 너비로 줄인다 (작은 시트는 키우지 않는다)
+  const { data, info } = await sharp(file)
+    .resize({ width: MAX_WIDTH, withoutEnlargement: true })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   const img = { data, w: info.width, h: info.height };
-  const cleared = removeWhiteBackground(img);
-
   const splitX = Math.round(img.w * SPLIT_X);
   const splitY = Math.round(img.h * SPLIT_Y);
+  const badge = eraseCornerBadge(img);
+  if (badge) console.log(`  ${id}: 오른쪽 아래 배지(${badge.w}x${badge.h}) 제거`);
+  const cleared = removeWhiteBackground(img);
   const { comps, label } = labelComponents(img);
   const full = [];
   const grid = [];
   const sd = [];
+  // 흰 배경을 지운 시트는 압축 노이즈로 생긴 작은 점이 남을 수 있어 버린다
+  const minArea = cleared > 0 ? Math.round(img.w * img.h * SPECK_RATIO) : 0;
   for (const c of comps) {
+    if (c.area < minArea) continue;
     const cx = (c.x0 + c.x1) / 2;
     const cy = (c.y0 + c.y1) / 2;
     if (cx < splitX) full.push(c);
@@ -116,13 +134,22 @@ async function cutSheet(id, file) {
  * 지워진 영역과 맞닿은 픽셀은 흰색이 섞인 만큼 반투명으로 바꾸고 색을 되돌려 흰 테두리를 없앤다.
  * 반환값: 지운 픽셀 수
  */
-function removeWhiteBackground({ data, w, h }) {
+function removeWhiteBackground(img) {
+  const { data, w, h } = img;
+  // 배경 밝기를 테두리에서 재서, 그보다 조금만 어두워도 배경이 아닌 것으로 본다.
+  // (배경 253 vs 흰 셔츠 243처럼 '거의 흰' 옷을 지키기 위해서)
+  const borderLevels = [];
+  for (let x = 0; x < w; x += 2) borderLevels.push(minChannel(data, x), minChannel(data, (h - 1) * w + x));
+  for (let y = 0; y < h; y += 2) borderLevels.push(minChannel(data, y * w), minChannel(data, y * w + w - 1));
+  borderLevels.sort((a, b) => a - b);
+  const bgLevel = borderLevels[borderLevels.length >> 1];
+  const whiteMin = Math.min(250, Math.max(WHITE_MIN, bgLevel - BG_TOLERANCE));
   const isWhite = (p) => {
     const i = p * 4;
     if (data[i + 3] === 0) return true; // 이미 투명한 곳도 배경으로 이어지게 통과
     const r = data[i], g = data[i + 1], b = data[i + 2];
     const min = Math.min(r, g, b);
-    return min >= WHITE_MIN && Math.max(r, g, b) - min <= WHITE_MAX_SPREAD;
+    return min >= whiteMin && Math.max(r, g, b) - min <= WHITE_MAX_SPREAD;
   };
 
   // 이미 배경이 투명한 시트(테두리가 대부분 투명)는 건드리지 않는다.
@@ -179,14 +206,68 @@ function removeWhiteBackground({ data, w, h }) {
   return count;
 }
 
+function minChannel(data, p) {
+  const i = p * 4;
+  return Math.min(data[i], data[i + 1], data[i + 2]);
+}
+
+/**
+ * 오른쪽 아래 모서리의 단색 회색 둥근 사각형 배지(이미지 생성 서비스 워터마크 등)를 찾아 지운다.
+ * 균일한 중간 회색이 넓은 직사각형으로 모여 있을 때만 배지로 본다. 찾으면 {w, h}, 없으면 null.
+ */
+function eraseCornerBadge({ data, w, h }) {
+  const x0 = Math.floor(w * 0.7);
+  const y0 = Math.floor(h * 0.88);
+  const isBadgeGrey = (x, y) => {
+    const i = (y * w + x) * 4;
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const min = Math.min(r, g, b);
+    const max = Math.max(r, g, b);
+    return data[i + 3] > 200 && min >= 50 && max <= 105 && max - min <= 12;
+  };
+  // 배지 줄: 회색이 많이 깔린 행
+  const rows = [];
+  for (let y = y0; y < h; y++) {
+    let n = 0;
+    for (let x = x0; x < w; x++) if (isBadgeGrey(x, y)) n++;
+    if (n > (w - x0) * 0.35) rows.push(y);
+  }
+  if (rows.length < h * 0.02) return null;
+  const top = rows[0];
+  const bottom = rows[rows.length - 1];
+  // 배지 열: 그 행들 대부분이 회색인 열
+  const cols = [];
+  for (let x = x0; x < w; x++) {
+    let n = 0;
+    for (let y = top; y <= bottom; y++) if (isBadgeGrey(x, y)) n++;
+    if (n > (bottom - top + 1) * 0.6) cols.push(x);
+  }
+  if (cols.length < w * 0.12) return null;
+  // 둥근 모서리·글자 테두리까지 여유 있게
+  const pad = Math.max(3, Math.round(w * 0.008));
+  const bx0 = Math.max(0, cols[0] - pad);
+  const bx1 = Math.min(w - 1, cols[cols.length - 1] + pad);
+  const by0 = Math.max(0, top - pad);
+  const by1 = Math.min(h - 1, bottom + pad);
+  for (let y = by0; y <= by1; y++) {
+    for (let x = bx0; x <= bx1; x++) {
+      const i = (y * w + x) * 4;
+      // 흰 배경으로 칠해 두면 이어지는 흰 배경 제거 단계에서 함께 지워진다
+      data[i] = data[i + 1] = data[i + 2] = 255;
+    }
+  }
+  return { w: bx1 - bx0 + 1, h: by1 - by0 + 1 };
+}
+
 // ───────────── 연결 영역 ─────────────
 
-function labelComponents({ data, w, h }) {
+/** isOn을 만족하는 픽셀끼리 8방향으로 이어진 덩어리를 찾는다 (기본: 알파가 충분한 픽셀) */
+function labelComponents({ data, w, h }, isOn = (p) => data[p * 4 + 3] > ALPHA_STRONG) {
   const label = new Int32Array(w * h).fill(-1);
   const comps = [];
   const stack = new Int32Array(w * h);
   for (let start = 0; start < w * h; start++) {
-    if (label[start] !== -1 || data[start * 4 + 3] <= ALPHA_STRONG) continue;
+    if (label[start] !== -1 || !isOn(start)) continue;
     const c = { id: comps.length, x0: w, y0: h, x1: 0, y1: 0, area: 0 };
     let sp = 0;
     stack[sp++] = start;
@@ -207,7 +288,7 @@ function labelComponents({ data, w, h }) {
           const nx = x + dx;
           if (nx < 0 || nx >= w) continue;
           const q = ny * w + nx;
-          if (label[q] === -1 && data[q * 4 + 3] > ALPHA_STRONG) {
+          if (label[q] === -1 && isOn(q)) {
             label[q] = c.id;
             stack[sp++] = q;
           }

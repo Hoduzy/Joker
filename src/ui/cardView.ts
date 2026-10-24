@@ -1,5 +1,5 @@
 import { BALANCE } from '../data/balance';
-import type { CardDef, Rarity } from '../data/cards';
+import { portraitKey, type CardDef, type Rarity } from '../data/cards';
 import { getMember } from '../data/members';
 import { cardArtUrl } from '../data/portraits';
 import { SLOTS, type SlotId } from '../data/slots';
@@ -23,7 +23,7 @@ export interface CardFrameOptions {
 export function cardFrame(card: CardDef, opts: CardFrameOptions = {}): HTMLElement {
   const { size = 'md', owned = true, limitBreak, level } = opts;
   const member = getMember(card.member);
-  const art = cardArtUrl(card.id, card.member);
+  const art = cardArtUrl(card.id, portraitKey(card), card.member);
   const inner = h('div', { class: 'cardf__inner' });
   if (art.url) {
     inner.append(h('img', { class: `cardf__art${art.dedicated ? ' is-dedicated' : ''}`, src: art.url, alt: owned ? `${member?.name} ${card.title}` : '미획득 카드', draggable: 'false', loading: 'lazy' }));
@@ -33,6 +33,7 @@ export function cardFrame(card: CardDef, opts: CardFrameOptions = {}): HTMLEleme
   const el = h('div', { class: `cardf cardf--${card.rarity} cardf--${size}${owned ? '' : ' is-locked'}` }, inner, rarityBadge(card.rarity));
   el.style.setProperty('--member-color', member?.color ?? '#888');
   if (owned && level !== undefined) el.append(h('span', { class: 'cardf__lv' }, `Lv.${level}`));
+  if (card.limited && size !== 'xs') el.append(h('span', { class: 'cardf__limited' }, '한정'));
 
   if (size === 'md' || size === 'lg') {
     el.append(

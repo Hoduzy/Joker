@@ -3,6 +3,7 @@ import { getCard } from '../data/cards';
 import type { SlotId } from '../data/slots';
 import { enhanceCost, listenersPerSecond, maxCardLevel, towerUpgradeCost, withAssignment } from './economy';
 import { stageReward, type StageReward } from './dungeon';
+import { getBanner, isBannerActive, STANDARD_BANNER } from '../data/banners';
 import {
   equipBonuses,
   itemPart,
@@ -230,6 +231,13 @@ export class Game {
     return true;
   }
 
+  /** 이 모집을 지금 뽑을 수 있는지 (상시는 항상, 한정은 기간 중에만) */
+  bannerOpen(bannerId: string, now = Date.now()): boolean {
+    if (bannerId === STANDARD_BANNER) return true;
+    const b = getBanner(bannerId);
+    return !!b && isBannerActive(b, now);
+  }
+
   pullCost(count: 1 | 10): number {
     return count === 10 ? BALANCE.gacha.tenCost : BALANCE.gacha.singleCost * count;
   }
@@ -238,13 +246,13 @@ export class Game {
     return this.state.stones >= this.pullCost(count);
   }
 
-  /** 뽑기. 전파석이 모자라면 null */
-  pull(count: 1 | 10, rng?: Rng): PullResult[] | null {
+  /** 뽑기. 전파석이 모자라거나 모집 기간이 아니면 null */
+  pull(count: 1 | 10, rng?: Rng, bannerId = STANDARD_BANNER): PullResult[] | null {
     this.advance();
     const cost = this.pullCost(count);
-    if (this.state.stones < cost) return null;
+    if (this.state.stones < cost || !this.bannerOpen(bannerId)) return null;
     this.state.stones -= cost;
-    const results = rollPulls(this.state, count, rng);
+    const results = rollPulls(this.state, count, rng, Date.now(), bannerId);
     this.commit();
     return results;
   }

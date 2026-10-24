@@ -9,7 +9,7 @@ const SHOW_MS = 4500;
  * 화면 아래에 뜨는 대화창. 게임 조작을 막지 않고, 탭하거나 시간이 지나면 사라진다.
  * 새 대사가 오면 이전 대사를 바로 덮어쓴다.
  */
-export function createDialogue() {
+export function createDialogue(outfitOf: (memberId: string) => string | undefined = () => undefined) {
   const frame = h('div', { class: 'dialogue__face' });
   const name = h('div', { class: 'dialogue__name' });
   const text = h('p', { class: 'dialogue__text' });
@@ -32,9 +32,11 @@ export function createDialogue() {
     const line = pickLine(memberId, event);
     if (!member || !line) return;
     // 표정 이미지는 미리 받아 두고 바꿔서 깜빡임을 줄인다.
-    const url = faceUrl(memberId, line.expr);
+    // 지금 방송에 나간 카드가 의상 카드면 그 의상의 표정으로
+    const outfit = outfitOf(memberId);
+    const url = faceUrl(outfit ?? memberId, line.expr, memberId);
     if (url) new Image().src = url;
-    frame.replaceChildren(memberFace(member, line.expr));
+    frame.replaceChildren(memberFace(member, line.expr, 'md', outfit));
     frame.style.setProperty('--member-color', member.color);
     name.textContent = member.name;
     text.textContent = line.text;

@@ -1,6 +1,7 @@
 import { cardStats, limitBreakOf, maxCardLevel, slotPower } from '../core/economy';
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
+import { getBanner, isBannerActive } from '../data/banners';
 import { CARDS, type CardDef } from '../data/cards';
 import { MEMBERS, getMember } from '../data/members';
 import { SLOTS } from '../data/slots';
@@ -65,6 +66,13 @@ export function createCollection(game: Game): Component {
   };
 }
 
+function lockedHint(card: CardDef): string {
+  if (!card.limited) return '상시 모집에서 만날 수 있어요.';
+  const banner = getBanner(card.limited);
+  if (banner && isBannerActive(banner)) return `'${banner.name}'에서만 만날 수 있어요. (${new Date(banner.end).toLocaleDateString('ko-KR')}까지)`;
+  return `기간 한정 모집 '${banner?.name ?? card.limited}' 카드예요. 지금은 모집이 끝났어요.`;
+}
+
 /** 카드 상세 */
 export function openCardDetail(game: Game, card: CardDef): void {
   const member = getMember(card.member)!;
@@ -72,7 +80,13 @@ export function openCardDetail(game: Game, card: CardDef): void {
   if (!owned) {
     openModal({
       title: '아직 만나지 못한 카드',
-      body: h('div', { class: 'detail detail--locked' }, cardFrame(card, { size: 'lg', owned: false }), h('p', {}, `${card.rarity} 등급 · ${member.name}의 카드`), h('p', { class: 'detail__hint' }, '뽑기에서 만날 수 있어요.')),
+      body: h(
+        'div',
+        { class: 'detail detail--locked' },
+        cardFrame(card, { size: 'lg', owned: false }),
+        h('p', {}, `${card.rarity} 등급 · ${member.name}의 ${card.limited ? '한정 ' : ''}카드`),
+        h('p', { class: 'detail__hint' }, lockedHint(card)),
+      ),
       confirmLabel: '닫기',
     });
     return;

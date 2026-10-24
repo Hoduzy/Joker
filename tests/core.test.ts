@@ -20,9 +20,9 @@ function withLineup() {
 }
 
 describe('cards.json', () => {
-  it('has R, SR and SSR for every member', () => {
+  it('has permanent R, SR and SSR for every member', () => {
     for (const member of ['haneul', 'mirae', 'seoyun', 'yuri', 'dahye']) {
-      expect(CARDS.filter((c) => c.member === member).map((c) => c.rarity).sort()).toEqual(['R', 'SR', 'SSR']);
+      expect(CARDS.filter((c) => c.member === member && !c.limited).map((c) => c.rarity).sort()).toEqual(['R', 'SR', 'SSR']);
     }
   });
 });
@@ -108,7 +108,7 @@ describe('save migration', () => {
     expect(Object.keys(s.cards).sort()).toEqual(['dahye-r', 'haneul-r', 'mirae-r', 'seoyun-r', 'yuri-r']);
     expect(s.assignments).toEqual({ dj: 'haneul-r', engineer: 'mirae-r', writer: null, guest: 'yuri-r' });
     expect(s.stones).toBe(BALANCE.stones.welcomeGift);
-    expect(s.gacha).toEqual({ pity: 0, totalPulls: 0 });
+    expect(s.gacha).toEqual({ pity: 0, bannerPity: {}, totalPulls: 0 });
   });
 
   it('treats a save without a version as v1', () => {

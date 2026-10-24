@@ -6,7 +6,7 @@ import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -33,8 +33,10 @@ export interface GameState {
   /** 슬롯별 배치된 카드 id. 비어 있으면 null */
   assignments: Record<SlotId, string | null>;
   gacha: {
-    /** 마지막 SSR 이후 뽑은 횟수 (천장 카운트) */
+    /** 상시 모집: 마지막 SSR 이후 뽑은 횟수 (천장 카운트) */
     pity: number;
+    /** 한정 모집별 천장 카운트 (모집마다 따로) */
+    bannerPity: Record<string, number>;
     totalPulls: number;
   };
   /** 부위 id → 장착 중인 공용 장비 */
@@ -113,7 +115,7 @@ export function createInitialState(now: number): GameState {
     milestonesReached: 0,
     cards: starterCards(now),
     assignments: emptyAssignments(),
-    gacha: { pity: 0, totalPulls: 0 },
+    gacha: { pity: 0, bannerPity: {}, totalPulls: 0 },
     equipment: emptyEquipment(),
     box: createBox(now),
     nextUid: 1,

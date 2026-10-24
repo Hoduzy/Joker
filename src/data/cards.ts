@@ -9,6 +9,9 @@
  *      - stats:  voice / tech / writing / charm
  *   2. (선택) 카드 일러스트를 assets/cards/<카드 id>.png 로 넣는다.
  *      없으면 assets/characters/<부원>/full.png 에 등급 테두리를 씌워 대신 쓴다.
+ *   3. (선택) "outfit": 의상 폴더 id (assets/characters/<의상>/). 이 카드를 배치하면
+ *      카드 그림·방송 슬롯 SD·대화창 표정이 그 의상으로 바뀐다.
+ *   4. (선택) "limited": 한정 모집 id (banners.json). 그 모집에서만 나오고 상시 모집에는 없다.
  * 형식이 틀리면 게임 시작 시 어떤 카드가 왜 틀렸는지 에러로 알려 준다.
  */
 import raw from './cards.json';
@@ -30,6 +33,10 @@ export interface CardDef {
   stats: Stats;
   /** 획득 시 한마디 */
   quote: string;
+  /** 의상 폴더 id (없으면 부원 기본 의상) */
+  outfit?: string;
+  /** 한정 모집 id (없으면 상시 모집 카드) */
+  limited?: string;
 }
 
 function validate(data: unknown): CardDef[] {
@@ -57,6 +64,8 @@ function validate(data: unknown): CardDef[] {
       slot: c.slot,
       stats: { voice: c.stats.voice, tech: c.stats.tech, writing: c.stats.writing, charm: c.stats.charm },
       quote: typeof c.quote === 'string' ? c.quote : '',
+      outfit: typeof c.outfit === 'string' ? c.outfit : undefined,
+      limited: typeof c.limited === 'string' ? c.limited : undefined,
     };
   });
 }
@@ -69,8 +78,14 @@ export function getCard(id: string): CardDef | undefined {
   return CARD_MAP.get(id);
 }
 
+/** 상시 모집에서 나오는 카드 (한정 카드 제외) */
 export function cardsOfRarity(rarity: Rarity): CardDef[] {
-  return CARDS.filter((c) => c.rarity === rarity);
+  return CARDS.filter((c) => c.rarity === rarity && !c.limited);
+}
+
+/** 이미지·SD·표정을 가져올 폴더: 의상이 있으면 의상, 없으면 부원 */
+export function portraitKey(card: Pick<CardDef, 'member' | 'outfit'>): string {
+  return card.outfit ?? card.member;
 }
 
 /** 정렬용: SSR → SR → R, 같은 등급이면 cards.json 순서 */

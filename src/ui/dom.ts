@@ -37,18 +37,21 @@ export function portrait(color: string, label: string, size: 'sm' | 'md' | 'lg' 
   return el;
 }
 
-/** 표정 이미지(얼굴 타일). 목록 카드와 대화창에서 쓴다. */
-export function memberFace(m: MemberDef, expr: Expression = 'neutral', size: 'sm' | 'md' | 'lg' = 'md'): HTMLElement {
-  const url = faceUrl(m.id, expr);
+/**
+ * 표정 이미지(얼굴 타일). 목록 카드와 대화창에서 쓴다.
+ * outfit을 주면 그 의상의 표정 (없으면 기본 의상)
+ */
+export function memberFace(m: MemberDef, expr: Expression = 'neutral', size: 'sm' | 'md' | 'lg' = 'md', outfit?: string): HTMLElement {
+  const url = faceUrl(outfit ?? m.id, expr, m.id);
   if (!url) return portrait(m.color, m.name, size);
   const frame = h('div', { class: `face face--${size}` }, h('img', { src: url, alt: `${m.name} (${EXPRESSION_LABELS[expr]})`, draggable: 'false' }));
   frame.style.setProperty('--member-color', m.color);
   return frame;
 }
 
-/** SD 이미지. 방송 슬롯에서 쓴다. */
-export function memberSd(m: MemberDef): HTMLElement {
-  const url = sdUrl(m.id);
+/** SD 이미지. 방송 슬롯·대결에서 쓴다. outfit을 주면 그 의상의 SD (없으면 기본 의상) */
+export function memberSd(m: MemberDef, outfit?: string): HTMLElement {
+  const url = sdUrl(outfit ?? m.id, m.id);
   if (!url) return portrait(m.color, m.name, 'lg');
   return h('img', { class: 'sd', src: url, alt: m.name, draggable: 'false' });
 }

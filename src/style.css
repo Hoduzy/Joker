@@ -4020,3 +4020,144 @@ a.btn {
     font-size: 48px;
   }
 }
+
+/* ── 기간 한정 모집 ────────────────── */
+.banner-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.banner-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.banner-tab small {
+  font-size: 11px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--live);
+  color: #fff;
+}
+
+.banner-tab.is-active {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.banner-tab.is-limited.is-active {
+  background: linear-gradient(90deg, rgba(120, 190, 255, 0.28), rgba(217, 74, 90, 0.28));
+  border-color: #9fd2ff;
+}
+
+.gacha__banner.is-limited {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(159, 210, 255, 0.35), transparent 55%),
+    radial-gradient(ellipse at 85% 10%, rgba(217, 74, 90, 0.35), transparent 55%),
+    var(--panel);
+  border-color: rgba(159, 210, 255, 0.4);
+}
+
+.gacha__banner.is-limited .gacha__kicker {
+  color: #9fd2ff;
+}
+
+.gacha__countdown {
+  margin-top: 8px;
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 77, 109, 0.2);
+  color: #ffb3c0;
+  font-variant-numeric: tabular-nums;
+}
+
+.gacha__countdown:empty {
+  display: none;
+}
+
+.gacha__pickup-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pickup-chip {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #9fd2ff, #ff8fb8);
+  color: #1a1433;
+}
+
+.cardf__limited {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  right: -6px;
+  padding: 2px 10px;
+  border-radius: 4px 0 0 4px;
+  background: linear-gradient(90deg, #4ea8ff, #d94a5a);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.cardf--sm .cardf__limited {
+  top: auto;
+  bottom: 14px;
+  right: -4px;
+  font-size: 8px;
+  padding: 0 4px;
+}
+
+.cardf.is-locked .cardf__limited {
+  filter: none;
+}
+
+/* Lv 표시와 겹치지 않게 */
+.cardf--md .cardf__limited,
+.cardf--lg .cardf__limited {
+  top: 32px;
+}
+
+.pull__pickup {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #9fd2ff, #ff8fb8);
+  color: #1a1433;
+  white-space: nowrap;
+}
+
+.collection__grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}

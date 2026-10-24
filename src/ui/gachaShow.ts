@@ -41,7 +41,13 @@ export function playPullAnimation(results: PullResult[], opts: ShowOptions): Pro
         : r.refund > 0
           ? h('span', { class: 'pull__badge' }, `전파석 +${r.refund}`)
           : h('span', { class: 'pull__badge pull__badge--lb' }, `돌파 ${r.limitBreak}/${BALANCE.limitBreak.max}`);
-      const front = h('div', { class: 'postcard__front' }, cardFrame(r.card, { size: many ? 'md' : 'lg', limitBreak: r.limitBreak }), note);
+      const front = h(
+        'div',
+        { class: 'postcard__front' },
+        cardFrame(r.card, { size: many ? 'md' : 'lg', limitBreak: r.limitBreak }),
+        note,
+        r.pickup ? h('span', { class: 'pull__pickup' }, 'PICK UP') : null,
+      );
       const el = h('button', { class: `postcard postcard--${r.card.rarity}`, type: 'button', 'aria-label': `${i + 1}번째 엽서 뒤집기` }, h('div', { class: 'postcard__inner' }, back, front));
       // 화면 밖 여기저기서 날아오게
       const angle = (i * 137) % 360;

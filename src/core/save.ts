@@ -66,6 +66,7 @@ export function resetSave(): void {
 }
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+const clampPity = (v: unknown) => Math.min(BALANCE.gacha.pity - 1, Math.max(0, Math.floor(num(v, 0))));
 
 /**
  * 저장된 데이터를 현재 형식으로 맞춘다.
@@ -79,6 +80,7 @@ export function migrate(data: unknown, now: number): GameState {
   if (version < 3) d = migrateV2toV3(d, now);
   if (version < 4) d = migrateV3toV4(d, now);
   if (version < 5) d = migrateV4toV5(d);
+  // v5 → v6: 한정 모집 천장 카운트(gacha.bannerPity) 추가 — 기본값은 normalize에서 채운다
   return normalize(d, now);
 }
 
@@ -111,7 +113,7 @@ function migrateV1toV2(d: Record<string, unknown>, now: number): Record<string, 
     milestonesReached: 0,
     cards,
     assignments,
-    gacha: { pity: 0, totalPulls: 0 },
+    gacha: { pity: 0, bannerPity: {}, totalPulls: 0 },
     lastTick: d.lastTick,
   };
 }
@@ -227,7 +229,10 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     cards: ownedCards,
     assignments,
     gacha: {
-      pity: Math.min(BALANCE.gacha.pity - 1, Math.max(0, Math.floor(num(gacha.pity, 0)))),
+      pity: clampPity(gacha.pity),
+      bannerPity: Object.fromEntries(
+        Object.entries((typeof gacha.bannerPity === 'object' && gacha.bannerPity !== null ? gacha.bannerPity : {}) as Record<string, unknown>).map(([k, v]) => [k, clampPity(v)]),
+      ),
       totalPulls: Math.max(0, Math.floor(num(gacha.totalPulls, 0))),
     },
     equipment,
