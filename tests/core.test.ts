@@ -100,7 +100,7 @@ describe('save migration', () => {
       lastTick: 1000,
     };
     const s = migrate(v1, 2000);
-    expect(s.version).toBe(2);
+    expect(s.version).toBe(3);
     expect(s.listeners).toBe(1234);
     expect(s.totalListeners).toBe(5678);
     expect(s.towerLevel).toBe(4);

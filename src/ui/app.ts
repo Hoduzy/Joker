@@ -7,7 +7,9 @@ import { formatDuration, formatNumber } from '../utils/format';
 import { createCardList } from './cardList';
 import { createCollection } from './collection';
 import type { Component } from './component';
+import { createDelivery } from './delivery';
 import { createDialogue } from './dialogue';
+import { openCompare } from './equipCompare';
 import { h, onTap } from './dom';
 import { createGacha } from './gacha';
 import { createHeader } from './header';
@@ -31,7 +33,8 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const cardList = createCardList(game);
   const gacha = createGacha(game, (results) => sayAboutNewCard(results));
   const collection = createCollection(game);
-  const components: Component[] = [header, studio, tower, cardList, gacha, collection];
+  const delivery = createDelivery(game);
+  const components: Component[] = [header, delivery, studio, tower, cardList, gacha, collection];
 
   const resetBtn = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '데이터 초기화');
   onTap(resetBtn, () =>
@@ -47,13 +50,18 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const screens: Record<ScreenId, HTMLElement> = {
     studio: h(
       'main',
-      { class: 'screen layout', 'data-screen': 'studio' },
-      h('div', { class: 'layout__main' }, studio.el, tower.el),
+      { class: 'screen', 'data-screen': 'studio' },
+      delivery.el,
       h(
         'div',
-        { class: 'layout__side' },
-        cardList.el,
-        h('footer', { class: 'footer' }, h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '캐릭터 이미지 미리보기'), resetBtn),
+        { class: 'layout' },
+        h('div', { class: 'layout__main' }, studio.el, tower.el),
+        h(
+          'div',
+          { class: 'layout__side' },
+          cardList.el,
+          h('footer', { class: 'footer' }, h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '캐릭터 이미지 미리보기'), resetBtn),
+        ),
       ),
     ),
     gacha: h('main', { class: 'screen', 'data-screen': 'gacha' }, gacha.el),
@@ -121,6 +129,16 @@ export function mountApp(root: HTMLElement, game: Game): void {
       case 'stones':
         toast(`${event.reason}! 전파석 +${formatNumber(event.amount)}`, gemIcon());
         break;
+      case 'legend-story':
+        toast(`📮 레전드 사연 도착! 청취자 +${formatNumber(event.amount)}`);
+        break;
+      case 'box-level':
+        toast(
+          event.level === BALANCE.box.autoUnlockLevel
+            ? `📦 택배 Lv.${event.level}! 자동 개봉이 열렸어요`
+            : `📦 택배 Lv.${event.level}! 좋은 장비가 더 잘 나와요`,
+        );
+        break;
     }
   });
 
@@ -133,6 +151,8 @@ export function mountApp(root: HTMLElement, game: Game): void {
   }
   renderAll();
   show(saved);
+  // 고르지 않고 닫았던 장비가 있으면 다시 보여 준다
+  if (game.state.box.pending && saved === 'studio') openCompare(game, game.state.box.pending);
   startLoop(game, components, tabs);
   bindLifecycle(game);
 }

@@ -1,8 +1,10 @@
 import { BALANCE } from '../data/balance';
 import { getCard, starterCardOf } from '../data/cards';
+import { SUB_OPTION_IDS, getGrade, getItemDef, gradeRank, type SubOptionId } from '../data/equipment';
+import { maxBoxLevel, type EquipItem } from './equipment';
 import { getMember } from '../data/members';
 import { SLOT_IDS } from '../data/slots';
-import { createInitialState, emptyAssignments, SAVE_VERSION, starterCards, type GameState, type OwnedCard } from './state';
+import { createBox, createInitialState, emptyAssignments, emptyEquipment, SAVE_VERSION, starterCards, type BoxState, type GameState, type OwnedCard } from './state';
 
 const STORAGE_KEY = 'simya-bangsongbu/save';
 /** 마이그레이션 직전 원본을 남겨 두는 키 (문제가 생기면 복구용) */
@@ -61,6 +63,7 @@ export function migrate(data: unknown, now: number): GameState {
   let d = data as Record<string, unknown>;
   const version = num(d.version, 1);
   if (version < 2) d = migrateV1toV2(d, now);
+  if (version < 3) d = migrateV2toV3(d, now);
   return normalize(d, now);
 }
 
@@ -98,7 +101,53 @@ function migrateV1toV2(d: Record<string, unknown>, now: number): Record<string, 
   };
 }
 
-/** v2 형식 데이터의 값 검사·보정 */
+/**
+ * v2 → v3: 협찬 택배·장비 추가. 기존 진행은 그대로 두고
+ * 빈 장비 칸과 시작 티켓을 넣는다.
+ */
+function migrateV2toV3(d: Record<string, unknown>, now: number): Record<string, unknown> {
+  return { ...d, version: 3, equipment: emptyEquipment(), box: createBox(now), nextUid: 1 };
+}
+
+/** 저장된 장비 1개 검사. 정의가 사라졌거나 값이 이상하면 null */
+function normalizeItem(raw: unknown, part?: string): EquipItem | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const it = raw as Partial<EquipItem>;
+  const def = typeof it.item === 'string' ? getItemDef(it.item) : undefined;
+  if (!def || (part && def.part !== part) || typeof it.grade !== 'string' || !getGrade(it.grade)) return null;
+  const subs = Array.isArray(it.subs)
+    ? it.subs.filter((s): s is { id: SubOptionId; value: number } => !!s && SUB_OPTION_IDS.includes(s.id) && typeof s.value === 'number' && s.value >= 0)
+    : [];
+  return {
+    uid: Math.floor(num(it.uid, 0)),
+    item: def.id,
+    grade: it.grade,
+    main: Math.max(0, Math.round(num(it.main, 0))),
+    subs,
+    boxLevel: Math.max(1, Math.floor(num(it.boxLevel, 1))),
+  };
+}
+
+function normalizeBox(raw: unknown, now: number): BoxState {
+  const base = createBox(now);
+  if (typeof raw !== 'object' || raw === null) return base;
+  const b = raw as Partial<BoxState>;
+  const auto = (b.auto ?? {}) as Partial<BoxState['auto']>;
+  return {
+    level: Math.min(maxBoxLevel(), Math.max(1, Math.floor(num(b.level, 1)))),
+    parts: Math.max(0, Math.floor(num(b.parts, 0))),
+    tickets: Math.max(0, Math.floor(num(b.tickets, base.tickets))),
+    ticketClock: Math.min(num(b.ticketClock, now), now),
+    pending: normalizeItem(b.pending),
+    opened: Math.max(0, Math.floor(num(b.opened, 0))),
+    auto: {
+      minGrade: auto.minGrade === null ? null : typeof auto.minGrade === 'string' && gradeRank(auto.minGrade) >= 0 ? auto.minGrade : base.auto.minGrade,
+      stopOnUpgrade: typeof auto.stopOnUpgrade === 'boolean' ? auto.stopOnUpgrade : base.auto.stopOnUpgrade,
+    },
+  };
+}
+
+/** 최신 형식 데이터의 값 검사·보정 */
 function normalize(d: Record<string, unknown>, now: number): GameState {
   const rawCards = (typeof d.cards === 'object' && d.cards !== null ? d.cards : {}) as Record<string, Partial<OwnedCard>>;
   const cards: Record<string, OwnedCard> = {};
@@ -126,6 +175,12 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
   }
 
   const gacha = (d.gacha ?? {}) as Record<string, unknown>;
+  const rawEquip = (typeof d.equipment === 'object' && d.equipment !== null ? d.equipment : {}) as Record<string, unknown>;
+  const equipment = emptyEquipment();
+  for (const part of Object.keys(equipment)) equipment[part] = normalizeItem(rawEquip[part], part);
+  const box = normalizeBox(d.box, now);
+  // uid가 겹치지 않도록 지금까지 쓴 가장 큰 번호보다 크게
+  const maxUid = Math.max(0, box.pending?.uid ?? 0, ...Object.values(equipment).map((e) => e?.uid ?? 0));
   return {
     version: SAVE_VERSION,
     listeners: Math.max(0, num(d.listeners, 0)),
@@ -139,6 +194,9 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
       pity: Math.min(BALANCE.gacha.pity - 1, Math.max(0, Math.floor(num(gacha.pity, 0)))),
       totalPulls: Math.max(0, Math.floor(num(gacha.totalPulls, 0))),
     },
+    equipment,
+    box,
+    nextUid: Math.max(maxUid + 1, Math.floor(num(d.nextUid, 1))),
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }

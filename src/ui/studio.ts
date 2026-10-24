@@ -1,4 +1,5 @@
 import { isFullLineup, limitBreakOf, slotPower } from '../core/economy';
+import { equipBonuses } from '../core/equipment';
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
@@ -62,7 +63,7 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): Co
       h(
         'div',
         { class: 'slot__power' },
-        `파워 ${Math.round(slotPower(card, lb, slot))}`,
+        `파워 ${Math.round(slotPower(card, lb, slot, equipBonuses(game.state)))}`,
         matched ? h('span', { class: 'tag tag--slot is-active' }, '담당 +30%') : null,
       ),
       lb > 0 ? lbPips(lb) : null,

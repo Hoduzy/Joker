@@ -2,6 +2,7 @@ import { BALANCE } from '../data/balance';
 import { getCard, type CardDef } from '../data/cards';
 import { SLOTS, type SlotDef, type SlotId } from '../data/slots';
 import { STAT_KEYS, type Stats } from '../data/stats';
+import { equipBonuses, type EquipBonuses } from './equipment';
 import type { GameState } from './state';
 
 /** 돌파가 반영된 카드 능력치 */
@@ -12,9 +13,18 @@ export function cardStats(card: CardDef, limitBreak: number): Stats {
   return out;
 }
 
-/** 카드를 특정 슬롯에 넣었을 때의 기여 파워 (담당 슬롯 보너스 포함) */
-export function slotPower(card: CardDef, limitBreak: number, slot: SlotDef): number {
+/** 카드 능력치 + 공용 장비 주 스탯, 그다음 '모든 능력치 %' 적용 */
+export function effectiveStats(card: CardDef, limitBreak: number, bonus?: EquipBonuses): Stats {
   const stats = cardStats(card, limitBreak);
+  if (!bonus) return stats;
+  const mult = 1 + bonus.allStatsPct / 100;
+  for (const key of STAT_KEYS) stats[key] = Math.round((stats[key] + bonus.stats[key]) * mult);
+  return stats;
+}
+
+/** 카드를 특정 슬롯에 넣었을 때의 기여 파워 (담당 슬롯 보너스, 장비 포함) */
+export function slotPower(card: CardDef, limitBreak: number, slot: SlotDef, bonus?: EquipBonuses): number {
+  const stats = effectiveStats(card, limitBreak, bonus);
   let power = 0;
   for (const key of STAT_KEYS) {
     power += stats[key] * (key === slot.mainStat ? BALANCE.mainStatWeight : BALANCE.subStatWeight);
@@ -32,11 +42,12 @@ export function isFullLineup(state: GameState): boolean {
 
 /** 배치된 카드들의 파워 합 (풀 라인업 보너스 포함) */
 export function totalPower(state: GameState): number {
+  const bonus = equipBonuses(state);
   let sum = 0;
   for (const slot of SLOTS) {
     const id = state.assignments[slot.id];
     const card = id ? getCard(id) : undefined;
-    if (card) sum += slotPower(card, limitBreakOf(state, card.id), slot);
+    if (card) sum += slotPower(card, limitBreakOf(state, card.id), slot, bonus);
   }
   return isFullLineup(state) ? sum * BALANCE.fullLineupBonus : sum;
 }
@@ -52,7 +63,8 @@ export function towerUpgradeCost(level: number): number {
 
 /** 초당 청취자 증가량 */
 export function listenersPerSecond(state: GameState): number {
-  return totalPower(state) * BALANCE.listenersPerPower * towerMultiplier(state.towerLevel);
+  const listenersPct = equipBonuses(state).listenersPct;
+  return totalPower(state) * BALANCE.listenersPerPower * towerMultiplier(state.towerLevel) * (1 + listenersPct / 100);
 }
 
 /**

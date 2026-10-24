@@ -1,9 +1,11 @@
 import { BALANCE } from '../data/balance';
+import { PARTS } from '../data/equipment';
+import type { AutoSettings, EquipItem } from './equipment';
 import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -32,8 +34,45 @@ export interface GameState {
     pity: number;
     totalPulls: number;
   };
+  /** 부위 id → 장착 중인 공용 장비 */
+  equipment: Record<string, EquipItem | null>;
+  box: BoxState;
+  /** 장비 고유 번호 발급용 */
+  nextUid: number;
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
+}
+
+export interface BoxState {
+  level: number;
+  /** 레벨업용 부품 */
+  parts: number;
+  tickets: number;
+  /** 티켓 충전 기준 시각 (epoch ms) */
+  ticketClock: number;
+  /** 열었지만 아직 교체/분해를 고르지 않은 장비 (새로고침해도 유지) */
+  pending: EquipItem | null;
+  /** 지금까지 연 택배 수 */
+  opened: number;
+  auto: AutoSettings;
+}
+
+export function emptyEquipment(): Record<string, EquipItem | null> {
+  const e: Record<string, EquipItem | null> = {};
+  for (const p of PARTS) e[p.id] = null;
+  return e;
+}
+
+export function createBox(now: number): BoxState {
+  return {
+    level: 1,
+    parts: 0,
+    tickets: BALANCE.tickets.start,
+    ticketClock: now,
+    pending: null,
+    opened: 0,
+    auto: { minGrade: 'epic', stopOnUpgrade: true },
+  };
 }
 
 export function emptyAssignments(): Record<SlotId, string | null> {
@@ -63,6 +102,9 @@ export function createInitialState(now: number): GameState {
     cards: starterCards(now),
     assignments: emptyAssignments(),
     gacha: { pity: 0, totalPulls: 0 },
+    equipment: emptyEquipment(),
+    box: createBox(now),
+    nextUid: 1,
     lastTick: now,
   };
 }

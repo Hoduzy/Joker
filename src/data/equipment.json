@@ -1,0 +1,54 @@
+{
+  "parts": [
+    { "id": "mic",        "name": "마이크", "icon": "🎤" },
+    { "id": "headphones", "name": "헤드폰", "icon": "🎧" },
+    { "id": "mixer",      "name": "믹서",   "icon": "🎛️" },
+    { "id": "light",      "name": "조명",   "icon": "💡" },
+    { "id": "chair",      "name": "의자",   "icon": "🪑" },
+    { "id": "lightstick", "name": "응원봉", "icon": "🪄" }
+  ],
+
+  "grades": [
+    { "id": "common",    "name": "일반", "color": "#b8bcc8", "statMult": 1,   "subMult": 1,   "subCount": [0, 0], "salvage": { "stones": 1,  "parts": 1 } },
+    { "id": "uncommon",  "name": "고급", "color": "#6ee7a8", "statMult": 1.6, "subMult": 1.3, "subCount": [0, 1], "salvage": { "stones": 2,  "parts": 2 } },
+    { "id": "rare",      "name": "희귀", "color": "#5cb8ff", "statMult": 2.5, "subMult": 1.7, "subCount": [1, 1], "salvage": { "stones": 5,  "parts": 4 } },
+    { "id": "epic",      "name": "영웅", "color": "#b07cff", "statMult": 4,   "subMult": 2.2, "subCount": [1, 2], "salvage": { "stones": 12, "parts": 8 } },
+    { "id": "legendary", "name": "전설", "color": "#ffb547", "statMult": 6.5, "subMult": 3,   "subCount": [2, 3], "salvage": { "stones": 30, "parts": 16 } },
+    { "id": "mythic",    "name": "신화", "color": "#ff5f7e", "statMult": 10,  "subMult": 4,   "subCount": [3, 3], "salvage": { "stones": 80, "parts": 32 } }
+  ],
+
+  "subOptions": [
+    { "id": "listenersPct",   "name": "청취자 증가",      "range": [1, 3],     "power": 30 },
+    { "id": "legendStoryPct", "name": "레전드 사연 확률", "range": [0.5, 1.5], "power": 40 },
+    { "id": "allStatsPct",    "name": "모든 능력치",      "range": [1, 2],     "power": 50 },
+    { "id": "offlinePct",     "name": "오프라인 보상",    "range": [2, 5],     "power": 8 },
+    { "id": "salvagePct",     "name": "분해 보상",        "range": [2, 5],     "power": 8 },
+    { "id": "ticketRegenPct", "name": "티켓 충전 속도",   "range": [1, 3],     "power": 15 }
+  ],
+
+  "items": [
+    { "id": "mic-school",      "part": "mic",        "name": "방송실 다이내믹 마이크", "stat": "voice",   "range": [3, 5] },
+    { "id": "mic-condenser",   "part": "mic",        "name": "콘덴서 마이크",          "stat": "voice",   "range": [4, 6] },
+    { "id": "mic-idol",        "part": "mic",        "name": "반짝이 핸드 마이크",     "stat": "charm",   "range": [3, 6] },
+
+    { "id": "hp-monitor",      "part": "headphones", "name": "모니터 헤드폰",          "stat": "tech",    "range": [3, 6] },
+    { "id": "hp-cat",          "part": "headphones", "name": "고양이귀 헤드폰",        "stat": "charm",   "range": [3, 5] },
+    { "id": "hp-studio",       "part": "headphones", "name": "밀폐형 스튜디오 헤드폰", "stat": "tech",    "range": [4, 6] },
+
+    { "id": "mixer-old",       "part": "mixer",      "name": "낡은 4채널 믹서",        "stat": "tech",    "range": [3, 5] },
+    { "id": "mixer-digital",   "part": "mixer",      "name": "디지털 믹서",            "stat": "tech",    "range": [4, 7] },
+    { "id": "mixer-sampler",   "part": "mixer",      "name": "효과음 샘플러",          "stat": "writing", "range": [3, 5] },
+
+    { "id": "light-desk",      "part": "light",      "name": "원고용 스탠드",          "stat": "writing", "range": [3, 5] },
+    { "id": "light-onair",     "part": "light",      "name": "ON AIR 램프",            "stat": "charm",   "range": [3, 6] },
+    { "id": "light-ring",      "part": "light",      "name": "링 라이트",              "stat": "charm",   "range": [4, 6] },
+
+    { "id": "chair-folding",   "part": "chair",      "name": "접이식 의자",            "stat": "writing", "range": [2, 4] },
+    { "id": "chair-gaming",    "part": "chair",      "name": "게이밍 의자",            "stat": "tech",    "range": [3, 5] },
+    { "id": "chair-sofa",      "part": "chair",      "name": "방송실 소파",            "stat": "writing", "range": [4, 6] },
+
+    { "id": "stick-basic",     "part": "lightstick", "name": "기본 응원봉",            "stat": "charm",   "range": [3, 5] },
+    { "id": "stick-letter",    "part": "lightstick", "name": "사연함 응원봉",          "stat": "writing", "range": [3, 6] },
+    { "id": "stick-voice",     "part": "lightstick", "name": "함성 응원봉",            "stat": "voice",   "range": [4, 6] }
+  ]
+}
