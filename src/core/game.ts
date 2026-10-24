@@ -1,7 +1,8 @@
 import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
 import type { SlotId } from '../data/slots';
-import { listenersPerSecond, towerUpgradeCost, withAssignment } from './economy';
+import { enhanceCost, listenersPerSecond, maxCardLevel, towerUpgradeCost, withAssignment } from './economy';
+import { stageReward, type StageReward } from './dungeon';
 import {
   equipBonuses,
   itemPart,
@@ -246,6 +247,51 @@ export class Game {
     const results = rollPulls(this.state, count, rng);
     this.commit();
     return results;
+  }
+
+  // ───────────── 카드 강화 ─────────────
+
+  /** 다음 레벨 강화 비용. 최대 레벨이거나 없는 카드면 null */
+  enhanceCost(cardId: string): number | null {
+    const owned = this.state.cards[cardId];
+    const card = getCard(cardId);
+    if (!owned || !card || owned.level >= maxCardLevel(owned.limitBreak)) return null;
+    return enhanceCost(card, owned.level);
+  }
+
+  canEnhance(cardId: string): boolean {
+    const cost = this.enhanceCost(cardId);
+    return cost !== null && this.state.listeners >= cost;
+  }
+
+  /** 청취자를 써서 카드 레벨 +1 */
+  enhance(cardId: string): boolean {
+    this.advance();
+    const cost = this.enhanceCost(cardId);
+    if (cost === null || this.state.listeners < cost) return false;
+    this.state.listeners -= cost;
+    this.state.cards[cardId].level += 1;
+    this.commit();
+    return true;
+  }
+
+  // ───────────── 라이벌 대결 ─────────────
+
+  /** 대결 공격력 = 지금 초당 청취자 (레전드 사연 배수 포함) */
+  get attackPower(): number {
+    return this.rate;
+  }
+
+  /** 현재 스테이지 승리: 보상을 주고 다음 스테이지로. 이미 깬 스테이지면 null */
+  winStage(stage: number): StageReward | null {
+    if (stage !== this.state.dungeon.stage) return null;
+    const reward = stageReward(stage);
+    this.state.stones += reward.stones;
+    this.state.box.tickets += reward.tickets;
+    this.state.box.parts += reward.parts;
+    this.state.dungeon.stage += 1;
+    this.commit();
+    return reward;
   }
 
   // ───────────── 협찬 택배 ─────────────

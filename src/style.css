@@ -1044,7 +1044,8 @@ a.btn {
   position: fixed;
   /* 모달(60) 아래: 팝업 제목을 가리지 않게 */
   z-index: 55;
-  top: max(16px, env(safe-area-inset-top));
+  /* 헤더(송신탑 버튼) 바로 아래 */
+  top: calc(max(12px, env(safe-area-inset-top)) + var(--hud-h, 120px) + 10px);
   left: 50%;
   transform: translateX(-50%);
   display: grid;
@@ -2783,7 +2784,8 @@ a.btn {
 .celebrate {
   position: fixed;
   inset: 0;
-  z-index: 75;
+  /* 뽑기·대결 화면 위에도 보이게 */
+  z-index: 90;
   pointer-events: none;
   display: grid;
   place-items: center;
@@ -3365,5 +3367,656 @@ a.btn {
 @media (max-width: 640px) {
   .goal__text {
     display: none;
+  }
+}
+
+/* ── Header: 송신탑 버튼 ───────────── */
+.tower-btn {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 6px 16px 6px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  transition: transform 0.08s ease;
+}
+
+.tower-btn:active {
+  transform: scale(0.97);
+}
+
+.tower-btn__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgba(255, 179, 71, 0.25), rgba(255, 207, 92, 0.35));
+  transition: width 0.2s ease;
+}
+
+.tower-btn.is-ready {
+  border-color: var(--accent);
+  box-shadow: 0 0 14px rgba(255, 207, 92, 0.35);
+}
+
+.tower-btn.is-ready .tower-btn__fill {
+  background: linear-gradient(90deg, rgba(255, 179, 71, 0.45), rgba(255, 207, 92, 0.6));
+}
+
+.tower-btn.is-denied {
+  animation: box-shake 0.35s ease;
+}
+
+.tower-btn__icon {
+  position: relative;
+  font-size: 22px;
+}
+
+.tower-btn__text {
+  position: relative;
+  display: grid;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.tower-btn__text strong {
+  font-size: 14px;
+}
+
+.tower-btn__text small {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tower-btn.is-ready .tower-btn__text small {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.goal .hud__boosts {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+/* ── 카드 레벨 / 강화 ──────────────── */
+.cardf__lv {
+  position: absolute;
+  top: calc(var(--border) + 4px);
+  right: calc(var(--border) + 4px);
+  z-index: 2;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(8, 6, 20, 0.8);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cardf--xs .cardf__lv,
+.cardf--sm .cardf__lv {
+  font-size: 8px;
+  padding: 0 3px;
+  top: auto;
+  bottom: 3px;
+  right: 3px;
+}
+
+.slot__lv {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.member {
+  cursor: pointer;
+  text-align: left;
+}
+
+.member__enhance {
+  flex-shrink: 0;
+  align-self: stretch;
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  min-width: 64px;
+  border-radius: 12px;
+  background: rgba(255, 207, 92, 0.14);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 14px;
+  text-align: center;
+  transition: transform 0.08s ease;
+}
+
+.member__enhance small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.member__enhance:active {
+  transform: scale(0.95);
+}
+
+.enh {
+  color: var(--text);
+  text-align: left;
+}
+
+.enh__top {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.enh__card .cardf {
+  --card-w: 150px;
+}
+
+.enh__info {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.enh__title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.enh__level strong {
+  font-size: 28px;
+  color: var(--accent);
+}
+
+.enh__level span {
+  color: var(--muted);
+}
+
+.enh__power {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.enh__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.enh__note {
+  margin: 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.enh__btn {
+  width: 100%;
+  min-height: 68px;
+  font-size: 18px;
+}
+
+/* ── 대결 (던전) ───────────────────── */
+.dungeon {
+  display: grid;
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+@media (min-width: 1100px) {
+  .dungeon {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    max-width: none;
+    align-items: start;
+  }
+}
+
+.rival {
+  --rival: #888;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--rival) 80%, #fff), var(--rival) 55%, color-mix(in srgb, var(--rival) 50%, #000));
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15), 0 0 24px color-mix(in srgb, var(--rival) 50%, transparent);
+}
+
+.rival--sm {
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+}
+
+.rival--lg {
+  width: 120px;
+  height: 120px;
+  font-size: 60px;
+}
+
+.dungeon__stage {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px;
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 15% 50%, rgba(255, 77, 109, 0.18), transparent 60%), var(--panel-strong);
+}
+
+.dungeon__rival {
+  display: grid;
+  gap: 6px;
+}
+
+.dungeon__badges {
+  display: flex;
+  gap: 6px;
+}
+
+.stage-badge,
+.boss-badge {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.boss-badge {
+  background: var(--live);
+  box-shadow: 0 0 10px var(--live);
+}
+
+.dungeon__name {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.dungeon__taunt {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.dungeon__reward {
+  font-size: 13px;
+  color: #8fe3ff;
+  font-weight: 700;
+}
+
+.dungeon__vs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.dungeon__stat {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.dungeon__stat span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dungeon__stat strong,
+.odds {
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.odds.is-good {
+  color: var(--up);
+}
+
+.odds.is-close {
+  color: var(--accent);
+}
+
+.odds.is-bad {
+  color: var(--down);
+}
+
+.dungeon__start {
+  width: 100%;
+  min-height: 72px;
+  font-size: 22px;
+}
+
+.dungeon__tip {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.dungeon__ladder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.ladder {
+  display: grid;
+  grid-template-columns: 28px auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 14px;
+}
+
+.ladder__no {
+  font-weight: 800;
+  color: var(--muted);
+  text-align: center;
+}
+
+.ladder__name {
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ladder__hp {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ladder__state {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ladder.is-cleared {
+  opacity: 0.6;
+}
+
+.ladder.is-cleared .ladder__state {
+  color: var(--up);
+}
+
+.ladder.is-current {
+  background: rgba(255, 207, 92, 0.12);
+  border: 1px solid rgba(255, 207, 92, 0.4);
+}
+
+.ladder.is-current .ladder__state {
+  color: var(--accent);
+}
+
+.ladder.is-locked .rival {
+  filter: grayscale(0.8) brightness(0.6);
+}
+
+.ladder.is-boss .ladder__name::after {
+  content: ' BOSS';
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--live);
+}
+
+/* 대결 화면 */
+.battle {
+  --rival: #888;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: max(16px, env(safe-area-inset-top)) 20px max(16px, env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--rival) 35%, #140f30), #07061a 75%);
+  animation: fade-in 0.2s ease;
+}
+
+.battle__top {
+  display: grid;
+  gap: 10px;
+}
+
+.battle__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.battle__time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.battle__time-bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.battle__time-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5cc8ff, #8b6bff);
+}
+
+.battle__arena {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+}
+
+.battle__taunt {
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  font-style: italic;
+}
+
+.battle__target {
+  touch-action: manipulation;
+  border-radius: 50%;
+}
+
+.battle__target .rival--lg {
+  width: min(34vw, 220px);
+  height: min(34vw, 220px);
+  font-size: min(17vw, 110px);
+}
+
+.battle__target.is-hit {
+  animation: hit 0.2s ease;
+}
+
+@keyframes hit {
+  40% {
+    transform: scale(0.92) rotate(-4deg);
+    filter: brightness(1.5);
+  }
+}
+
+.battle__hp {
+  width: min(560px, 80vw);
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.battle__hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4d6d, #ff8a5c);
+  transition: width 0.1s linear;
+}
+
+.battle__hp-text {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.battle__floats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.battle__float {
+  position: absolute;
+  top: 38%;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  animation: float-up 0.9s ease-out forwards;
+}
+
+.battle__float.is-tap {
+  color: var(--accent);
+  font-size: 26px;
+}
+
+@keyframes float-up {
+  to {
+    transform: translateY(-90px);
+    opacity: 0;
+  }
+}
+
+.battle__hint {
+  font-size: 14px;
+  color: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.battle__bottom {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.battle__team {
+  display: flex;
+  gap: 8px;
+  height: 110px;
+}
+
+.battle__member {
+  height: 100%;
+  animation: cheer 0.7s ease-in-out infinite alternate;
+}
+
+.battle__member:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.battle__member:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.battle__member:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+.battle__member .sd {
+  height: 100%;
+  width: auto;
+}
+
+@keyframes cheer {
+  to {
+    transform: translateY(-8px);
+  }
+}
+
+.battle__atk {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.battle__atk strong {
+  color: var(--up);
+  font-size: 20px;
+}
+
+.battle__result {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(7, 6, 26, 0.93);
+  text-align: center;
+  animation: fade-in 0.3s ease;
+}
+
+.battle__verdict {
+  font-size: clamp(40px, 7vw, 64px);
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(255, 207, 92, 0.6);
+}
+
+.battle__verdict.is-lose {
+  color: #c8c3e8;
+  text-shadow: none;
+}
+
+.battle__reward {
+  font-size: 20px;
+  font-weight: 800;
+  color: #8fe3ff;
+}
+
+.battle__advice {
+  max-width: 420px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.battle__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.battle__actions .btn {
+  min-width: 160px;
+}
+
+@media (max-width: 899px) {
+  .dungeon__vs {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .rival--lg {
+    width: 96px;
+    height: 96px;
+    font-size: 48px;
   }
 }

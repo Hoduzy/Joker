@@ -12,6 +12,8 @@ export interface ModalConfig {
   wide?: boolean;
   /** 패널에 붙일 추가 클래스 */
   panelClass?: string;
+  /** 확인 버튼을 눈에 덜 띄게 (본문에 주 버튼이 따로 있을 때) */
+  confirmGhost?: boolean;
 }
 
 /** 가운데 뜨는 알림/확인 창 */
@@ -19,7 +21,7 @@ export function openModal(config: ModalConfig): void {
   document.getElementById('modal')?.remove();
   const close = () => document.getElementById('modal')?.remove();
 
-  const confirm = h('button', { class: 'btn btn--primary', type: 'button' }, config.confirmLabel ?? '확인');
+  const confirm = h('button', { class: `btn ${config.confirmGhost ? 'btn--ghost' : 'btn--primary'}`, type: 'button' }, config.confirmLabel ?? '확인');
   onTap(confirm, () => {
     close();
     config.onConfirm?.();

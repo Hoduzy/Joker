@@ -107,7 +107,7 @@ describe('Game.pull', () => {
 
   it('keeps one member in only one slot', () => {
     const g = new Game(0);
-    g.state.cards['haneul-ssr'] = { limitBreak: 0, obtainedAt: 0 };
+    g.state.cards['haneul-ssr'] = { limitBreak: 0, level: 1, obtainedAt: 0 };
     g.assign('dj', 'haneul-r');
     g.assign('guest', 'haneul-ssr');
     expect(g.state.assignments.dj).toBeNull();

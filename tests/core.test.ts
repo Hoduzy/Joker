@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardStats, listenersPerSecond, slotPower, totalPower, towerUpgradeCost } from '../src/core/economy';
+import { BASE_PROGRESS, cardStats, listenersPerSecond, slotPower, totalPower, towerUpgradeCost } from '../src/core/economy';
 import { calcOfflineReward } from '../src/core/offline';
 import { milestoneThreshold, newMilestones } from '../src/core/rewards';
 import { migrate } from '../src/core/save';
@@ -35,13 +35,13 @@ describe('economy', () => {
   it('applies the slot bonus only in the card\'s own slot', () => {
     const card = getCard('haneul-r')!; // 담당: DJ
     const base = 32 + (8 + 14 + 22) * 0.2;
-    expect(slotPower(card, 0, dj)).toBeCloseTo(base * (1 + BALANCE.slotBonus));
-    expect(slotPower(card, 0, guest)).toBeCloseTo(22 + (32 + 8 + 14) * 0.2);
+    expect(slotPower(card, BASE_PROGRESS, dj)).toBeCloseTo(base * (1 + BALANCE.slotBonus));
+    expect(slotPower(card, BASE_PROGRESS, guest)).toBeCloseTo(22 + (32 + 8 + 14) * 0.2);
   });
 
   it('raises stats with limit break', () => {
     const card = getCard('haneul-ssr')!;
-    expect(cardStats(card, 5).voice).toBe(Math.round(60 * (1 + 5 * BALANCE.limitBreak.statBonusPerLevel)));
+    expect(cardStats(card, { limitBreak: 5, level: 1 }).voice).toBe(Math.round(60 * (1 + 5 * BALANCE.limitBreak.statBonusPerLevel)));
   });
 
   it('applies the full lineup bonus only when every slot is filled', () => {

@@ -1,4 +1,4 @@
-import { isFullLineup, limitBreakOf, slotPower } from '../core/economy';
+import { isFullLineup, limitBreakOf, progressOf, slotPower } from '../core/economy';
 import { equipBonuses } from '../core/equipment';
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
@@ -74,12 +74,12 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): St
       { class: `slot slot--${card.rarity}` },
       role,
       stage,
-      h('div', { class: 'slot__name' }, member.name, rarityBadge(card.rarity)),
+      h('div', { class: 'slot__name' }, member.name, rarityBadge(card.rarity), h('span', { class: 'slot__lv' }, `Lv.${game.state.cards[card.id]?.level ?? 1}`)),
       h('div', { class: 'slot__card' }, card.title),
       h(
         'div',
         { class: 'slot__power' },
-        `파워 ${Math.round(slotPower(card, lb, slot, equipBonuses(game.state)))}`,
+        `파워 ${Math.round(slotPower(card, progressOf(game.state, card.id), slot, equipBonuses(game.state)))}`,
         matched ? h('span', { class: 'tag tag--slot is-active' }, '담당 +30%') : null,
       ),
       lb > 0 ? lbPips(lb) : null,

@@ -2,6 +2,7 @@ import { BALANCE } from '../data/balance';
 import { getCard, starterCardOf } from '../data/cards';
 import { SUB_OPTION_IDS, getGrade, getItemDef, gradeRank, type SubOptionId } from '../data/equipment';
 import { getCorner } from '../data/flavor';
+import { maxCardLevel } from './economy';
 import { maxBoxLevel, type EquipItem } from './equipment';
 import { getMember } from '../data/members';
 import { SLOT_IDS } from '../data/slots';
@@ -77,6 +78,7 @@ export function migrate(data: unknown, now: number): GameState {
   if (version < 2) d = migrateV1toV2(d, now);
   if (version < 3) d = migrateV2toV3(d, now);
   if (version < 4) d = migrateV3toV4(d, now);
+  if (version < 5) d = migrateV4toV5(d);
   return normalize(d, now);
 }
 
@@ -92,7 +94,7 @@ function migrateV1toV2(d: Record<string, unknown>, now: number): Record<string, 
   const cards: Record<string, OwnedCard> = {};
   for (const memberId of ownedMembers) {
     const cardId = starterCardOf(memberId);
-    if (cardId) cards[cardId] = { limitBreak: 0, obtainedAt: now };
+    if (cardId) cards[cardId] = { limitBreak: 0, level: 1, obtainedAt: now };
   }
   const oldAssignments = (d.assignments ?? {}) as Record<string, unknown>;
   const assignments = emptyAssignments();
@@ -125,6 +127,14 @@ function migrateV2toV3(d: Record<string, unknown>, now: number): Record<string, 
 /** v3 → v4: 오늘의 코너 추가 */
 function migrateV3toV4(d: Record<string, unknown>, now: number): Record<string, unknown> {
   return { ...d, version: 4, corner: todayCorner(now) };
+}
+
+/** v4 → v5: 카드 강화 레벨(모두 1부터)과 라이벌 대결 진행 추가 */
+function migrateV4toV5(d: Record<string, unknown>): Record<string, unknown> {
+  const cards = (typeof d.cards === 'object' && d.cards !== null ? d.cards : {}) as Record<string, Record<string, unknown>>;
+  const withLevel: Record<string, unknown> = {};
+  for (const [id, c] of Object.entries(cards)) withLevel[id] = { ...c, level: 1 };
+  return { ...d, version: 5, cards: withLevel, dungeon: { stage: 1 } };
 }
 
 /** 저장된 장비 1개 검사. 정의가 사라졌거나 값이 이상하면 null */
@@ -177,8 +187,10 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
   const cards: Record<string, OwnedCard> = {};
   for (const [id, owned] of Object.entries(rawCards)) {
     if (!getCard(id)) continue; // 삭제된 카드
+    const limitBreak = Math.min(BALANCE.limitBreak.max, Math.max(0, Math.floor(num(owned?.limitBreak, 0))));
     cards[id] = {
-      limitBreak: Math.min(BALANCE.limitBreak.max, Math.max(0, Math.floor(num(owned?.limitBreak, 0)))),
+      limitBreak,
+      level: Math.min(maxCardLevel(limitBreak), Math.max(1, Math.floor(num(owned?.level, 1)))),
       obtainedAt: num(owned?.obtainedAt, now),
     };
   }
@@ -222,6 +234,7 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     box,
     nextUid: Math.max(maxUid + 1, Math.floor(num(d.nextUid, 1))),
     corner: normalizeCorner(d.corner, now),
+    dungeon: { stage: Math.max(1, Math.floor(num((d.dungeon as { stage?: unknown } | undefined)?.stage, 1))) },
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }

@@ -1,0 +1,17 @@
+{
+  "rivals": [
+    { "id": "byeolbit",  "name": "별빛고 방송부",     "emoji": "⭐", "color": "#7aa2ff", "taunt": "우리 청취자, 뺏어 갈 수 있으면 뺏어 봐!",       "defeat": "다음 방송제에서 두고 보자…" },
+    { "id": "haeoreum",  "name": "해오름고 라디오부", "emoji": "🌅", "color": "#ffb547", "taunt": "아침 방송 1위가 밤에도 1위지!",                 "defeat": "밤에는… 너희가 더 세구나." },
+    { "id": "pado",      "name": "파도고 음악방송부", "emoji": "🌊", "color": "#5cc8ff", "taunt": "신청곡이라면 우리가 원조야.",                  "defeat": "선곡에서 졌다… 인정." },
+    { "id": "baram",     "name": "바람중 교내방송반", "emoji": "🍃", "color": "#6ee7a8", "taunt": "중학생이라고 얕보지 마!",                      "defeat": "언니들 방송, 멋있어요…" },
+    { "id": "dalbit",    "name": "달빛여고 낭독부",   "emoji": "🌙", "color": "#c9b8ff", "taunt": "사연은 목소리로 읽는 거야.",                   "defeat": "그 작가, 우리 부로 오면 안 될까?" },
+    { "id": "cheongun",  "name": "청운고 방송기술부", "emoji": "🔧", "color": "#b8c0cc", "taunt": "장비 스펙은 우리가 한 수 위.",                 "defeat": "음질로도 졌네…" },
+    { "id": "hanbit",    "name": "한빛고 아이돌부",   "emoji": "🎤", "color": "#ff8fb8", "taunt": "라디오? 요즘은 무대지!",                       "defeat": "라디오… 생각보다 재밌잖아?" },
+    { "id": "goyo",      "name": "고요고 ASMR부",     "emoji": "🎧", "color": "#a9c4e8", "taunt": "…쉿. 조용한 쪽이 이겨.",                        "defeat": "…졌어. 아주 조용히." }
+  ],
+  "bosses": [
+    { "id": "eunhasu",   "name": "방송제 우승팀 '은하수 FM'",   "emoji": "🌌", "color": "#8b6bff", "taunt": "작년 우승팀이 누군지 잊었어?",          "defeat": "올해 우승은… 너희 거겠네." },
+    { "id": "jeonpa",    "name": "전국 1위 '전파상회'",         "emoji": "📡", "color": "#ff5f7e", "taunt": "전국구 송신탑 앞에서 무릎 꿇어라!",     "defeat": "전파의 왕좌를 넘겨주지." },
+    { "id": "simya2",    "name": "그림자 심야방송부",           "emoji": "🌑", "color": "#3d3566", "taunt": "진짜 심야방송부는 우리야.",            "defeat": "…너희가 진짜였구나." }
+  ]
+}

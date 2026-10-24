@@ -123,6 +123,37 @@ export const BALANCE = {
   /** 방송 채팅 */
   chat: { minIntervalMs: 1100, maxIntervalMs: 3000, maxMessages: 40 },
 
+  /** 카드 강화 (청취자를 써서 카드 레벨업) */
+  enhance: {
+    /** 최대 레벨 = base + perLimitBreak × 돌파 단계 */
+    maxLevelBase: 20,
+    maxLevelPerLimitBreak: 4,
+    /** 레벨 1당 능력치 +6% */
+    statPerLevel: 0.06,
+    /** 레벨 n → n+1 비용 = base[등급] × growth^(n-1) */
+    costBase: { R: 50, SR: 90, SSR: 150 } satisfies Record<Rarity, number>,
+    costGrowth: 1.22,
+  },
+
+  /** 라이벌 방송부 대결 (던전) */
+  dungeon: {
+    /** 라이벌 청취자(=체력): base × growth^(스테이지-1), 5스테이지마다 보스 */
+    hpBase: 500,
+    hpGrowth: 1.32,
+    bossEvery: 5,
+    bossHpMult: 2,
+    /** 제한 시간 */
+    timeLimitMs: 30 * 1000,
+    /** 라이벌을 탭하면 '응원 공격': 지금 공격력(초당 청취자) × 이 값 */
+    tapDamage: 0.15,
+    /** 첫 승리 보상 */
+    stonesBase: 40,
+    stonesPerStage: 8,
+    bossStoneMult: 3,
+    bossTickets: 5,
+    bossParts: 30,
+  },
+
   /** 오프라인 보상 최대 누적 시간(ms) */
   offlineCapMs: 12 * 60 * 60 * 1000,
   /** 이 시간 이상 자리를 비웠을 때만 오프라인 보상 창을 띄운다(ms) */

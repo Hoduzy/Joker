@@ -6,11 +6,13 @@ import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
   limitBreak: number;
+  /** 강화 레벨 1~ (최대는 돌파 단계에 따라) */
+  level: number;
   /** 처음 얻은 시각 (epoch ms) */
   obtainedAt: number;
 }
@@ -42,6 +44,8 @@ export interface GameState {
   nextUid: number;
   /** 오늘의 코너 id와 그 날짜 (날짜가 바뀌면 다음 코너로) */
   corner: { id: string; day: string };
+  /** 라이벌 방송부 대결: 다음에 도전할 스테이지 (1부터) */
+  dungeon: { stage: number };
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
 }
@@ -94,7 +98,7 @@ export function starterCards(now: number): Record<string, OwnedCard> {
   const cards: Record<string, OwnedCard> = {};
   for (const m of MEMBERS) {
     const id = starterCardOf(m.id);
-    if (id) cards[id] = { limitBreak: 0, obtainedAt: now };
+    if (id) cards[id] = { limitBreak: 0, level: 1, obtainedAt: now };
   }
   return cards;
 }
@@ -114,6 +118,7 @@ export function createInitialState(now: number): GameState {
     box: createBox(now),
     nextUid: 1,
     corner: todayCorner(now),
+    dungeon: { stage: 1 },
     lastTick: now,
   };
 }

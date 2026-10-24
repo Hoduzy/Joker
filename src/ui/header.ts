@@ -1,8 +1,9 @@
 import type { Game } from '../core/game';
+import { towerMultiplier } from '../core/economy';
 import { milestoneReward, milestoneThreshold } from '../core/rewards';
 import { formatNumber, formatRate } from '../utils/format';
 import type { Component } from './component';
-import { h } from './dom';
+import { h, onTap } from './dom';
 
 const BOOST_LABEL = { legend: '📮 레전드 사연', accident: '📡 방송사고' } as const;
 
@@ -12,6 +13,25 @@ export function createHeader(game: Game): Component {
   const stones = h('span', { class: 'hud__count hud__count--stones' }, '0');
   const lamp = h('span', { class: 'onair' }, 'ON AIR');
   const boosts = h('div', { class: 'hud__boosts' });
+
+  // 송신탑: 스크롤 없이 언제든 누를 수 있게 헤더에 둔다
+  const towerFill = h('span', { class: 'tower-btn__fill' });
+  const towerLevel = h('strong', {});
+  const towerSub = h('small', {});
+  const towerBtn = h(
+    'button',
+    { class: 'tower-btn', type: 'button', 'aria-label': '송신탑 레벨업' },
+    towerFill,
+    h('span', { class: 'tower-btn__icon', 'aria-hidden': 'true' }, '📡'),
+    h('span', { class: 'tower-btn__text' }, towerLevel, towerSub),
+  );
+  onTap(towerBtn, () => {
+    if (!game.upgradeTower()) {
+      towerBtn.classList.remove('is-denied');
+      void towerBtn.offsetWidth;
+      towerBtn.classList.add('is-denied');
+    }
+  });
 
   // 다음 목표 (누적 청취자 마일스톤)
   const goalText = h('span', { class: 'goal__text' });
@@ -24,6 +44,7 @@ export function createHeader(game: Game): Component {
     goalText,
     h('div', { class: 'goal__bar' }, goalFill),
     goalReward,
+    boosts,
   );
 
   const el = h(
@@ -33,7 +54,7 @@ export function createHeader(game: Game): Component {
       'div',
       { class: 'hud__top' },
       h('div', { class: 'hud__brand' }, lamp, h('h1', { class: 'hud__title' }, '심야방송부')),
-      boosts,
+      towerBtn,
       h(
         'div',
         { class: 'hud__stats' },
@@ -49,12 +70,20 @@ export function createHeader(game: Game): Component {
     el,
     render() {
       lamp.classList.toggle('is-live', game.baseRate > 0);
+      const lv = game.state.towerLevel;
+      towerLevel.textContent = `송신탑 Lv.${lv}`;
+      towerBtn.title = `송출 배율 ×${towerMultiplier(lv).toFixed(2)} → ×${towerMultiplier(lv + 1).toFixed(2)}`;
     },
     tick() {
       const s = game.state;
       count.textContent = formatNumber(s.listeners);
       rate.textContent = `+${formatRate(game.rate)} /초`;
       stones.textContent = formatNumber(s.stones);
+      const cost = game.towerCost;
+      const can = s.listeners >= cost;
+      towerSub.textContent = `${can ? '레벨업!' : '레벨업'} · ${formatNumber(cost)}`;
+      towerFill.style.width = `${Math.min(100, (s.listeners / cost) * 100)}%`;
+      towerBtn.classList.toggle('is-ready', can);
 
       const step = s.milestonesReached;
       const next = milestoneThreshold(step);

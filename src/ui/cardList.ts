@@ -1,10 +1,11 @@
-import { cardStats, limitBreakOf } from '../core/economy';
+import { cardStats, limitBreakOf, progressOf } from '../core/economy';
 import type { Game } from '../core/game';
 import { CARDS, compareCards, getCard, type CardDef } from '../data/cards';
 import { getMember } from '../data/members';
 import { SLOTS } from '../data/slots';
 import { STAT_KEYS, STAT_LABELS } from '../data/stats';
 import { openSlotPicker } from './assign';
+import { openEnhance } from './enhance';
 import { cardFrame, lbPips, rarityBadge, slotTag } from './cardView';
 import type { Component } from './component';
 import { h, onTap } from './dom';
@@ -19,11 +20,17 @@ export function createCardList(game: Game): Component {
     const member = getMember(card.member)!;
     const lb = limitBreakOf(game.state, card.id);
     const slot = SLOTS.find((s) => game.state.assignments[s.id] === card.id);
-    const stats = cardStats(card, lb);
+    const stats = cardStats(card, progressOf(game.state, card.id));
+    const level = game.state.cards[card.id]?.level ?? 1;
+    const enhanceBtn = h('button', { class: 'member__enhance', type: 'button' }, h('span', {}, '강화'), h('small', {}, game.enhanceCost(card.id) === null ? 'MAX' : `Lv.${level}`));
+    enhanceBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEnhance(game, card);
+    });
     const row = h(
-      'button',
-      { class: `member${slot ? ' is-assigned' : ''}`, type: 'button' },
-      cardFrame(card, { size: 'sm' }),
+      'div',
+      { class: `member${slot ? ' is-assigned' : ''}`, role: 'button', tabindex: 0, 'aria-label': `${member.name} ${card.title} 배치` },
+      cardFrame(card, { size: 'sm', level }),
       h(
         'div',
         { class: 'member__body' },
@@ -41,12 +48,16 @@ export function createCardList(game: Game): Component {
           { class: 'stats' },
           ...STAT_KEYS.map((key) => {
             const fill = h('div', { class: 'stat__fill' });
-            fill.style.width = `${Math.min(100, (stats[key] / 80) * 100)}%`;
+            fill.style.width = `${Math.min(100, (stats[key] / 120) * 100)}%`;
             return h('div', { class: 'stat' }, h('span', { class: 'stat__label' }, STAT_LABELS[key]), h('div', { class: 'stat__bar' }, fill), h('span', { class: 'stat__value' }, String(stats[key])));
           }),
         ),
       ),
+      enhanceBtn,
     );
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') openSlotPicker(game, card);
+    });
     onTap(row, () => openSlotPicker(game, card));
     return row;
   }

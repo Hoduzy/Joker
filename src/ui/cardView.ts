@@ -12,6 +12,8 @@ export interface CardFrameOptions {
   /** false면 실루엣(미보유) */
   owned?: boolean;
   limitBreak?: number;
+  /** 강화 레벨 (주면 오른쪽 위에 표시) */
+  level?: number;
 }
 
 /**
@@ -19,7 +21,7 @@ export interface CardFrameOptions {
  * 등급별 테두리(R 은색 · SR 금색 · SSR 무지개)를 씌운다.
  */
 export function cardFrame(card: CardDef, opts: CardFrameOptions = {}): HTMLElement {
-  const { size = 'md', owned = true, limitBreak } = opts;
+  const { size = 'md', owned = true, limitBreak, level } = opts;
   const member = getMember(card.member);
   const art = cardArtUrl(card.id, card.member);
   const inner = h('div', { class: 'cardf__inner' });
@@ -30,6 +32,7 @@ export function cardFrame(card: CardDef, opts: CardFrameOptions = {}): HTMLEleme
 
   const el = h('div', { class: `cardf cardf--${card.rarity} cardf--${size}${owned ? '' : ' is-locked'}` }, inner, rarityBadge(card.rarity));
   el.style.setProperty('--member-color', member?.color ?? '#888');
+  if (owned && level !== undefined) el.append(h('span', { class: 'cardf__lv' }, `Lv.${level}`));
 
   if (size === 'md' || size === 'lg') {
     el.append(

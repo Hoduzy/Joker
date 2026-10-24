@@ -14,7 +14,7 @@ const rand = (min: number, max: number) => min + Math.random() * (max - min);
 function blocked(): boolean {
   return (
     document.visibilityState !== 'visible' ||
-    !!document.querySelector('#modal, #sheet, .pull, .flyer, .accident, .story')
+    !!document.querySelector('#modal, #sheet, .pull, .flyer, .accident, .story, .battle')
   );
 }
 

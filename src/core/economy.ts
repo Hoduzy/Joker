@@ -6,17 +6,41 @@ import { getCorner } from '../data/flavor';
 import { equipBonuses, type EquipBonuses } from './equipment';
 import type { GameState } from './state';
 
-/** 돌파가 반영된 카드 능력치 */
-export function cardStats(card: CardDef, limitBreak: number): Stats {
-  const mult = 1 + BALANCE.limitBreak.statBonusPerLevel * limitBreak;
+/** 카드 성장 상태: 돌파 단계와 강화 레벨 */
+export interface CardProgress {
+  limitBreak: number;
+  level: number;
+}
+
+export const BASE_PROGRESS: CardProgress = { limitBreak: 0, level: 1 };
+
+export function progressOf(state: GameState, cardId: string): CardProgress {
+  const owned = state.cards[cardId];
+  return owned ? { limitBreak: owned.limitBreak, level: owned.level } : BASE_PROGRESS;
+}
+
+/** 강화 최대 레벨 (돌파할수록 올라간다) */
+export function maxCardLevel(limitBreak: number): number {
+  return BALANCE.enhance.maxLevelBase + BALANCE.enhance.maxLevelPerLimitBreak * limitBreak;
+}
+
+/** 레벨 n → n+1 강화 비용 (청취자) */
+export function enhanceCost(card: CardDef, level: number): number {
+  return Math.ceil(BALANCE.enhance.costBase[card.rarity] * Math.pow(BALANCE.enhance.costGrowth, level - 1));
+}
+
+/** 돌파·강화가 반영된 카드 능력치 */
+export function cardStats(card: CardDef, progress: CardProgress = BASE_PROGRESS): Stats {
+  const mult =
+    (1 + BALANCE.limitBreak.statBonusPerLevel * progress.limitBreak) * (1 + BALANCE.enhance.statPerLevel * (progress.level - 1));
   const out = {} as Stats;
   for (const key of STAT_KEYS) out[key] = Math.round(card.stats[key] * mult);
   return out;
 }
 
 /** 카드 능력치 + 공용 장비 주 스탯, 그다음 '모든 능력치 %' 적용 */
-export function effectiveStats(card: CardDef, limitBreak: number, bonus?: EquipBonuses): Stats {
-  const stats = cardStats(card, limitBreak);
+export function effectiveStats(card: CardDef, progress: CardProgress, bonus?: EquipBonuses): Stats {
+  const stats = cardStats(card, progress);
   if (!bonus) return stats;
   const mult = 1 + bonus.allStatsPct / 100;
   for (const key of STAT_KEYS) stats[key] = Math.round((stats[key] + bonus.stats[key]) * mult);
@@ -24,8 +48,8 @@ export function effectiveStats(card: CardDef, limitBreak: number, bonus?: EquipB
 }
 
 /** 카드를 특정 슬롯에 넣었을 때의 기여 파워 (담당 슬롯 보너스, 장비 포함) */
-export function slotPower(card: CardDef, limitBreak: number, slot: SlotDef, bonus?: EquipBonuses): number {
-  const stats = effectiveStats(card, limitBreak, bonus);
+export function slotPower(card: CardDef, progress: CardProgress, slot: SlotDef, bonus?: EquipBonuses): number {
+  const stats = effectiveStats(card, progress, bonus);
   let power = 0;
   for (const key of STAT_KEYS) {
     power += stats[key] * (key === slot.mainStat ? BALANCE.mainStatWeight : BALANCE.subStatWeight);
@@ -50,7 +74,7 @@ export function totalPower(state: GameState): number {
     const id = state.assignments[slot.id];
     const card = id ? getCard(id) : undefined;
     if (!card) continue;
-    const power = slotPower(card, limitBreakOf(state, card.id), slot, bonus);
+    const power = slotPower(card, progressOf(state, card.id), slot, bonus);
     // 오늘의 코너가 미는 슬롯
     sum += slot.id === cornerSlot ? power * (1 + BALANCE.cornerBonus) : power;
   }

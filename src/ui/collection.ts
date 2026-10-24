@@ -1,4 +1,4 @@
-import { cardStats, limitBreakOf, slotPower } from '../core/economy';
+import { cardStats, limitBreakOf, maxCardLevel, slotPower } from '../core/economy';
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
 import { CARDS, type CardDef } from '../data/cards';
@@ -6,6 +6,7 @@ import { MEMBERS, getMember } from '../data/members';
 import { SLOTS } from '../data/slots';
 import { STAT_KEYS, STAT_LABELS } from '../data/stats';
 import { openSlotPicker } from './assign';
+import { openEnhance } from './enhance';
 import { cardFrame, lbPips, rarityBadge, slotName } from './cardView';
 import type { Component } from './component';
 import { h, onTap } from './dom';
@@ -48,7 +49,11 @@ export function createCollection(game: Game): Component {
               { class: 'collection__grid' },
               ...cards.map((card) => {
                 const isOwned = !!owned[card.id];
-                const btn = h('button', { class: 'collection__item', type: 'button' }, cardFrame(card, { size: 'md', owned: isOwned, limitBreak: isOwned ? limitBreakOf(game.state, card.id) : undefined }));
+                const btn = h(
+                  'button',
+                  { class: 'collection__item', type: 'button' },
+                  cardFrame(card, { size: 'md', owned: isOwned, limitBreak: isOwned ? limitBreakOf(game.state, card.id) : undefined, level: owned[card.id]?.level }),
+                );
                 onTap(btn, () => openCardDetail(game, card));
                 return btn;
               }),
@@ -73,8 +78,9 @@ export function openCardDetail(game: Game, card: CardDef): void {
     return;
   }
   const lb = owned.limitBreak;
-  const stats = cardStats(card, lb);
-  const nextStats = lb < BALANCE.limitBreak.max ? cardStats(card, lb + 1) : null;
+  const progress = { limitBreak: lb, level: owned.level };
+  const stats = cardStats(card, progress);
+  const nextStats = lb < BALANCE.limitBreak.max ? cardStats(card, { ...progress, limitBreak: lb + 1 }) : null;
   const info = h(
     'div',
     { class: 'detail__info' },
@@ -82,6 +88,17 @@ export function openCardDetail(game: Game, card: CardDef): void {
     h('h3', { class: 'detail__title' }, card.title),
     card.quote ? h('p', { class: 'detail__quote' }, `“${card.quote}”`) : null,
     h('div', { class: 'detail__row' }, h('span', {}, '돌파'), lbPips(lb), h('span', { class: 'detail__muted' }, `${lb}/${BALANCE.limitBreak.max} · 능력치 +${Math.round(lb * BALANCE.limitBreak.statBonusPerLevel * 100)}%`)),
+    h(
+      'div',
+      { class: 'detail__row' },
+      h('span', {}, '강화'),
+      h('strong', {}, `Lv.${owned.level} / ${maxCardLevel(lb)}`),
+      (() => {
+        const b = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '강화하기');
+        onTap(b, () => openEnhance(game, card));
+        return b;
+      })(),
+    ),
     h('div', { class: 'detail__row' }, h('span', {}, '담당'), h('span', { class: 'tag tag--slot is-active' }, `${slotName(card.slot)} +${Math.round(BALANCE.slotBonus * 100)}%`)),
     h(
       'div',
@@ -93,12 +110,12 @@ export function openCardDetail(game: Game, card: CardDef): void {
     h(
       'div',
       { class: 'detail__powers' },
-      ...SLOTS.map((slot) => h('div', { class: `detail__power${slot.id === card.slot ? ' is-best' : ''}` }, h('span', {}, slot.name), h('strong', {}, String(Math.round(slotPower(card, lb, slot)))))),
+      ...SLOTS.map((slot) => h('div', { class: `detail__power${slot.id === card.slot ? ' is-best' : ''}` }, h('span', {}, slot.name), h('strong', {}, String(Math.round(slotPower(card, progress, slot)))))),
     ),
   );
   openModal({
     title: '카드 정보',
-    body: h('div', { class: 'detail' }, cardFrame(card, { size: 'lg', limitBreak: lb }), info),
+    body: h('div', { class: 'detail' }, cardFrame(card, { size: 'lg', limitBreak: lb, level: owned.level }), info),
     cancelLabel: '닫기',
     confirmLabel: '방송에 배치',
     onConfirm: () => openSlotPicker(game, card),

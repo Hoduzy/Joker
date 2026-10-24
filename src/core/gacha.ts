@@ -65,7 +65,7 @@ export function pull(state: GameState, count: number, rng: Rng = Math.random, no
 export function grantCard(state: GameState, card: CardDef, byPity = false, now = Date.now()): PullResult {
   const owned = state.cards[card.id];
   if (!owned) {
-    state.cards[card.id] = { limitBreak: 0, obtainedAt: now };
+    state.cards[card.id] = { limitBreak: 0, level: 1, obtainedAt: now };
     return { card, isNew: true, limitBreak: 0, refund: 0, byPity };
   }
   if (owned.limitBreak < BALANCE.limitBreak.max) {

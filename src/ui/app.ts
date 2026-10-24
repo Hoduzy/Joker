@@ -10,6 +10,7 @@ import type { Component } from './component';
 import { celebrate } from './celebrate';
 import { createChat } from './chat';
 import { createDelivery } from './delivery';
+import { createDungeon } from './dungeon';
 import { createDialogue } from './dialogue';
 import { openCompare } from './equipCompare';
 import { h, onTap } from './dom';
@@ -20,10 +21,9 @@ import { closeSheet } from './sheet';
 import { createStudio } from './studio';
 import { createTabs, ICONS } from './tabs';
 import { gemIcon, toast } from './toast';
-import { createTower } from './tower';
 import { startLiveEvents } from './liveEvents';
 
-type ScreenId = 'studio' | 'gacha' | 'collection';
+type ScreenId = 'studio' | 'dungeon' | 'gacha' | 'collection';
 const TAB_KEY = 'simya-bangsongbu/tab';
 const RARITY_RANK = { R: 0, SR: 1, SSR: 2 } as const;
 
@@ -32,13 +32,13 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const dialogue = createDialogue();
   const header = createHeader(game);
   const studio = createStudio(game, (id) => dialogue.say(id, 'poke'));
-  const tower = createTower(game);
   const cardList = createCardList(game);
   const gacha = createGacha(game, (results) => sayAboutNewCard(results));
   const collection = createCollection(game);
   const delivery = createDelivery(game);
   const chat = createChat(game);
-  const components: Component[] = [header, delivery, studio, tower, cardList, gacha, collection, chat];
+  const dungeon = createDungeon(game);
+  const components: Component[] = [header, delivery, studio, cardList, gacha, collection, chat, dungeon];
 
   const resetBtn = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '데이터 초기화');
   onTap(resetBtn, () =>
@@ -60,7 +60,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
       h(
         'div',
         { class: 'layout studio-main' },
-        h('div', { class: 'layout__main' }, studio.el, tower.el),
+        h('div', { class: 'layout__main' }, studio.el),
         h(
           'div',
           { class: 'layout__side' },
@@ -69,6 +69,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
         ),
       ),
     ),
+    dungeon: h('main', { class: 'screen', 'data-screen': 'dungeon' }, dungeon.el),
     gacha: h('main', { class: 'screen', 'data-screen': 'gacha' }, gacha.el),
     collection: h('main', { class: 'screen', 'data-screen': 'collection' }, collection.el),
   };
@@ -76,6 +77,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const tabs = createTabs(
     [
       { id: 'studio', label: '방송실', icon: ICONS.studio },
+      { id: 'dungeon', label: '대결', icon: ICONS.dungeon },
       { id: 'gacha', label: '뽑기', icon: ICONS.gacha },
       { id: 'collection', label: '도감', icon: ICONS.collection },
     ],
@@ -155,7 +157,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
   let saved: ScreenId = 'studio';
   try {
     const t = localStorage.getItem(TAB_KEY);
-    if (t === 'gacha' || t === 'collection') saved = t;
+    if (t === 'gacha' || t === 'collection' || t === 'dungeon') saved = t;
   } catch {
     // 무시
   }

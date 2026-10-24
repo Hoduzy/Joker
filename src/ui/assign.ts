@@ -1,4 +1,4 @@
-import { limitBreakOf, listenersPerSecond, previewRateWith, slotPower } from '../core/economy';
+import { limitBreakOf, listenersPerSecond, previewRateWith, progressOf, slotPower } from '../core/economy';
 import { equipBonuses } from '../core/equipment';
 import type { Game } from '../core/game';
 import { compareCards, getCard, type CardDef } from '../data/cards';
@@ -48,7 +48,7 @@ export function openCardPicker(game: Game, slot: SlotDef): void {
           h(
             'div',
             { class: 'pick__meta' },
-            `${STAT_LABELS[slot.mainStat]} 파워 ${Math.round(slotPower(card, lb, slot, equipBonuses(state)))}`,
+            `${STAT_LABELS[slot.mainStat]} 파워 ${Math.round(slotPower(card, progressOf(state, card.id), slot, equipBonuses(state)))}`,
             card.slot === slot.id ? h('span', { class: 'tag tag--slot is-active' }, '담당 보너스 +30%') : slotTag(card.slot),
             sameMember ? h('span', { class: 'tag' }, `${sameMember.name}에서 이동`) : null,
           ),
@@ -91,7 +91,7 @@ export function openSlotPicker(game: Game, card: CardDef): void {
             h(
               'div',
               { class: 'pick__name' },
-              `${STAT_LABELS[slot.mainStat]} 파워 ${Math.round(slotPower(card, lb, slot, equipBonuses(state)))}`,
+              `${STAT_LABELS[slot.mainStat]} 파워 ${Math.round(slotPower(card, progressOf(state, card.id), slot, equipBonuses(state)))}`,
               card.slot === slot.id ? h('span', { class: 'tag tag--slot is-active' }, '담당 +30%') : null,
             ),
             h('div', { class: 'pick__meta' }, here ? '탭하면 자리에서 내립니다' : occupant ? `현재: ${getMember(occupant.member)?.name} · ${occupant.title} (교체)` : '비어 있음'),
