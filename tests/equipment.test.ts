@@ -16,7 +16,7 @@ import { listenersPerSecond } from '../src/core/economy';
 import type { Rng } from '../src/core/gacha';
 import { Game } from '../src/core/game';
 import { migrate } from '../src/core/save';
-import { createInitialState } from '../src/core/state';
+import { createInitialState, SAVE_VERSION } from '../src/core/state';
 import { BALANCE } from '../src/data/balance';
 import { GRADES, PARTS, getGrade } from '../src/data/equipment';
 
@@ -208,7 +208,7 @@ describe('save migration v2 → v3', () => {
       { version: 2, listeners: 500, stones: 900, towerLevel: 3, cards: { 'haneul-ssr': { limitBreak: 2 } }, assignments: { dj: 'haneul-ssr' }, gacha: { pity: 33, totalPulls: 40 }, lastTick: 100 },
       1000,
     );
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(SAVE_VERSION);
     expect(s.stones).toBe(900);
     expect(s.cards['haneul-ssr'].limitBreak).toBe(2);
     expect(s.gacha.pity).toBe(33);
@@ -219,7 +219,7 @@ describe('save migration v2 → v3', () => {
 
   it('migrates v1 all the way to v3', () => {
     const s = migrate({ version: 1, ownedMembers: ['haneul'], assignments: { dj: 'haneul' }, towerLevel: 2 }, 0);
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(SAVE_VERSION);
     expect(s.assignments.dj).toBe('haneul-r');
     expect(s.box.tickets).toBe(BALANCE.tickets.start);
   });

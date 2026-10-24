@@ -7,6 +7,8 @@ import { formatDuration, formatNumber } from '../utils/format';
 import { createCardList } from './cardList';
 import { createCollection } from './collection';
 import type { Component } from './component';
+import { celebrate } from './celebrate';
+import { createChat } from './chat';
 import { createDelivery } from './delivery';
 import { createDialogue } from './dialogue';
 import { openCompare } from './equipCompare';
@@ -19,6 +21,7 @@ import { createStudio } from './studio';
 import { createTabs, ICONS } from './tabs';
 import { gemIcon, toast } from './toast';
 import { createTower } from './tower';
+import { startLiveEvents } from './liveEvents';
 
 type ScreenId = 'studio' | 'gacha' | 'collection';
 const TAB_KEY = 'simya-bangsongbu/tab';
@@ -34,7 +37,8 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const gacha = createGacha(game, (results) => sayAboutNewCard(results));
   const collection = createCollection(game);
   const delivery = createDelivery(game);
-  const components: Component[] = [header, delivery, studio, tower, cardList, gacha, collection];
+  const chat = createChat(game);
+  const components: Component[] = [header, delivery, studio, tower, cardList, gacha, collection, chat];
 
   const resetBtn = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '데이터 초기화');
   onTap(resetBtn, () =>
@@ -50,11 +54,12 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const screens: Record<ScreenId, HTMLElement> = {
     studio: h(
       'main',
-      { class: 'screen', 'data-screen': 'studio' },
+      { class: 'screen studio-screen', 'data-screen': 'studio' },
       delivery.el,
+      chat.el,
       h(
         'div',
-        { class: 'layout' },
+        { class: 'layout studio-main' },
         h('div', { class: 'layout__main' }, studio.el, tower.el),
         h(
           'div',
@@ -122,15 +127,20 @@ export function mountApp(root: HTMLElement, game: Game): void {
       }
       case 'tower-up': {
         toast(`송신탑 Lv.${event.level}! 전파석 +${event.reward}`, gemIcon());
+        chat.burst('towerUp', 2);
         const id = randomAssignedMember(game);
         if (id) dialogue.say(id, 'towerUp');
         break;
       }
-      case 'stones':
-        toast(`${event.reason}! 전파석 +${formatNumber(event.amount)}`, gemIcon());
+      case 'milestone':
+        celebrate(
+          event.count > 1 ? `🎉 마일스톤 ${event.count}개 달성!` : `🎉 누적 청취자 ${formatNumber(event.threshold)}명 달성!`,
+          `전파석 +${formatNumber(event.stones)}`,
+        );
+        chat.burst('milestone', 3);
         break;
-      case 'legend-story':
-        toast(`📮 레전드 사연 도착! 청취자 +${formatNumber(event.amount)}`);
+      case 'corner':
+        toast('📻 날짜가 바뀌어 오늘의 코너가 바뀌었어요');
         break;
       case 'box-level':
         toast(
@@ -151,6 +161,10 @@ export function mountApp(root: HTMLElement, game: Game): void {
   }
   renderAll();
   show(saved);
+  const live = startLiveEvents(game, studio, chat);
+  game.on((e) => e.type === 'changed' && live.syncBubbles());
+  // 헤더 높이(다음 목표 줄 포함)를 CSS에 알려 채팅 패널 높이를 맞춘다
+  new ResizeObserver(() => document.documentElement.style.setProperty('--hud-h', `${header.el.offsetHeight}px`)).observe(header.el);
   // 고르지 않고 닫았던 장비가 있으면 다시 보여 준다
   if (game.state.box.pending && saved === 'studio') openCompare(game, game.state.box.pending);
   startLoop(game, components, tabs);

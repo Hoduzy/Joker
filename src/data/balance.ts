@@ -92,12 +92,36 @@ export const BALANCE = {
     buyGrowth: 1.3,
   },
 
-  /** 레전드 사연: 장비 부가옵션 '레전드 사연 확률'이 있을 때, 일정 간격마다 확률로 도착 */
-  legendStory: {
-    rollIntervalMs: 10 * 1000,
-    /** 도착하면 지금 생산량 기준 이 시간(초)만큼 청취자 지급 */
-    rewardSeconds: 60,
+  /** 오늘의 코너가 미는 슬롯의 파워 보너스 (+20%) */
+  cornerBonus: 0.2,
+
+  /** 레전드 사연 엽서: 화면을 가로질러 날아가고, 탭하면 일정 시간 청취자 배수 */
+  legend: {
+    minIntervalMs: 60 * 1000,
+    maxIntervalMs: 180 * 1000,
+    /** 화면을 가로지르는 시간 */
+    flightMs: 9000,
+    durationMs: 30 * 1000,
+    multiplier: 3,
   },
+
+  /** 방송사고: 노이즈가 뜨고 제한 시간 안에 탭하면 보너스, 놓치면 생산 감소 */
+  accident: {
+    minIntervalMs: 2 * 60 * 1000,
+    maxIntervalMs: 5 * 60 * 1000,
+    windowMs: 5000,
+    penaltyMs: 20 * 1000,
+    penaltyMultiplier: 0.5,
+    /** 복구 보너스: 지금 생산량 기준 이 시간(초)만큼 청취자 + 전파석 */
+    bonusSeconds: 60,
+    bonusStones: 20,
+  },
+
+  /** 부원 말풍선 */
+  bubbles: { minIntervalMs: 10 * 1000, maxIntervalMs: 20 * 1000, showMs: 4200 },
+
+  /** 방송 채팅 */
+  chat: { minIntervalMs: 1100, maxIntervalMs: 3000, maxMessages: 40 },
 
   /** 오프라인 보상 최대 누적 시간(ms) */
   offlineCapMs: 12 * 60 * 60 * 1000,

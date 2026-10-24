@@ -6,27 +6,43 @@ import { getCard } from '../data/cards';
 import { getMember } from '../data/members';
 import { SLOTS, type SlotDef } from '../data/slots';
 import { STAT_LABELS } from '../data/stats';
+import { getCorner } from '../data/flavor';
 import { openCardPicker } from './assign';
 import { lbPips, rarityBadge } from './cardView';
 import type { Component } from './component';
 import { h, memberSd, onTap } from './dom';
 
+export interface Studio extends Component {
+  /** 배치된 부원 머리 위에 말풍선을 띄운다. 배치되어 있지 않으면 false */
+  say(memberId: string, text: string, ms: number): boolean;
+}
+
 /** 방송 슬롯 4개(DJ/엔지니어/작가/게스트). 카드 단위로 배치한다. */
-export function createStudio(game: Game, onPoke: (memberId: string) => void): Component {
+export function createStudio(game: Game, onPoke: (memberId: string) => void): Studio {
   const grid = h('div', { class: 'slots' });
+  // 슬롯을 다시 그려도 말풍선이 사라지지 않게 별도 층에 둔다
+  const bubbles = h('div', { class: 'bubbles', 'aria-live': 'polite' });
+  const bubbleTimers = new Map<string, number>();
   const bonus = h('p', { class: 'studio__bonus' });
   const el = h(
     'section',
     { class: 'panel studio' },
     h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, '오늘의 방송'), bonus),
-    grid,
+    h('div', { class: 'slots-wrap' }, grid, bubbles),
   );
 
   function renderSlot(slot: SlotDef): HTMLElement {
     const cardId = game.state.assignments[slot.id];
     const card = cardId ? getCard(cardId) : undefined;
     const member = card ? getMember(card.member) : undefined;
-    const role = h('div', { class: 'slot__role' }, slot.name, h('span', { class: 'slot__stat' }, STAT_LABELS[slot.mainStat]));
+    const corner = getCorner(game.state.corner.id);
+    const role = h(
+      'div',
+      { class: 'slot__role' },
+      slot.name,
+      h('span', { class: 'slot__stat' }, STAT_LABELS[slot.mainStat]),
+      corner?.slot === slot.id ? h('span', { class: 'slot__corner', title: `오늘의 코너: ${corner.name}` }, `${corner.emoji} 코너`) : null,
+    );
 
     if (!card || !member) {
       const empty = h(
@@ -73,10 +89,44 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): Co
     return el;
   }
 
+  function say(memberId: string, text: string, ms: number): boolean {
+    const index = SLOTS.findIndex((s) => {
+      const id = game.state.assignments[s.id];
+      return id && getCard(id)?.member === memberId;
+    });
+    const slotEl = grid.children[index] as HTMLElement | undefined;
+    if (index < 0 || !slotEl) return false;
+    bubbles.querySelector(`[data-member="${memberId}"]`)?.remove();
+    const bubble = h('div', { class: 'bubble', 'data-member': memberId }, text);
+    bubble.style.left = `${slotEl.offsetLeft + slotEl.offsetWidth / 2}px`;
+    // 역할 이름 줄 아래, SD 머리 위쯤
+    bubble.style.top = `${slotEl.offsetTop + 56}px`;
+    bubbles.append(bubble);
+    window.clearTimeout(bubbleTimers.get(memberId));
+    bubbleTimers.set(
+      memberId,
+      window.setTimeout(() => {
+        bubble.classList.add('is-out');
+        setTimeout(() => bubble.remove(), 250);
+      }, ms),
+    );
+    return true;
+  }
+
   return {
     el,
+    say,
     render() {
       grid.replaceChildren(...SLOTS.map(renderSlot));
+      // 배치가 바뀌어 자리가 없어진 부원의 말풍선 정리
+      for (const b of [...bubbles.children] as HTMLElement[]) {
+        const memberId = b.dataset.member;
+        const stillOn = SLOTS.some((s) => {
+          const id = game.state.assignments[s.id];
+          return id && getCard(id)?.member === memberId;
+        });
+        if (!stillOn) b.remove();
+      }
       const full = isFullLineup(game.state);
       const pct = Math.round((BALANCE.fullLineupBonus - 1) * 100);
       bonus.textContent = full ? `풀 라인업 보너스 +${pct}%` : `4명 모두 배치 시 +${pct}%`;

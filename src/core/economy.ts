@@ -2,6 +2,7 @@ import { BALANCE } from '../data/balance';
 import { getCard, type CardDef } from '../data/cards';
 import { SLOTS, type SlotDef, type SlotId } from '../data/slots';
 import { STAT_KEYS, type Stats } from '../data/stats';
+import { getCorner } from '../data/flavor';
 import { equipBonuses, type EquipBonuses } from './equipment';
 import type { GameState } from './state';
 
@@ -43,11 +44,15 @@ export function isFullLineup(state: GameState): boolean {
 /** 배치된 카드들의 파워 합 (풀 라인업 보너스 포함) */
 export function totalPower(state: GameState): number {
   const bonus = equipBonuses(state);
+  const cornerSlot = getCorner(state.corner.id)?.slot;
   let sum = 0;
   for (const slot of SLOTS) {
     const id = state.assignments[slot.id];
     const card = id ? getCard(id) : undefined;
-    if (card) sum += slotPower(card, limitBreakOf(state, card.id), slot, bonus);
+    if (!card) continue;
+    const power = slotPower(card, limitBreakOf(state, card.id), slot, bonus);
+    // 오늘의 코너가 미는 슬롯
+    sum += slot.id === cornerSlot ? power * (1 + BALANCE.cornerBonus) : power;
   }
   return isFullLineup(state) ? sum * BALANCE.fullLineupBonus : sum;
 }

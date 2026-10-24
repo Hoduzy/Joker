@@ -1,11 +1,12 @@
 import { BALANCE } from '../data/balance';
+import { cornerForDay, dayKey } from '../data/flavor';
 import { PARTS } from '../data/equipment';
 import type { AutoSettings, EquipItem } from './equipment';
 import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -39,6 +40,8 @@ export interface GameState {
   box: BoxState;
   /** 장비 고유 번호 발급용 */
   nextUid: number;
+  /** 오늘의 코너 id와 그 날짜 (날짜가 바뀌면 다음 코너로) */
+  corner: { id: string; day: string };
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
 }
@@ -55,6 +58,11 @@ export interface BoxState {
   /** 지금까지 연 택배 수 */
   opened: number;
   auto: AutoSettings;
+}
+
+export function todayCorner(now: number): { id: string; day: string } {
+  const day = dayKey(new Date(now));
+  return { id: cornerForDay(day).id, day };
 }
 
 export function emptyEquipment(): Record<string, EquipItem | null> {
@@ -105,6 +113,7 @@ export function createInitialState(now: number): GameState {
     equipment: emptyEquipment(),
     box: createBox(now),
     nextUid: 1,
+    corner: todayCorner(now),
     lastTick: now,
   };
 }

@@ -17,7 +17,7 @@ import { pull as rollPulls, type PullResult, type Rng } from './gacha';
 import { calcOfflineReward, type OfflineResult } from './offline';
 import { newMilestones, towerUpReward } from './rewards';
 import { loadGame, resetSave, saveGame } from './save';
-import { createInitialState, type GameState } from './state';
+import { createInitialState, todayCorner, type GameState } from './state';
 
 export type GameEvent =
   /** 배치·레벨·카드 등 화면 구조가 바뀌는 변화 */
@@ -27,11 +27,22 @@ export type GameEvent =
   /** 슬롯 배치가 바뀜. cardId가 null이면 비움, previous는 원래 있던 카드 */
   | { type: 'assigned'; slotId: SlotId; cardId: string | null; previous: string | null }
   | { type: 'tower-up'; level: number; reward: number }
-  /** 전파석 획득 (마일스톤 등). 알림 표시용 */
-  | { type: 'stones'; amount: number; reason: string }
-  /** 레전드 사연 도착 (장비 부가옵션) */
-  | { type: 'legend-story'; amount: number }
-  | { type: 'box-level'; level: number };
+  /** 누적 청취자 마일스톤 달성 (여러 개를 한꺼번에 넘겼을 수도 있다) */
+  | { type: 'milestone'; threshold: number; count: number; stones: number }
+  | { type: 'box-level'; level: number }
+  /** 청취자 배수(레전드 사연·방송사고)가 생기거나 끝남 */
+  | { type: 'boost' }
+  /** 날짜가 바뀌어 오늘의 코너가 바뀜 */
+  | { type: 'corner'; id: string };
+
+export type BoostKind = 'legend' | 'accident';
+
+export interface Boost {
+  kind: BoostKind;
+  multiplier: number;
+  /** 끝나는 시각 (epoch ms) */
+  until: number;
+}
 
 export interface SalvageResult {
   stones: number;
@@ -48,8 +59,8 @@ export class Game {
   state: GameState;
   private listeners = new Set<Listener>();
   private lastSave = 0;
-  /** 레전드 사연 판정용 누적 시간 (저장하지 않는다) */
-  private legendClock = 0;
+  /** 진행 중인 청취자 배수. 짧은 연출용이라 저장하지 않는다 */
+  boosts: Boost[] = [];
 
   constructor(now = Date.now()) {
     this.state = loadGame(now);
@@ -64,8 +75,60 @@ export class Game {
     for (const l of this.listeners) l(event);
   }
 
+  /** 지금 초당 청취자 (배수 포함) */
   get rate(): number {
+    return listenersPerSecond(this.state) * this.multiplier();
+  }
+
+  /** 배수를 뺀 기본 초당 청취자 */
+  get baseRate(): number {
     return listenersPerSecond(this.state);
+  }
+
+  /** 진행 중인 배수들의 곱 */
+  multiplier(now = Date.now()): number {
+    return this.boosts.reduce((m, b) => (b.until > now ? m * b.multiplier : m), 1);
+  }
+
+  activeBoosts(now = Date.now()): Boost[] {
+    return this.boosts.filter((b) => b.until > now);
+  }
+
+  private addBoost(kind: BoostKind, multiplier: number, durationMs: number, now: number) {
+    // 같은 종류는 시간만 새로 고친다
+    this.boosts = this.boosts.filter((b) => b.kind !== kind && b.until > now);
+    this.boosts.push({ kind, multiplier, until: now + durationMs });
+    this.emit({ type: 'boost' });
+  }
+
+  /** 레전드 사연 엽서를 잡음: 일정 시간 청취자 배수 */
+  claimLegend(now = Date.now()): void {
+    this.advance(now);
+    this.addBoost('legend', BALANCE.legend.multiplier, BALANCE.legend.durationMs, now);
+  }
+
+  /**
+   * 방송사고 결과. 복구하면 청취자·전파석 보너스, 놓치면 일정 시간 생산 감소.
+   * 복구 보너스를 돌려준다.
+   */
+  resolveAccident(fixed: boolean, now = Date.now()): { listeners: number; stones: number } {
+    this.advance(now);
+    if (!fixed) {
+      this.addBoost('accident', BALANCE.accident.penaltyMultiplier, BALANCE.accident.penaltyMs, now);
+      return { listeners: 0, stones: 0 };
+    }
+    const listeners = this.baseRate * BALANCE.accident.bonusSeconds;
+    const stones = BALANCE.accident.bonusStones;
+    this.addListeners(listeners);
+    this.state.stones += stones;
+    this.checkMilestones();
+    this.commit();
+    return { listeners, stones };
+  }
+
+  /** 레전드 사연 엽서가 오는 간격 배율 (장비 '레전드 사연 확률 %'만큼 자주 온다) */
+  legendFrequency(): number {
+    return 1 + equipBonuses(this.state).legendStoryPct / 100;
   }
 
   /**
@@ -79,8 +142,11 @@ export class Game {
       // 장비 부가옵션 '오프라인 보상 %'
       result.earned *= 1 + equipBonuses(this.state).offlinePct / 100;
     } else {
-      this.rollLegendStory(result.elapsedMs);
+      // 화면을 보고 있는 동안에만 레전드 사연·방송사고 배수가 걸린다
+      result.earned *= this.multiplier(now);
     }
+    this.updateBoosts(now);
+    this.updateCorner(now);
     this.addListeners(result.earned);
     this.state.lastTick = now;
     const ticketsBefore = this.state.box.tickets;
@@ -101,20 +167,20 @@ export class Game {
     this.state.totalListeners += amount;
   }
 
-  /** 레전드 사연: 일정 간격마다 '레전드 사연 확률 %'로 도착해 청취자를 듬뿍 준다 */
-  private rollLegendStory(elapsedMs: number, rng: Rng = Math.random): void {
-    const chance = equipBonuses(this.state).legendStoryPct / 100;
-    if (chance <= 0) return;
-    this.legendClock += elapsedMs;
-    const { rollIntervalMs, rewardSeconds } = BALANCE.legendStory;
-    while (this.legendClock >= rollIntervalMs) {
-      this.legendClock -= rollIntervalMs;
-      if (rng() < chance) {
-        const amount = this.rate * rewardSeconds;
-        this.addListeners(amount);
-        this.emit({ type: 'legend-story', amount });
-      }
-    }
+  /** 끝난 배수를 정리하고, 바뀌었으면 알린다 */
+  private updateBoosts(now: number): void {
+    const before = this.boosts.length;
+    this.boosts = this.boosts.filter((b) => b.until > now);
+    if (this.boosts.length !== before) this.emit({ type: 'boost' });
+  }
+
+  /** 날짜가 바뀌면 오늘의 코너를 바꾼다 */
+  private updateCorner(now: number): void {
+    const today = todayCorner(now);
+    if (today.day === this.state.corner.day) return;
+    this.state.corner = today;
+    this.emit({ type: 'corner', id: today.id });
+    this.emit({ type: 'changed' });
   }
 
   /** 새로 넘긴 청취자 마일스톤 보상을 지급한다. 지급했으면 true */
@@ -124,9 +190,7 @@ export class Game {
     const amount = hits.reduce((sum, h) => sum + h.reward, 0);
     this.state.stones += amount;
     this.state.milestonesReached += hits.length;
-    const last = hits[hits.length - 1].threshold;
-    const reason = hits.length === 1 ? `누적 청취자 ${last.toLocaleString('ko-KR')}명 달성` : `청취자 마일스톤 ${hits.length}개 달성`;
-    this.emit({ type: 'stones', amount, reason });
+    this.emit({ type: 'milestone', threshold: hits[hits.length - 1].threshold, count: hits.length, stones: amount });
     this.emit({ type: 'changed' });
     return true;
   }

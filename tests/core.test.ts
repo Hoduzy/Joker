@@ -3,7 +3,7 @@ import { cardStats, listenersPerSecond, slotPower, totalPower, towerUpgradeCost 
 import { calcOfflineReward } from '../src/core/offline';
 import { milestoneThreshold, newMilestones } from '../src/core/rewards';
 import { migrate } from '../src/core/save';
-import { createInitialState } from '../src/core/state';
+import { createInitialState, SAVE_VERSION } from '../src/core/state';
 import { BALANCE } from '../src/data/balance';
 import { CARDS, getCard } from '../src/data/cards';
 import { SLOTS } from '../src/data/slots';
@@ -100,7 +100,7 @@ describe('save migration', () => {
       lastTick: 1000,
     };
     const s = migrate(v1, 2000);
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(SAVE_VERSION);
     expect(s.listeners).toBe(1234);
     expect(s.totalListeners).toBe(5678);
     expect(s.towerLevel).toBe(4);

@@ -1,10 +1,22 @@
 import { BALANCE } from '../data/balance';
 import { getCard, starterCardOf } from '../data/cards';
 import { SUB_OPTION_IDS, getGrade, getItemDef, gradeRank, type SubOptionId } from '../data/equipment';
+import { getCorner } from '../data/flavor';
 import { maxBoxLevel, type EquipItem } from './equipment';
 import { getMember } from '../data/members';
 import { SLOT_IDS } from '../data/slots';
-import { createBox, createInitialState, emptyAssignments, emptyEquipment, SAVE_VERSION, starterCards, type BoxState, type GameState, type OwnedCard } from './state';
+import {
+  createBox,
+  createInitialState,
+  emptyAssignments,
+  emptyEquipment,
+  SAVE_VERSION,
+  starterCards,
+  todayCorner,
+  type BoxState,
+  type GameState,
+  type OwnedCard,
+} from './state';
 
 const STORAGE_KEY = 'simya-bangsongbu/save';
 /** 마이그레이션 직전 원본을 남겨 두는 키 (문제가 생기면 복구용) */
@@ -64,6 +76,7 @@ export function migrate(data: unknown, now: number): GameState {
   const version = num(d.version, 1);
   if (version < 2) d = migrateV1toV2(d, now);
   if (version < 3) d = migrateV2toV3(d, now);
+  if (version < 4) d = migrateV3toV4(d, now);
   return normalize(d, now);
 }
 
@@ -109,6 +122,11 @@ function migrateV2toV3(d: Record<string, unknown>, now: number): Record<string, 
   return { ...d, version: 3, equipment: emptyEquipment(), box: createBox(now), nextUid: 1 };
 }
 
+/** v3 → v4: 오늘의 코너 추가 */
+function migrateV3toV4(d: Record<string, unknown>, now: number): Record<string, unknown> {
+  return { ...d, version: 4, corner: todayCorner(now) };
+}
+
 /** 저장된 장비 1개 검사. 정의가 사라졌거나 값이 이상하면 null */
 function normalizeItem(raw: unknown, part?: string): EquipItem | null {
   if (typeof raw !== 'object' || raw === null) return null;
@@ -126,6 +144,12 @@ function normalizeItem(raw: unknown, part?: string): EquipItem | null {
     subs,
     boxLevel: Math.max(1, Math.floor(num(it.boxLevel, 1))),
   };
+}
+
+function normalizeCorner(raw: unknown, now: number): GameState['corner'] {
+  const c = raw as Partial<GameState['corner']> | undefined;
+  if (c && typeof c.id === 'string' && getCorner(c.id) && typeof c.day === 'string') return { id: c.id, day: c.day };
+  return todayCorner(now);
 }
 
 function normalizeBox(raw: unknown, now: number): BoxState {
@@ -197,6 +221,7 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     equipment,
     box,
     nextUid: Math.max(maxUid + 1, Math.floor(num(d.nextUid, 1))),
+    corner: normalizeCorner(d.corner, now),
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }
