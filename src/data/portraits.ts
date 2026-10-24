@@ -54,3 +54,23 @@ export function sdUrl(id: string): string | undefined {
 export function portraitIds(): string[] {
   return [...portraits.keys()].sort();
 }
+
+/** 카드 전용 일러스트: assets/cards/<카드 id>.png (없으면 부원 전신 이미지를 대신 쓴다) */
+const cardFiles = import.meta.glob('/assets/cards/*.{png,jpg,jpeg,webp}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+
+const cardArt = new Map<string, string>();
+for (const [file, url] of Object.entries(cardFiles)) {
+  const match = /\/assets\/cards\/([^/]+)\.\w+$/.exec(file);
+  if (match) cardArt.set(match[1], url);
+}
+
+/** 카드 일러스트 URL과, 전용 일러스트인지(아니면 전신 이미지 대체) 여부 */
+export function cardArtUrl(cardId: string, memberId: string): { url?: string; dedicated: boolean } {
+  const dedicated = cardArt.get(cardId);
+  if (dedicated) return { url: dedicated, dedicated: true };
+  return { url: portraits.get(memberId)?.full, dedicated: false };
+}

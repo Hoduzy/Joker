@@ -6,7 +6,7 @@ export interface Line {
 }
 
 /** 대사가 나오는 상황 */
-export type LineEvent = 'assigned' | 'unassigned' | 'poke' | 'towerUp' | 'welcomeBack';
+export type LineEvent = 'assigned' | 'unassigned' | 'poke' | 'towerUp' | 'welcomeBack' | 'newCard';
 
 type LineTable = Record<LineEvent, Line[]>;
 
@@ -25,6 +25,7 @@ export const LINES: Record<string, LineTable> = {
     ],
     towerUp: [{ expr: 'surprised', text: '와, 송신탑 레벨업! 이제 옆 동네까지 들린대!' }],
     welcomeBack: [{ expr: 'smile', text: '어서 와! 없는 동안에도 열심히 떠들고 있었어~' }],
+    newCard: [{ expr: 'smile', text: '새 카드 나왔다! 이 표정, 잘 나왔지?' }],
   },
   mirae: {
     assigned: [
@@ -39,6 +40,7 @@ export const LINES: Record<string, LineTable> = {
     ],
     towerUp: [{ expr: 'smile', text: '출력 30% 상승. 계산대로야.' }],
     welcomeBack: [{ expr: 'neutral', text: '송출 로그 정상. 자리 비운 동안 끊김 0회.' }],
+    newCard: [{ expr: 'blush', text: '…이 사진, 언제 찍은 거야.' }],
   },
   seoyun: {
     assigned: [
@@ -53,6 +55,7 @@ export const LINES: Record<string, LineTable> = {
     ],
     towerUp: [{ expr: 'surprised', text: '사연함이 벌써 넘칠 것 같아요…!' }],
     welcomeBack: [{ expr: 'smile', text: '오셨네요. 그동안 온 사연, 정리해 뒀어요.' }],
+    newCard: [{ expr: 'blush', text: '엽서에 제 모습이…? 조금 부끄럽네요.' }],
   },
   yuri: {
     assigned: [
@@ -67,6 +70,7 @@ export const LINES: Record<string, LineTable> = {
     ],
     towerUp: [{ expr: 'smile', text: '청취자 늘었다! 나 덕분이지? 그치?' }],
     welcomeBack: [{ expr: 'smile', text: '왔다~! 기다리다가 사연 세 개 읽었어!' }],
+    newCard: [{ expr: 'smile', text: '나 또 나왔어! 이 정도면 고정 맞지?' }],
   },
   dahye: {
     assigned: [
@@ -81,6 +85,7 @@ export const LINES: Record<string, LineTable> = {
     ],
     towerUp: [{ expr: 'smile', text: '송신탑 증설 승인. 부원들, 수고했어.' }],
     welcomeBack: [{ expr: 'neutral', text: '늦었네. 방송실은 내가 지키고 있었어.' }],
+    newCard: [{ expr: 'neutral', text: '새 카드라… 부장답게 잘 나왔군.' }],
   },
 };
 

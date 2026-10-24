@@ -6,6 +6,8 @@ export interface ModalConfig {
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm?: () => void;
+  /** 넓은 창 (확률표, 카드 상세) */
+  wide?: boolean;
 }
 
 /** 가운데 뜨는 알림/확인 창 */
@@ -30,7 +32,7 @@ export function openModal(config: ModalConfig): void {
     { class: 'modal', id: 'modal' },
     h(
       'div',
-      { class: 'modal__panel', role: 'dialog', 'aria-modal': 'true' },
+      { class: `modal__panel${config.wide ? ' modal__panel--wide' : ''}`, role: 'dialog', 'aria-modal': 'true' },
       h('h2', { class: 'modal__title' }, config.title),
       h('div', { class: 'modal__body' }, config.body),
       h('div', { class: 'modal__actions' }, cancel, confirm),

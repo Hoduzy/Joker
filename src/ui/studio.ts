@@ -1,15 +1,16 @@
-import { isFullLineup, listenersPerSecond, previewRateWith, slotPower } from '../core/economy';
+import { isFullLineup, limitBreakOf, slotPower } from '../core/economy';
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
+import { getCard } from '../data/cards';
 import { getMember } from '../data/members';
 import { SLOTS, type SlotDef } from '../data/slots';
 import { STAT_LABELS } from '../data/stats';
-import { formatRate } from '../utils/format';
+import { openCardPicker } from './assign';
+import { lbPips, rarityBadge } from './cardView';
 import type { Component } from './component';
-import { h, memberFace, memberSd, onTap } from './dom';
-import { openSheet } from './sheet';
+import { h, memberSd, onTap } from './dom';
 
-/** 방송 슬롯 4개(DJ/엔지니어/작가/게스트) */
+/** 방송 슬롯 4개(DJ/엔지니어/작가/게스트). 카드 단위로 배치한다. */
 export function createStudio(game: Game, onPoke: (memberId: string) => void): Component {
   const grid = h('div', { class: 'slots' });
   const bonus = h('p', { class: 'studio__bonus' });
@@ -20,90 +21,55 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): Co
     grid,
   );
 
-  function openPicker(slot: SlotDef) {
-    const state = game.state;
-    const current = state.assignments[slot.id];
-    const baseRate = listenersPerSecond(state);
-    const options = state.ownedMembers.map((id) => {
-      const m = getMember(id)!;
-      const otherSlot = SLOTS.find((s) => s.id !== slot.id && state.assignments[s.id] === id);
-      const diff = previewRateWith(state, slot.id, id) - baseRate;
-      return {
-        selected: current === id,
-        onSelect: () => game.assign(slot.id, id),
-        content: h(
-          'div',
-          { class: 'pick' },
-          memberFace(m, 'neutral', 'sm'),
-          h(
-            'div',
-            { class: 'pick__info' },
-            h('div', { class: 'pick__name' }, m.name, h('span', { class: `rarity rarity--${m.rarity}` }, m.rarity)),
-            h(
-              'div',
-              { class: 'pick__meta' },
-              `${STAT_LABELS[slot.mainStat]} ${m.stats[slot.mainStat]} · 파워 ${Math.round(slotPower(m, slot))}`,
-              otherSlot ? h('span', { class: 'tag' }, `${otherSlot.name}에서 이동`) : null,
-            ),
-          ),
-          current === id
-            ? h('span', { class: 'pick__diff' }, '배치 중')
-            : h('span', { class: `pick__diff ${diff >= 0 ? 'is-up' : 'is-down'}` }, `${diff >= 0 ? '+' : ''}${formatRate(diff)}/초`),
-        ),
-      };
-    });
-    if (current) {
-      options.push({
-        selected: false,
-        onSelect: () => game.assign(slot.id, null),
-        content: h('div', { class: 'pick pick--empty' }, '자리 비우기'),
-      });
-    }
-    openSheet({
-      title: `${slot.name} 배치`,
-      subtitle: `${slot.description} · 주 능력치: ${STAT_LABELS[slot.mainStat]}`,
-      options,
-    });
-  }
-
   function renderSlot(slot: SlotDef): HTMLElement {
-    const id = game.state.assignments[slot.id];
-    const m = id ? getMember(id) : undefined;
+    const cardId = game.state.assignments[slot.id];
+    const card = cardId ? getCard(cardId) : undefined;
+    const member = card ? getMember(card.member) : undefined;
     const role = h('div', { class: 'slot__role' }, slot.name, h('span', { class: 'slot__stat' }, STAT_LABELS[slot.mainStat]));
 
-    if (!m) {
+    if (!card || !member) {
       const empty = h(
         'button',
         { class: 'slot slot--empty', type: 'button' },
         role,
         h('div', { class: 'slot__stage' }, h('div', { class: 'slot__plus' }, '+')),
         h('div', { class: 'slot__name' }, '비어 있음'),
-        h('div', { class: 'slot__power' }, '탭해서 배치'),
+        h('div', { class: 'slot__power' }, '탭해서 카드 배치'),
       );
-      onTap(empty, () => openPicker(slot));
+      onTap(empty, () => openCardPicker(game, slot));
       return empty;
     }
 
+    const lb = limitBreakOf(game.state, card.id);
+    const matched = card.slot === slot.id;
     // SD를 탭하면 대사, 아래 버튼으로 교체
-    const stage = h('button', { class: 'slot__stage', type: 'button', 'aria-label': `${m.name}에게 말 걸기` }, memberSd(m));
+    const stage = h('button', { class: 'slot__stage', type: 'button', 'aria-label': `${member.name}에게 말 걸기` }, memberSd(member));
     onTap(stage, () => {
       stage.classList.remove('is-bounce');
       void stage.offsetWidth;
       stage.classList.add('is-bounce');
-      onPoke(m.id);
+      onPoke(member.id);
     });
     const change = h('button', { class: 'slot__change', type: 'button' }, '교체');
-    onTap(change, () => openPicker(slot));
-    const card = h(
+    onTap(change, () => openCardPicker(game, slot));
+    const el = h(
       'div',
-      { class: 'slot' },
+      { class: `slot slot--${card.rarity}` },
       role,
       stage,
-      h('div', { class: 'slot__name' }, m.name, h('span', { class: 'slot__power' }, ` · 파워 ${Math.round(slotPower(m, slot))}`)),
+      h('div', { class: 'slot__name' }, member.name, rarityBadge(card.rarity)),
+      h('div', { class: 'slot__card' }, card.title),
+      h(
+        'div',
+        { class: 'slot__power' },
+        `파워 ${Math.round(slotPower(card, lb, slot))}`,
+        matched ? h('span', { class: 'tag tag--slot is-active' }, '담당 +30%') : null,
+      ),
+      lb > 0 ? lbPips(lb) : null,
       change,
     );
-    card.style.setProperty('--member-color', m.color);
-    return card;
+    el.style.setProperty('--member-color', member.color);
+    return el;
   }
 
   return {

@@ -1,30 +1,42 @@
 import { BALANCE } from '../data/balance';
-import { getMember, type MemberDef } from '../data/members';
-import { SLOTS, type SlotDef } from '../data/slots';
-import { STAT_KEYS } from '../data/stats';
+import { getCard, type CardDef } from '../data/cards';
+import { SLOTS, type SlotDef, type SlotId } from '../data/slots';
+import { STAT_KEYS, type Stats } from '../data/stats';
 import type { GameState } from './state';
 
-/** 특정 부원이 특정 슬롯에 들어갔을 때의 기여 파워 */
-export function slotPower(member: MemberDef, slot: SlotDef): number {
+/** 돌파가 반영된 카드 능력치 */
+export function cardStats(card: CardDef, limitBreak: number): Stats {
+  const mult = 1 + BALANCE.limitBreak.statBonusPerLevel * limitBreak;
+  const out = {} as Stats;
+  for (const key of STAT_KEYS) out[key] = Math.round(card.stats[key] * mult);
+  return out;
+}
+
+/** 카드를 특정 슬롯에 넣었을 때의 기여 파워 (담당 슬롯 보너스 포함) */
+export function slotPower(card: CardDef, limitBreak: number, slot: SlotDef): number {
+  const stats = cardStats(card, limitBreak);
   let power = 0;
   for (const key of STAT_KEYS) {
-    const weight = key === slot.mainStat ? BALANCE.mainStatWeight : BALANCE.subStatWeight;
-    power += member.stats[key] * weight;
+    power += stats[key] * (key === slot.mainStat ? BALANCE.mainStatWeight : BALANCE.subStatWeight);
   }
-  return power;
+  return card.slot === slot.id ? power * (1 + BALANCE.slotBonus) : power;
+}
+
+export function limitBreakOf(state: GameState, cardId: string): number {
+  return state.cards[cardId]?.limitBreak ?? 0;
 }
 
 export function isFullLineup(state: GameState): boolean {
   return SLOTS.every((slot) => state.assignments[slot.id] !== null);
 }
 
-/** 배치된 부원들의 파워 합 (풀 라인업 보너스 포함) */
+/** 배치된 카드들의 파워 합 (풀 라인업 보너스 포함) */
 export function totalPower(state: GameState): number {
   let sum = 0;
   for (const slot of SLOTS) {
     const id = state.assignments[slot.id];
-    const member = id ? getMember(id) : undefined;
-    if (member) sum += slotPower(member, slot);
+    const card = id ? getCard(id) : undefined;
+    if (card) sum += slotPower(card, limitBreakOf(state, card.id), slot);
   }
   return isFullLineup(state) ? sum * BALANCE.fullLineupBonus : sum;
 }
@@ -43,12 +55,24 @@ export function listenersPerSecond(state: GameState): number {
   return totalPower(state) * BALANCE.listenersPerPower * towerMultiplier(state.towerLevel);
 }
 
-/** 슬롯에 해당 부원을 넣었을 때 초당 증가량 미리보기 */
-export function previewRateWith(state: GameState, slotId: SlotDef['id'], memberId: string | null): number {
+/**
+ * 슬롯 배치 결과. 같은 부원의 다른 카드가 다른 슬롯에 있으면 그 자리는 비운다
+ * (한 부원은 한 번에 한 슬롯에만 나갈 수 있다).
+ */
+export function withAssignment(state: GameState, slotId: SlotId, cardId: string | null): Record<SlotId, string | null> {
   const assignments = { ...state.assignments };
-  for (const key of Object.keys(assignments) as SlotDef['id'][]) {
-    if (memberId !== null && assignments[key] === memberId) assignments[key] = null;
+  const card = cardId ? getCard(cardId) : undefined;
+  if (card) {
+    for (const key of Object.keys(assignments) as SlotId[]) {
+      const other = assignments[key];
+      if (other && getCard(other)?.member === card.member) assignments[key] = null;
+    }
   }
-  assignments[slotId] = memberId;
-  return listenersPerSecond({ ...state, assignments });
+  assignments[slotId] = cardId;
+  return assignments;
+}
+
+/** 슬롯에 해당 카드를 넣었을 때 초당 증가량 미리보기 */
+export function previewRateWith(state: GameState, slotId: SlotId, cardId: string | null): number {
+  return listenersPerSecond({ ...state, assignments: withAssignment(state, slotId, cardId) });
 }
