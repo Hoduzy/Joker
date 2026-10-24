@@ -133,6 +133,12 @@ export const BALANCE = {
     /** 레벨 n → n+1 비용 = base[등급] × growth^(n-1) */
     costBase: { R: 50, SR: 90, SSR: 150 } satisfies Record<Rarity, number>,
     costGrowth: 1.22,
+    /** 튜닝 키트: 1 + (레벨-1)/10 개 */
+    kitsPerTenLevels: 1,
+    /** 성공 확률: 이 레벨까지 100%, 그다음 레벨마다 -3% (최저 60%). 실패해도 레벨은 안 내려간다 */
+    safeUntil: 9,
+    failStep: 0.03,
+    minSuccess: 0.6,
   },
 
   /** 라이벌 방송부 대결 (던전) */
@@ -146,13 +152,64 @@ export const BALANCE = {
     timeLimitMs: 30 * 1000,
     /** 라이벌을 탭하면 '응원 공격': 지금 공격력(초당 청취자) × 이 값 */
     tapDamage: 0.15,
-    /** 첫 승리 보상 */
+    /** 승리 보상 (스테이지마다 한 번) */
     stonesBase: 40,
     stonesPerStage: 8,
     bossStoneMult: 3,
-    bossTickets: 5,
+    tickets: 3,
+    kits: 1,
+    bossTickets: 8,
+    bossKits: 3,
     bossParts: 30,
+    /** 대결 연출 길이 */
+    showMs: 4000,
+    /** 연출 중 라이벌을 탭하면: 공격력 × 이 초만큼 추가 */
+    tapSeconds: 0.5,
   },
+
+  /** 호감도 (부원별) */
+  bond: {
+    maxLevel: 10,
+    /** 레벨 n에 필요한 누적 호감도 (index 0 = 레벨 1) */
+    xpTable: [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
+    /** 방송에 배치해 둔 1분당 호감도 (오프라인 포함, 오프라인 상한 적용) */
+    placementXpPerMin: 1,
+    /** 호감도 레벨 1당 그 부원 카드 능력치 +3% */
+    statPerLevel: 0.03,
+    /** 대화: 하루 이 횟수까지 호감도를 준다 */
+    talkXp: 3,
+    talksPerDay: 5,
+    /** 선물: 부원마다 하루 3번 */
+    giftsPerDay: 3,
+    /** 선물 비용(청취자) = 기본 × 선물 배율 × growth^(송신탑 레벨-1), 좋아하는 선물은 호감도 2배 */
+    giftCostBase: 80,
+    giftCostGrowth: 1.3,
+    gifts: [
+      { id: 'snack', name: '편의점 간식', emoji: '🍙', costMult: 1, xp: 30 },
+      { id: 'drink', name: '따뜻한 캔음료', emoji: '☕', costMult: 2, xp: 55 },
+      { id: 'goods', name: '방송부 굿즈', emoji: '🎀', costMult: 4, xp: 100 },
+    ],
+    /** 이 레벨에 단둘이 이벤트가 열린다 */
+    eventLevels: [2, 4, 6, 8, 10],
+  },
+
+  /** 튜닝 키트 (카드 강화 재료) */
+  kits: {
+    start: 10,
+    /** 택배 분해 부품 이만큼 → 키트 1개 */
+    partsPerKit: 10,
+  },
+
+  /** 일일 미션 */
+  missions: {
+    perDay: 5,
+    stonesEach: 20,
+    allClearStones: 150,
+    allClearKits: 3,
+  },
+
+  /** 문자: 마지막 접속 문자 이후 이 시간이 지나면 접속할 때 새 문자가 온다 */
+  phone: { loginIntervalMs: 3 * 60 * 60 * 1000 },
 
   /** 오프라인 보상 최대 누적 시간(ms) */
   offlineCapMs: 12 * 60 * 60 * 1000,

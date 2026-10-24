@@ -18,6 +18,8 @@ import { h, onTap } from './dom';
 import { openCompare } from './equipCompare';
 import { equipCard, equipTile, fmtPct, gradeColor } from './equipView';
 import { openModal } from './modal';
+import { lightPillar, popNumber } from './fx';
+import { sfx } from './sfx';
 import { gemIcon, toast } from './toast';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -75,7 +77,10 @@ export function createDelivery(game: Game): Component {
   const partsText = h('span', {});
   const partsFill = h('div', { class: 'progress__fill progress__fill--parts' });
   const levelUp = h('button', { class: 'btn btn--primary btn--small', type: 'button' }, '레벨업');
-  onTap(levelUp, () => game.levelUpBox());
+  onTap(levelUp, () => game.levelUpBox() && sfx.levelUp());
+  // 남는 부품 → 카드 강화용 튜닝 키트
+  const kitBtn = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, `🔧 키트 교환`);
+  onTap(kitBtn, () => openKitExchange(game));
 
   const autoBtn = h('button', { class: 'btn btn--auto', type: 'button' });
   const autoStatus = h('span', { class: 'delivery__auto-status' });
@@ -99,7 +104,7 @@ export function createDelivery(game: Game): Component {
       'div',
       { class: 'delivery__controls' },
       h('div', { class: 'delivery__row' }, h('span', { class: 'ticket', 'aria-hidden': 'true' }, '🎫'), tickets, ticketTimer, h('span', { class: 'delivery__spacer' }), buy1, buy10),
-      h('div', { class: 'delivery__row' }, h('span', { class: 'delivery__parts-label' }, '부품'), h('div', { class: 'progress delivery__parts' }, partsFill), partsText, levelUp),
+      h('div', { class: 'delivery__row' }, h('span', { class: 'delivery__parts-label' }, '부품'), h('div', { class: 'progress delivery__parts' }, partsFill), partsText, levelUp, kitBtn),
       h('div', { class: 'delivery__row' }, autoBtn, autoStatus),
       bonusLine,
     ),
@@ -112,6 +117,7 @@ export function createDelivery(game: Game): Component {
   /** 상자가 열리고 장비가 튀어나오는 연출 */
   async function animateOpen(item: EquipItem, fast: boolean) {
     const rank = gradeRank(item.grade);
+    if (!fast) sfx.boxOpen();
     pop.replaceChildren(equipTile(item, itemPart(item), 'md'));
     pop.style.setProperty('--grade', gradeColor(item.grade));
     box.classList.remove('is-opening', 'is-rare', 'is-epic');
@@ -125,7 +131,11 @@ export function createDelivery(game: Game): Component {
       void rays.offsetWidth;
       rays.classList.add('is-on');
     }
-    await sleep(fast ? 260 : rank >= 4 ? 1100 : 750);
+    await sleep(fast ? 120 : 280);
+    // 등급 소리는 상자가 열리는 순간. 자동 개봉 중에는 영웅 이상만
+    if (!fast || rank >= 3) sfx.grade(rank);
+    if (rank >= 4) lightPillar(gradeColor(item.grade), rank >= 5);
+    await sleep(fast ? 140 : rank >= 4 ? 820 : 470);
   }
 
   function resetBox() {
@@ -372,4 +382,36 @@ function openAutoSettings(game: Game, onStart: () => void) {
       onStart();
     },
   });
+}
+
+/** 부품 → 튜닝 키트 교환 창 */
+function openKitExchange(game: Game) {
+  const per = BALANCE.kits.partsPerKit;
+  const info = h('p', { class: 'kit__info' });
+  const btns = h('div', { class: 'kit__btns' });
+  const render = () => {
+    const s = game.state;
+    const max = Math.floor(s.box.parts / per);
+    info.replaceChildren(
+      `부품 ${per}개 → 튜닝 키트 1개. 키트는 카드 강화에 써요.`,
+      h('br'),
+      h('strong', {}, `보유 부품 ${s.box.parts} · 키트 ${s.kits}`),
+    );
+    btns.replaceChildren(
+      ...[1, 5, max].filter((n, i, a) => n > 0 && a.indexOf(n) === i).map((n) => {
+        const b = h('button', { class: 'btn btn--primary btn--small', type: 'button' }, n === max && n > 5 ? `전부 (${n}개)` : `${n}개`);
+        onTap(b, () => {
+          if (game.exchangeKits(n)) {
+            sfx.coin();
+            popNumber(b, `🔧 +${n}`, 'fx-pop--kit');
+            render();
+          }
+        });
+        return b;
+      }),
+    );
+    if (max === 0) btns.append(h('span', { class: 'kit__none' }, `부품이 ${per - s.box.parts}개 더 필요해요`));
+  };
+  render();
+  openModal({ title: '🔧 튜닝 키트 교환', body: h('div', { class: 'kit' }, info, btns), confirmLabel: '닫기', confirmGhost: true });
 }

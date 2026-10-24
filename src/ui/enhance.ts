@@ -9,7 +9,9 @@ import { STAT_KEYS, STAT_LABELS } from '../data/stats';
 import { formatNumber } from '../utils/format';
 import { cardFrame, rarityBadge, slotName } from './cardView';
 import { h, onTap } from './dom';
+import { popNumber, sparkle } from './fx';
 import { openModal } from './modal';
+import { sfx } from './sfx';
 
 /**
  * 카드 강화 창. 창을 닫지 않고 연달아 강화할 수 있다.
@@ -35,8 +37,38 @@ export function openEnhance(game: Game, card: CardDef): void {
 
     const btn = h('button', { class: 'btn btn--primary enh__btn', type: 'button', disabled: cost === null || !game.canEnhance(card.id) });
     if (cost === null) btn.append(h('span', {}, '최대 레벨'), h('span', { class: 'btn__sub' }, owned.limitBreak < BALANCE.limitBreak.max ? '돌파하면 최대 레벨이 올라가요' : '더 이상 강화할 수 없어요'));
-    else btn.append(h('span', {}, `강화 → Lv.${progress.level + 1}`), h('span', { class: 'btn__sub' }, `청취자 ${formatNumber(cost)} (보유 ${formatNumber(game.state.listeners)})`));
-    onTap(btn, () => game.enhance(card.id));
+    else {
+      const kits = game.enhanceKitCost(card.id);
+      const chance = game.enhanceChance(card.id);
+      btn.append(
+        h('span', {}, `강화 → Lv.${progress.level + 1}`, chance < 1 ? h('em', { class: 'enh__chance' }, ` 성공 ${Math.round(chance * 100)}%`) : null),
+        h('span', { class: 'btn__sub' }, `청취자 ${formatNumber(cost)} · 🔧 키트 ${kits} (보유 ${formatNumber(game.state.listeners)} · 🔧${game.state.kits})`),
+      );
+    }
+    btn.setAttribute('data-sfx', 'none');
+    onTap(btn, () => {
+      const art = body.querySelector<HTMLElement>('.enh__card') ?? btn;
+      const r = game.enhance(card.id);
+      if (r === 'success') {
+        sfx.enhanceSuccess();
+        // 다시 그린 뒤의 카드 위에 반짝이
+        requestAnimationFrame(() => {
+          const el = body.querySelector<HTMLElement>('.enh__card') ?? art;
+          sparkle(el, 16);
+          el.classList.add('is-up');
+          popNumber(el, `Lv.${game.state.cards[card.id].level}!`, 'fx-pop--up');
+        });
+      } else if (r === 'fail') {
+        sfx.enhanceFail();
+        popNumber(art, '실패…', 'fx-pop--fail');
+        art.classList.remove('is-fail');
+        void art.offsetWidth;
+        art.classList.add('is-fail');
+      } else if (cost !== null && game.state.kits < game.enhanceKitCost(card.id)) {
+        sfx.enhanceFail();
+        popNumber(btn, '🔧 키트 부족', 'fx-pop--fail');
+      }
+    });
     const fill = h('div', { class: 'progress__fill' });
     fill.style.width = `${(progress.level / max) * 100}%`;
     body.replaceChildren(
@@ -67,7 +99,13 @@ export function openEnhance(game: Game, card: CardDef): void {
           ),
         ),
       ),
-      h('p', { class: 'enh__note' }, `레벨당 능력치 +${Math.round(BALANCE.enhance.statPerLevel * 100)}% · 최대 레벨은 돌파 1단계마다 +${BALANCE.enhance.maxLevelPerLimitBreak}`),
+      h(
+        'p',
+        { class: 'enh__note' },
+        `레벨당 능력치 +${Math.round(BALANCE.enhance.statPerLevel * 100)}% · 최대 레벨은 돌파 1단계마다 +${BALANCE.enhance.maxLevelPerLimitBreak} · Lv.${BALANCE.enhance.safeUntil + 1}부터 실패할 수 있어요(재료만 소모)`,
+        h('br'),
+        `🔧 튜닝 키트: 대결 승리 · 택배 부품 교환 · 일일 미션 올클리어로 얻어요`,
+      ),
       btn,
     );
   }

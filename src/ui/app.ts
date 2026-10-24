@@ -13,7 +13,7 @@ import { createDelivery } from './delivery';
 import { createDungeon } from './dungeon';
 import { createDialogue } from './dialogue';
 import { openCompare } from './equipCompare';
-import { h, onTap } from './dom';
+import { h } from './dom';
 import { createGacha } from './gacha';
 import { createHeader } from './header';
 import { openModal } from './modal';
@@ -22,8 +22,15 @@ import { createStudio } from './studio';
 import { createTabs, ICONS } from './tabs';
 import { gemIcon, toast } from './toast';
 import { startLiveEvents } from './liveEvents';
+import { announceBondLevel, createMembers, hasNewStory, newChapters, playChapter } from './members';
+import { missionDef } from '../core/missions';
+import { openMissions } from './missionsView';
+import { openPhone } from './phone';
+import { openSettings } from './settings';
+import { installSfx, sfx } from './sfx';
+import { getMember } from '../data/members';
 
-type ScreenId = 'studio' | 'dungeon' | 'gacha' | 'collection';
+type ScreenId = 'studio' | 'members' | 'dungeon' | 'gacha' | 'collection';
 const TAB_KEY = 'simya-bangsongbu/tab';
 const RARITY_RANK = { R: 0, SR: 1, SSR: 2 } as const;
 
@@ -33,7 +40,13 @@ export function mountApp(root: HTMLElement, game: Game): void {
     const cardId = Object.values(game.state.assignments).find((id) => id && getCard(id)?.member === memberId);
     return cardId ? getCard(cardId)?.outfit : undefined;
   });
-  const header = createHeader(game);
+  installSfx();
+  const header = createHeader(game, {
+    phone: () => openPhone(game),
+    missions: () => openMissions(game),
+    settings: () => openSettings(game),
+  });
+  const members = createMembers(game);
   const studio = createStudio(game, (id) => dialogue.say(id, 'poke'));
   const cardList = createCardList(game);
   const gacha = createGacha(game, (results) => sayAboutNewCard(results));
@@ -41,18 +54,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const delivery = createDelivery(game);
   const chat = createChat(game);
   const dungeon = createDungeon(game);
-  const components: Component[] = [header, delivery, studio, cardList, gacha, collection, chat, dungeon];
-
-  const resetBtn = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '데이터 초기화');
-  onTap(resetBtn, () =>
-    openModal({
-      title: '처음부터 다시 할까요?',
-      body: h('p', {}, '저장된 진행 상황과 카드가 모두 삭제됩니다.'),
-      cancelLabel: '취소',
-      confirmLabel: '초기화',
-      onConfirm: () => game.reset(),
-    }),
-  );
+  const components: Component[] = [header, delivery, studio, cardList, gacha, collection, chat, dungeon, members];
 
   const screens: Record<ScreenId, HTMLElement> = {
     studio: h(
@@ -64,14 +66,10 @@ export function mountApp(root: HTMLElement, game: Game): void {
         'div',
         { class: 'layout studio-main' },
         h('div', { class: 'layout__main' }, studio.el),
-        h(
-          'div',
-          { class: 'layout__side' },
-          cardList.el,
-          h('footer', { class: 'footer' }, h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '캐릭터 이미지 미리보기'), resetBtn),
-        ),
+        h('div', { class: 'layout__side' }, cardList.el),
       ),
     ),
+    members: h('main', { class: 'screen', 'data-screen': 'members' }, members.el),
     dungeon: h('main', { class: 'screen', 'data-screen': 'dungeon' }, dungeon.el),
     gacha: h('main', { class: 'screen', 'data-screen': 'gacha' }, gacha.el),
     collection: h('main', { class: 'screen', 'data-screen': 'collection' }, collection.el),
@@ -80,6 +78,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const tabs = createTabs(
     [
       { id: 'studio', label: '방송실', icon: ICONS.studio },
+      { id: 'members', label: '부원', icon: ICONS.members },
       { id: 'dungeon', label: '대결', icon: ICONS.dungeon },
       { id: 'gacha', label: '뽑기', icon: ICONS.gacha },
       { id: 'collection', label: '도감', icon: ICONS.collection },
@@ -137,12 +136,26 @@ export function mountApp(root: HTMLElement, game: Game): void {
         if (id) dialogue.say(id, 'towerUp');
         break;
       }
-      case 'milestone':
+      case 'milestone': {
+        const fresh = newChapters(game);
+        if (fresh.length) setTimeout(() => toast(`📖 메인 스토리 CHAPTER ${fresh[fresh.length - 1]}이 열렸어요!`), 1500);
         celebrate(
           event.count > 1 ? `🎉 마일스톤 ${event.count}개 달성!` : `🎉 누적 청취자 ${formatNumber(event.threshold)}명 달성!`,
           `전파석 +${formatNumber(event.stones)}`,
         );
         chat.burst('milestone', 3);
+        break;
+      }
+      case 'bond-level':
+        announceBondLevel(event.member, event.level);
+        break;
+      case 'phone':
+        sfx.chime();
+        toast(`📱 ${getMember(event.member)?.name}에게서 문자가 왔어요`);
+        break;
+      case 'mission':
+        sfx.chime();
+        toast(`📋 미션 달성! ${missionDef(event.id)?.label ?? ''} — 보상을 받으세요`);
         break;
       case 'corner':
         toast('📻 날짜가 바뀌어 오늘의 코너가 바뀌었어요');
@@ -160,7 +173,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
   let saved: ScreenId = 'studio';
   try {
     const t = localStorage.getItem(TAB_KEY);
-    if (t === 'gacha' || t === 'collection' || t === 'dungeon') saved = t;
+    if (t === 'gacha' || t === 'collection' || t === 'dungeon' || t === 'members') saved = t;
   } catch {
     // 무시
   }
@@ -174,6 +187,12 @@ export function mountApp(root: HTMLElement, game: Game): void {
   if (game.state.box.pending && saved === 'studio') openCompare(game, game.state.box.pending);
   startLoop(game, components, tabs);
   bindLifecycle(game);
+  // 접속 문자 (마지막으로 받은 지 몇 시간 지났으면)
+  game.onSessionStart();
+  // 처음 시작한 사람에게는 프롤로그를 바로 보여 준다
+  if (game.state.story.seen.length === 0 && game.state.totalListeners === 0 && !document.getElementById('modal')) {
+    setTimeout(() => playChapter(game, 1), 400);
+  }
 }
 
 function randomAssignedMember(game: Game): string | undefined {
@@ -203,10 +222,12 @@ function showOfflineReward(result: OfflineResult, onClose: () => void): void {
 }
 
 function startLoop(game: Game, components: Component[], tabs: ReturnType<typeof createTabs>): void {
+  let dotClock = 0;
   const frame = () => {
     game.advance();
     for (const c of components) c.tick?.();
     tabs.setDot('gacha', game.canPull(1));
+    if (++dotClock % 30 === 0) tabs.setDot('members', hasNewStory(game));
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

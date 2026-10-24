@@ -1,13 +1,38 @@
 import type { Game } from '../core/game';
 import { towerMultiplier } from '../core/economy';
+import { unreadTotal } from '../core/phone';
 import { milestoneReward, milestoneThreshold } from '../core/rewards';
 import { formatNumber, formatRate } from '../utils/format';
 import type { Component } from './component';
 import { h, onTap } from './dom';
+import { popNumber } from './fx';
+import { sfx } from './sfx';
 
 const BOOST_LABEL = { legend: '📮 레전드 사연', accident: '📡 방송사고' } as const;
 
-export function createHeader(game: Game): Component {
+export interface HeaderActions {
+  phone(): void;
+  missions(): void;
+  settings(): void;
+}
+
+export function createHeader(game: Game, actions: HeaderActions): Component {
+  // 문자·미션·설정 아이콘 (배지 = 읽지 않은 문자 / 받을 수 있는 미션 보상)
+  const iconBtn = (emoji: string, label: string, onClick: () => void) => {
+    const badge = h('span', { class: 'badge icon-btn__badge', hidden: true });
+    const btn = h('button', { class: 'icon-btn', type: 'button', 'aria-label': label, title: label }, h('span', { 'aria-hidden': 'true' }, emoji), badge);
+    onTap(btn, onClick);
+    return { btn, badge };
+  };
+  const phone = iconBtn('📱', '문자', actions.phone);
+  const missions = iconBtn('📋', '오늘의 미션', actions.missions);
+  const settings = iconBtn('⚙️', '설정', actions.settings);
+  const setBadge = (b: HTMLElement, n: number) => {
+    const text = n > 9 ? '9+' : String(n);
+    if (b.hidden !== n <= 0) b.hidden = n <= 0;
+    if (b.textContent !== text) b.textContent = text;
+  };
+
   const count = h('span', { class: 'hud__count' }, '0');
   const rate = h('span', { class: 'hud__rate' }, '');
   const stones = h('span', { class: 'hud__count hud__count--stones' }, '0');
@@ -25,8 +50,13 @@ export function createHeader(game: Game): Component {
     h('span', { class: 'tower-btn__icon', 'aria-hidden': 'true' }, '📡'),
     h('span', { class: 'tower-btn__text' }, towerLevel, towerSub),
   );
+  towerBtn.setAttribute('data-sfx', 'none');
   onTap(towerBtn, () => {
-    if (!game.upgradeTower()) {
+    if (game.upgradeTower()) {
+      sfx.levelUp();
+      popNumber(towerBtn, `Lv.${game.state.towerLevel}!`, 'fx-pop--up');
+    } else {
+      sfx.enhanceFail();
       towerBtn.classList.remove('is-denied');
       void towerBtn.offsetWidth;
       towerBtn.classList.add('is-denied');
@@ -64,8 +94,10 @@ export function createHeader(game: Game): Component {
     ),
     goal,
   );
+  el.querySelector('.hud__top')!.append(h('div', { class: 'hud__icons' }, phone.btn, missions.btn, settings.btn));
 
   let lastBoostKey = '';
+  let lastPop = 0;
   return {
     el,
     render() {
@@ -77,6 +109,12 @@ export function createHeader(game: Game): Component {
     tick() {
       const s = game.state;
       count.textContent = formatNumber(s.listeners);
+      // 1.5초마다 모인 청취자 수가 숫자 위로 떠오른다
+      const t = performance.now();
+      if (t - lastPop > 1500 && game.rate > 0 && document.visibilityState === 'visible') {
+        lastPop = t;
+        if (!document.querySelector('.vn, .battle, .pull, .phone')) popNumber(count, `+${formatNumber(game.rate * 1.5)}`, 'fx-pop--small');
+      }
       rate.textContent = `+${formatRate(game.rate)} /초`;
       stones.textContent = formatNumber(s.stones);
       const cost = game.towerCost;
@@ -84,6 +122,10 @@ export function createHeader(game: Game): Component {
       towerSub.textContent = `${can ? '레벨업!' : '레벨업'} · ${formatNumber(cost)}`;
       towerFill.style.width = `${Math.min(100, (s.listeners / cost) * 100)}%`;
       towerBtn.classList.toggle('is-ready', can);
+
+      setBadge(phone.badge, unreadTotal(s));
+      setBadge(missions.badge, game.missionClaimable);
+      phone.btn.classList.toggle('is-ringing', unreadTotal(s) > 0);
 
       const step = s.milestonesReached;
       const next = milestoneThreshold(step);

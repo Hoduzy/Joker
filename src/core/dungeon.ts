@@ -47,13 +47,20 @@ export interface StageReward {
   stones: number;
   tickets: number;
   parts: number;
+  kits: number;
 }
 
+/** 스테이지 승리 보상: 전파석(뽑기) + 택배 티켓(택배) + 튜닝 키트(강화), 보스는 부품(택배 레벨)도 */
 export function stageReward(stage: number): StageReward {
   const d = BALANCE.dungeon;
   const stones = d.stonesBase + d.stonesPerStage * stage;
-  if (!isBossStage(stage)) return { stones, tickets: 0, parts: 0 };
-  return { stones: stones * d.bossStoneMult, tickets: d.bossTickets, parts: d.bossParts };
+  if (!isBossStage(stage)) return { stones, tickets: d.tickets, parts: 0, kits: d.kits };
+  return { stones: stones * d.bossStoneMult, tickets: d.bossTickets, parts: d.bossParts, kits: d.bossKits };
+}
+
+/** 대결 점수: 공격력(초당 청취자) × 30초 + 탭 응원. 라이벌 청취자 이상이면 승리 */
+export function battleScore(attackPerSec: number, taps: number): number {
+  return attackPerSec * (BALANCE.dungeon.timeLimitMs / 1000) + taps * attackPerSec * BALANCE.dungeon.tapSeconds;
 }
 
 /** 제한 시간 동안 탭 없이 줄 수 있는 피해 */

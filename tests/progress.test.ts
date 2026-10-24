@@ -30,7 +30,8 @@ describe('card enhancement', () => {
     g.state.assignments.dj = 'haneul-r';
     const before = listenersPerSecond(g.state);
     g.state.listeners = 1e12;
-    expect(g.enhance('haneul-r')).toBe(true);
+    g.state.kits = 1e6;
+    expect(g.enhance('haneul-r')).toBe('success');
     expect(g.state.cards['haneul-r'].level).toBe(2);
     expect(listenersPerSecond(g.state)).toBeGreaterThan(before);
     while (g.enhance('haneul-r'));
@@ -41,8 +42,8 @@ describe('card enhancement', () => {
   it('refuses when listeners are short', () => {
     const g = new Game();
     g.state.listeners = 0;
-    expect(g.enhance('haneul-r')).toBe(false);
-    expect(g.enhance('not-owned')).toBe(false);
+    expect(g.enhance('haneul-r')).toBeNull();
+    expect(g.enhance('not-owned')).toBeNull();
   });
 });
 
@@ -63,7 +64,8 @@ describe('rival dungeon', () => {
     expect(rivalHp(2)).toBeGreaterThan(rivalHp(1));
     expect(rivalHp(5)).toBeGreaterThan(rivalHp(6) / BALANCE.dungeon.hpGrowth);
     expect(stageReward(5).tickets).toBe(BALANCE.dungeon.bossTickets);
-    expect(stageReward(4).tickets).toBe(0);
+    expect(stageReward(4).tickets).toBe(BALANCE.dungeon.tickets);
+    expect(stageReward(4).kits).toBe(BALANCE.dungeon.kits);
   });
 
   it('pays first-clear rewards once and advances', () => {

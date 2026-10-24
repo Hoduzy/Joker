@@ -7,8 +7,15 @@ import { maxBoxLevel, type EquipItem } from './equipment';
 import { getMember } from '../data/members';
 import { SLOT_IDS } from '../data/slots';
 import {
+  createBond,
   createBox,
   createInitialState,
+  createPhone,
+  type BondState,
+  type MissionState,
+  type PhoneMessage,
+  type PhoneState,
+  type PhoneThread,
   emptyAssignments,
   emptyEquipment,
   SAVE_VERSION,
@@ -81,6 +88,7 @@ export function migrate(data: unknown, now: number): GameState {
   if (version < 4) d = migrateV3toV4(d, now);
   if (version < 5) d = migrateV4toV5(d);
   // v5 → v6: 한정 모집 천장 카운트(gacha.bannerPity) 추가 — 기본값은 normalize에서 채운다
+  // v6 → v7: 튜닝 키트·호감도·문자·스토리·일일 미션 추가 — 기본값은 normalize에서 채운다
   return normalize(d, now);
 }
 
@@ -155,6 +163,62 @@ function normalizeItem(raw: unknown, part?: string): EquipItem | null {
     main: Math.max(0, Math.round(num(it.main, 0))),
     subs,
     boxLevel: Math.max(1, Math.floor(num(it.boxLevel, 1))),
+  };
+}
+
+const intList = (v: unknown): number[] =>
+  Array.isArray(v) ? [...new Set(v.filter((n): n is number => typeof n === 'number' && Number.isFinite(n)).map(Math.floor))] : [];
+
+function normalizeBond(raw: unknown): GameState['bond'] {
+  const base = createBond();
+  const src = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, Partial<BondState>>;
+  for (const id of Object.keys(base)) {
+    const b = src[id];
+    if (!b) continue;
+    base[id] = {
+      xp: Math.max(0, num(b.xp, 0)),
+      day: typeof b.day === 'string' ? b.day : '',
+      talks: Math.max(0, Math.floor(num(b.talks, 0))),
+      gifts: Math.max(0, Math.floor(num(b.gifts, 0))),
+      seenEvents: intList(b.seenEvents),
+    };
+  }
+  return base;
+}
+
+function normalizePhone(raw: unknown): PhoneState {
+  const base = createPhone();
+  const src = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<PhoneState>;
+  const threads = (src.threads ?? {}) as Record<string, Partial<PhoneThread>>;
+  for (const id of Object.keys(base.threads)) {
+    const t = threads[id];
+    if (!t) continue;
+    base.threads[id] = {
+      next: Math.max(0, Math.floor(num(t.next, 0))),
+      log: Array.isArray(t.log)
+        ? t.log
+            .filter((m): m is PhoneMessage => !!m && (m.from === 'them' || m.from === 'me') && typeof m.text === 'string')
+            .slice(-200)
+            .map((m) => ({ from: m.from, text: m.text, at: num(m.at, 0) }))
+        : [],
+      pending: typeof t.pending === 'number' ? Math.floor(t.pending) : null,
+      unread: Math.max(0, Math.floor(num(t.unread, 0))),
+    };
+  }
+  base.lastLoginText = num(src.lastLoginText, 0);
+  return base;
+}
+
+function normalizeMissions(raw: unknown): MissionState {
+  const m = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<MissionState>;
+  const progress: Record<string, number> = {};
+  for (const [k, v] of Object.entries((m.progress ?? {}) as Record<string, unknown>)) progress[k] = Math.max(0, Math.floor(num(v, 0)));
+  return {
+    day: typeof m.day === 'string' ? m.day : '',
+    ids: Array.isArray(m.ids) ? m.ids.filter((x): x is string => typeof x === 'string') : [],
+    progress,
+    claimed: Array.isArray(m.claimed) ? m.claimed.filter((x): x is string => typeof x === 'string') : [],
+    bonusClaimed: m.bonusClaimed === true,
   };
 }
 
@@ -240,6 +304,11 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     nextUid: Math.max(maxUid + 1, Math.floor(num(d.nextUid, 1))),
     corner: normalizeCorner(d.corner, now),
     dungeon: { stage: Math.max(1, Math.floor(num((d.dungeon as { stage?: unknown } | undefined)?.stage, 1))) },
+    kits: Math.max(0, Math.floor(num(d.kits, BALANCE.kits.start))),
+    bond: normalizeBond(d.bond),
+    phone: normalizePhone(d.phone),
+    story: { seen: intList((d.story as { seen?: unknown } | undefined)?.seen) },
+    missions: normalizeMissions(d.missions),
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }

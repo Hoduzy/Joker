@@ -1,0 +1,174 @@
+import { describe, expect, it } from 'vitest';
+import { bondLevel, giftXp, pendingEvents, unlockedLines } from '../src/core/bond';
+import { battleScore, rivalHp } from '../src/core/dungeon';
+import { cardStats, enhanceSuccessRate } from '../src/core/economy';
+import { Game } from '../src/core/game';
+import { missionsForDay } from '../src/core/missions';
+import { unreadTotal } from '../src/core/phone';
+import { migrate } from '../src/core/save';
+import { SAVE_VERSION } from '../src/core/state';
+import { BALANCE } from '../src/data/balance';
+import { getCard } from '../src/data/cards';
+import { MEMBERS } from '../src/data/members';
+import { CHAPTERS, NARRATIVE } from '../src/data/narrative';
+
+describe('narrative data', () => {
+  it('has 10 chapters, 5 events, 10 texts and 10 bond lines per member', () => {
+    expect(CHAPTERS).toHaveLength(10);
+    for (const m of MEMBERS) {
+      expect(NARRATIVE.events[m.id].map((e) => e.level)).toEqual([...BALANCE.bond.eventLevels]);
+      expect(NARRATIVE.texts[m.id]).toHaveLength(10);
+      expect(NARRATIVE.bond[m.id].lines).toHaveLength(10);
+      const last = NARRATIVE.events[m.id].at(-1)!;
+      expect(last.lines.some((l) => l.cg === m.id)).toBe(true);
+    }
+  });
+});
+
+describe('bond', () => {
+  it('levels by xp table and boosts card stats', () => {
+    expect(bondLevel(0)).toBe(1);
+    expect(bondLevel(BALANCE.bond.xpTable[1])).toBe(2);
+    expect(bondLevel(1e9)).toBe(BALANCE.bond.maxLevel);
+    const card = getCard('haneul-r')!;
+    expect(cardStats(card, { limitBreak: 0, level: 1, bond: 5 }).voice).toBeGreaterThan(cardStats(card, { limitBreak: 0, level: 1 }).voice);
+  });
+
+  it('unlocks one line per level', () => {
+    expect(unlockedLines('haneul', 3)).toHaveLength(3);
+  });
+
+  it('grows from placement time', () => {
+    const g = new Game();
+    g.state.assignments.dj = 'haneul-r';
+    g.state.lastTick = Date.now() - 10 * 60000;
+    g.advance();
+    expect(g.state.bond.haneul.xp).toBeCloseTo(10 * BALANCE.bond.placementXpPerMin, 0);
+    expect(g.state.bond.dahye.xp).toBe(0);
+  });
+
+  it('gives xp for talks up to the daily limit', () => {
+    const g = new Game();
+    for (let i = 0; i < BALANCE.bond.talksPerDay + 2; i++) g.talk('yuri');
+    expect(g.state.bond.yuri.xp).toBe(BALANCE.bond.talkXp * BALANCE.bond.talksPerDay);
+  });
+
+  it('allows 3 gifts a day and favorites count double', () => {
+    const g = new Game();
+    g.state.listeners = 1e12;
+    const fav = NARRATIVE.bond.yuri.favorite;
+    expect(giftXp('yuri', fav)).toBe(BALANCE.bond.gifts.find((x) => x.id === fav)!.xp * 2);
+    for (let i = 0; i < BALANCE.bond.giftsPerDay; i++) expect(g.gift('yuri', 'snack')).not.toBeNull();
+    expect(g.gift('yuri', 'snack')).toBeNull();
+    expect(g.giftsLeft('yuri')).toBe(0);
+  });
+
+  it('opens personal events at levels 2/4/6/8/10', () => {
+    const g = new Game();
+    g.addBond('mirae', BALANCE.bond.xpTable[3]);
+    expect(pendingEvents(g.state, 'mirae')).toEqual([2, 4]);
+    g.markEventSeen('mirae', 2);
+    expect(pendingEvents(g.state, 'mirae')).toEqual([4]);
+  });
+});
+
+describe('phone', () => {
+  it('delivers a text, takes a reply, and moves to the next one', () => {
+    const g = new Game();
+    expect(g.sendText('dahye')).toBe(true);
+    expect(unreadTotal(g.state)).toBeGreaterThan(0);
+    expect(g.sendText('dahye')).toBe(false); // 답장 전에는 다음 문자가 안 온다
+    const xp = g.reply('dahye', 0);
+    expect(xp).toBe(NARRATIVE.texts.dahye[0].choices[0].xp);
+    expect(g.state.phone.threads.dahye.next).toBe(1);
+  });
+
+  it('sends a login text only after the interval', () => {
+    const g = new Game();
+    const now = Date.now();
+    g.state.phone.lastLoginText = now;
+    g.onSessionStart(now + 1000);
+    expect(unreadTotal(g.state)).toBe(0);
+    g.onSessionStart(now + BALANCE.phone.loginIntervalMs);
+    expect(unreadTotal(g.state)).toBeGreaterThan(0);
+  });
+});
+
+describe('daily missions', () => {
+  it('picks 5 a day with the fixed two first', () => {
+    const ids = missionsForDay('2026-10-24');
+    expect(ids).toHaveLength(BALANCE.missions.perDay);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.slice(0, 2)).toEqual(['box30', 'battle3']);
+  });
+
+  it('tracks progress, pays stones, then the all-clear bonus', () => {
+    const g = new Game();
+    g.advance();
+    g.state.stones = 0;
+    for (let i = 0; i < 3; i++) g.recordBattle();
+    expect(g.claimMission('battle3')).toBe(true);
+    expect(g.claimMission('battle3')).toBe(false);
+    expect(g.state.stones).toBe(BALANCE.missions.stonesEach);
+    expect(g.claimMissionBonus()).toBe(false);
+    for (const id of g.state.missions.ids) g.state.missions.progress[id] = 999;
+    for (const id of g.state.missions.ids) g.claimMission(id);
+    const kits = g.state.kits;
+    expect(g.claimMissionBonus()).toBe(true);
+    expect(g.state.kits).toBe(kits + BALANCE.missions.allClearKits);
+  });
+});
+
+describe('kits and battle', () => {
+  it('exchanges parts for kits', () => {
+    const g = new Game();
+    g.state.box.parts = BALANCE.kits.partsPerKit * 2;
+    const kits = g.state.kits;
+    expect(g.exchangeKits(3)).toBe(false);
+    expect(g.exchangeKits(2)).toBe(true);
+    expect(g.state.kits).toBe(kits + 2);
+    expect(g.state.box.parts).toBe(0);
+  });
+
+  it('needs kits to enhance and can fail at high levels', () => {
+    const g = new Game();
+    g.state.listeners = 1e12;
+    g.state.kits = 0;
+    expect(g.enhance('haneul-r')).toBeNull();
+    g.state.kits = 10;
+    g.state.cards['haneul-r'].level = 15;
+    expect(enhanceSuccessRate(15)).toBeLessThan(1);
+    expect(g.enhance('haneul-r', () => 0.999)).toBe('fail');
+    expect(g.state.cards['haneul-r'].level).toBe(15);
+    expect(g.enhance('haneul-r', () => 0)).toBe('success');
+    expect(enhanceSuccessRate(1)).toBe(1);
+  });
+
+  it('gives tickets and kits on a normal win', () => {
+    const g = new Game();
+    const t = g.state.box.tickets;
+    const k = g.state.kits;
+    g.winStage(1);
+    expect(g.state.box.tickets).toBe(t + BALANCE.dungeon.tickets);
+    expect(g.state.kits).toBe(k + BALANCE.dungeon.kits);
+  });
+
+  it('lets taps make up a small gap', () => {
+    const hp = rivalHp(1);
+    const atk = hp / 32;
+    expect(battleScore(atk, 0)).toBeLessThan(hp);
+    expect(battleScore(atk, 10)).toBeGreaterThanOrEqual(hp);
+  });
+});
+
+describe('save migration v6 → v7', () => {
+  it('adds bond, phone, story, missions and kits', () => {
+    const s = migrate({ version: 6 }, 0);
+    expect(s.version).toBe(SAVE_VERSION);
+    expect(s.kits).toBe(BALANCE.kits.start);
+    expect(s.bond.haneul.xp).toBe(0);
+    expect(s.phone.threads.yuri.next).toBe(0);
+    expect(s.story.seen).toEqual([]);
+    expect(s.missions.ids).toEqual([]);
+  });
+});

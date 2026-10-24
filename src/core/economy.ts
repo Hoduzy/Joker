@@ -3,6 +3,7 @@ import { getCard, type CardDef } from '../data/cards';
 import { SLOTS, type SlotDef, type SlotId } from '../data/slots';
 import { STAT_KEYS, type Stats } from '../data/stats';
 import { getCorner } from '../data/flavor';
+import { bondStatMult, memberBondLevel } from './bond';
 import { equipBonuses, type EquipBonuses } from './equipment';
 import type { GameState } from './state';
 
@@ -10,13 +11,29 @@ import type { GameState } from './state';
 export interface CardProgress {
   limitBreak: number;
   level: number;
+  /** 그 부원의 호감도 레벨 (생략하면 1) */
+  bond?: number;
 }
 
 export const BASE_PROGRESS: CardProgress = { limitBreak: 0, level: 1 };
 
 export function progressOf(state: GameState, cardId: string): CardProgress {
   const owned = state.cards[cardId];
-  return owned ? { limitBreak: owned.limitBreak, level: owned.level } : BASE_PROGRESS;
+  const card = getCard(cardId);
+  const bond = card ? memberBondLevel(state, card.member) : 1;
+  return owned ? { limitBreak: owned.limitBreak, level: owned.level, bond } : { ...BASE_PROGRESS, bond };
+}
+
+/** 강화에 드는 튜닝 키트 수 */
+export function enhanceKits(level: number): number {
+  return BALANCE.enhance.kitsPerTenLevels * (1 + Math.floor((level - 1) / 10));
+}
+
+/** 레벨 n → n+1 강화 성공 확률 */
+export function enhanceSuccessRate(level: number): number {
+  const e = BALANCE.enhance;
+  if (level <= e.safeUntil) return 1;
+  return Math.max(e.minSuccess, 1 - e.failStep * (level - e.safeUntil));
 }
 
 /** 강화 최대 레벨 (돌파할수록 올라간다) */
@@ -32,7 +49,9 @@ export function enhanceCost(card: CardDef, level: number): number {
 /** 돌파·강화가 반영된 카드 능력치 */
 export function cardStats(card: CardDef, progress: CardProgress = BASE_PROGRESS): Stats {
   const mult =
-    (1 + BALANCE.limitBreak.statBonusPerLevel * progress.limitBreak) * (1 + BALANCE.enhance.statPerLevel * (progress.level - 1));
+    (1 + BALANCE.limitBreak.statBonusPerLevel * progress.limitBreak) *
+    (1 + BALANCE.enhance.statPerLevel * (progress.level - 1)) *
+    bondStatMult(progress.bond ?? 1);
   const out = {} as Stats;
   for (const key of STAT_KEYS) out[key] = Math.round(card.stats[key] * mult);
   return out;

@@ -1,7 +1,12 @@
 import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
 import type { SlotId } from '../data/slots';
-import { enhanceCost, listenersPerSecond, maxCardLevel, towerUpgradeCost, withAssignment } from './economy';
+import { enhanceCost, enhanceKits, enhanceSuccessRate, listenersPerSecond, maxCardLevel, towerUpgradeCost, withAssignment } from './economy';
+import { bondLevel, giftCost, giftXp, refreshBondDay, unlockedLines } from './bond';
+import { claimableCount, isMissionDone, refreshMissions, trackMission, type MissionKind } from './missions';
+import { deliverText, replyText } from './phone';
+import { dayKey, pick } from '../data/flavor';
+import type { Expression } from '../data/portraits';
 import { stageReward, type StageReward } from './dungeon';
 import { getBanner, isBannerActive, STANDARD_BANNER } from '../data/banners';
 import {
@@ -35,7 +40,15 @@ export type GameEvent =
   /** 청취자 배수(레전드 사연·방송사고)가 생기거나 끝남 */
   | { type: 'boost' }
   /** 날짜가 바뀌어 오늘의 코너가 바뀜 */
-  | { type: 'corner'; id: string };
+  | { type: 'corner'; id: string }
+  /** 호감도 레벨 상승 */
+  | { type: 'bond-level'; member: string; level: number }
+  /** 새 문자 도착 */
+  | { type: 'phone'; member: string }
+  /** 일일 미션 하나 달성 */
+  | { type: 'mission'; id: string };
+
+export type EnhanceResult = 'success' | 'fail';
 
 export type BoostKind = 'legend' | 'accident';
 
@@ -107,6 +120,7 @@ export class Game {
   claimLegend(now = Date.now()): void {
     this.advance(now);
     this.addBoost('legend', BALANCE.legend.multiplier, BALANCE.legend.durationMs, now);
+    this.track('legend');
   }
 
   /**
@@ -119,6 +133,7 @@ export class Game {
       this.addBoost('accident', BALANCE.accident.penaltyMultiplier, BALANCE.accident.penaltyMs, now);
       return { listeners: 0, stones: 0 };
     }
+    this.track('accident');
     const listeners = this.baseRate * BALANCE.accident.bonusSeconds;
     const stones = BALANCE.accident.bonusStones;
     this.addListeners(listeners);
@@ -149,6 +164,8 @@ export class Game {
     }
     this.updateBoosts(now);
     this.updateCorner(now);
+    this.addPlacementBond(result.elapsedMs);
+    if (refreshMissions(this.state, dayKey(new Date(now)))) this.emit({ type: 'changed' });
     this.addListeners(result.earned);
     this.state.lastTick = now;
     const ticketsBefore = this.state.box.tickets;
@@ -167,6 +184,170 @@ export class Game {
   private addListeners(amount: number): void {
     this.state.listeners += amount;
     this.state.totalListeners += amount;
+  }
+
+  /** 방송에 배치된 카드의 부원에게, 배치해 둔 시간만큼 호감도 */
+  private addPlacementBond(elapsedMs: number): void {
+    if (elapsedMs <= 0) return;
+    const xp = (elapsedMs / 60000) * BALANCE.bond.placementXpPerMin;
+    const members = new Set(Object.values(this.state.assignments).map((id) => (id ? getCard(id)?.member : undefined)));
+    for (const m of members) if (m) this.addBond(m, xp);
+  }
+
+  /** 호감도를 더하고 레벨이 오르면 알린다 */
+  addBond(memberId: string, xp: number): void {
+    const b = this.state.bond[memberId];
+    if (!b || xp <= 0) return;
+    const before = bondLevel(b.xp);
+    b.xp += xp;
+    const after = bondLevel(b.xp);
+    if (after > before) {
+      this.emit({ type: 'bond-level', member: memberId, level: after });
+      // 호감도가 오르면 그 부원에게서 다음 문자가 올 수 있다
+      this.sendText(memberId);
+      this.emit({ type: 'changed' });
+    }
+  }
+
+  /** 스토리·이벤트 선택지의 호감도 반영 */
+  applyChoiceXp(xp: Record<string, number> | undefined): void {
+    if (!xp) return;
+    for (const [m, n] of Object.entries(xp)) this.addBond(m, n);
+    this.commit();
+  }
+
+  private track(kind: MissionKind, amount = 1): void {
+    refreshMissions(this.state, dayKey(new Date()));
+    for (const id of trackMission(this.state, kind, amount)) this.emit({ type: 'mission', id });
+  }
+
+  // ───────────── 부원 상호작용 ─────────────
+
+  /** 대화: 지금 레벨까지 열린 대사 중 하나. 하루 일정 횟수까지 호감도도 준다 */
+  talk(memberId: string): { e: Expression; t: string; xp: number } | null {
+    const b = this.state.bond[memberId];
+    if (!b) return null;
+    refreshBondDay(b, dayKey(new Date()));
+    const line = pick(unlockedLines(memberId, bondLevel(b.xp)));
+    if (!line) return null;
+    let xp = 0;
+    if (b.talks < BALANCE.bond.talksPerDay) {
+      b.talks += 1;
+      xp = BALANCE.bond.talkXp;
+      this.addBond(memberId, xp);
+    }
+    this.track('talk');
+    this.commit();
+    return { ...line, xp };
+  }
+
+  giftsLeft(memberId: string): number {
+    const b = this.state.bond[memberId];
+    if (!b) return 0;
+    refreshBondDay(b, dayKey(new Date()));
+    return Math.max(0, BALANCE.bond.giftsPerDay - b.gifts);
+  }
+
+  giftCost(giftId: string): number {
+    return giftCost(giftId, this.state.towerLevel);
+  }
+
+  /** 선물: 청취자를 써서 호감도. 부원마다 하루 3번. 얻은 호감도 (실패하면 null) */
+  gift(memberId: string, giftId: string): number | null {
+    this.advance();
+    const b = this.state.bond[memberId];
+    const cost = this.giftCost(giftId);
+    if (!b || this.giftsLeft(memberId) <= 0 || this.state.listeners < cost) return null;
+    this.state.listeners -= cost;
+    b.gifts += 1;
+    const xp = giftXp(memberId, giftId);
+    this.addBond(memberId, xp);
+    this.track('gift');
+    this.commit();
+    return xp;
+  }
+
+  markEventSeen(memberId: string, level: number): void {
+    const b = this.state.bond[memberId];
+    if (b && !b.seenEvents.includes(level)) b.seenEvents.push(level);
+    this.commit();
+  }
+
+  markChapterSeen(id: number): void {
+    if (!this.state.story.seen.includes(id)) this.state.story.seen.push(id);
+    this.commit();
+  }
+
+  // ───────────── 문자 ─────────────
+
+  /** 새 문자 보내기 (부원 지정 안 하면 알아서) */
+  sendText(memberId?: string): boolean {
+    const who = deliverText(this.state, Date.now(), memberId);
+    if (!who) return false;
+    this.emit({ type: 'phone', member: who });
+    return true;
+  }
+
+  /** 접속할 때: 마지막 접속 문자 이후 일정 시간이 지났으면 새 문자 */
+  onSessionStart(now = Date.now()): void {
+    if (now - this.state.phone.lastLoginText < BALANCE.phone.loginIntervalMs) return;
+    this.state.phone.lastLoginText = now;
+    this.sendText();
+    this.commit();
+  }
+
+  reply(memberId: string, choiceIndex: number): number | null {
+    const xp = replyText(this.state, memberId, choiceIndex, Date.now());
+    if (xp === null) return null;
+    this.addBond(memberId, xp);
+    this.track('textReply');
+    this.commit();
+    return xp;
+  }
+
+  markRead(memberId: string): void {
+    const t = this.state.phone.threads[memberId];
+    if (t && t.unread) {
+      t.unread = 0;
+      this.commit();
+    }
+  }
+
+  // ───────────── 일일 미션 ─────────────
+
+  claimMission(id: string): boolean {
+    const m = this.state.missions;
+    if (!m.ids.includes(id) || m.claimed.includes(id) || !isMissionDone(this.state, id)) return false;
+    m.claimed.push(id);
+    this.state.stones += BALANCE.missions.stonesEach;
+    this.commit();
+    return true;
+  }
+
+  claimMissionBonus(): boolean {
+    const m = this.state.missions;
+    if (m.bonusClaimed || !m.ids.length || !m.ids.every((id) => m.claimed.includes(id))) return false;
+    m.bonusClaimed = true;
+    this.state.stones += BALANCE.missions.allClearStones;
+    this.state.kits += BALANCE.missions.allClearKits;
+    this.commit();
+    return true;
+  }
+
+  get missionClaimable(): number {
+    return claimableCount(this.state);
+  }
+
+  // ───────────── 튜닝 키트 ─────────────
+
+  /** 부품 → 튜닝 키트 교환 */
+  exchangeKits(count: number): boolean {
+    const cost = BALANCE.kits.partsPerKit * count;
+    if (count <= 0 || this.state.box.parts < cost) return false;
+    this.state.box.parts -= cost;
+    this.state.kits += count;
+    this.commit();
+    return true;
   }
 
   /** 끝난 배수를 정리하고, 바뀌었으면 알린다 */
@@ -193,6 +374,7 @@ export class Game {
     this.state.stones += amount;
     this.state.milestonesReached += hits.length;
     this.emit({ type: 'milestone', threshold: hits[hits.length - 1].threshold, count: hits.length, stones: amount });
+    this.sendText();
     this.emit({ type: 'changed' });
     return true;
   }
@@ -226,6 +408,7 @@ export class Game {
     this.state.towerLevel += 1;
     const reward = towerUpReward(this.state.towerLevel);
     this.state.stones += reward;
+    this.track('towerUp');
     this.commit();
     this.emit({ type: 'tower-up', level: this.state.towerLevel, reward });
     return true;
@@ -253,6 +436,7 @@ export class Game {
     if (this.state.stones < cost || !this.bannerOpen(bannerId)) return null;
     this.state.stones -= cost;
     const results = rollPulls(this.state, count, rng, Date.now(), bannerId);
+    this.track('pull', count);
     this.commit();
     return results;
   }
@@ -267,20 +451,34 @@ export class Game {
     return enhanceCost(card, owned.level);
   }
 
-  canEnhance(cardId: string): boolean {
-    const cost = this.enhanceCost(cardId);
-    return cost !== null && this.state.listeners >= cost;
+  enhanceKitCost(cardId: string): number {
+    return enhanceKits(this.state.cards[cardId]?.level ?? 1);
   }
 
-  /** 청취자를 써서 카드 레벨 +1 */
-  enhance(cardId: string): boolean {
-    this.advance();
+  enhanceChance(cardId: string): number {
+    return enhanceSuccessRate(this.state.cards[cardId]?.level ?? 1);
+  }
+
+  canEnhance(cardId: string): boolean {
     const cost = this.enhanceCost(cardId);
-    if (cost === null || this.state.listeners < cost) return false;
+    return cost !== null && this.state.listeners >= cost && this.state.kits >= this.enhanceKitCost(cardId);
+  }
+
+  /**
+   * 청취자 + 튜닝 키트를 써서 카드 레벨 +1 시도. 높은 레벨에서는 실패할 수 있다 (재료만 소모, 레벨 유지).
+   * 시도할 수 없으면 null
+   */
+  enhance(cardId: string, rng: Rng = Math.random): EnhanceResult | null {
+    this.advance();
+    if (!this.canEnhance(cardId)) return null;
+    const cost = this.enhanceCost(cardId)!;
     this.state.listeners -= cost;
-    this.state.cards[cardId].level += 1;
+    this.state.kits -= this.enhanceKitCost(cardId);
+    const ok = rng() < this.enhanceChance(cardId);
+    if (ok) this.state.cards[cardId].level += 1;
+    this.track('enhance');
     this.commit();
-    return true;
+    return ok ? 'success' : 'fail';
   }
 
   // ───────────── 라이벌 대결 ─────────────
@@ -290,6 +488,12 @@ export class Game {
     return this.rate;
   }
 
+  /** 대결 1회 (승패 무관, 미션용) */
+  recordBattle(): void {
+    this.track('battle');
+    this.commit();
+  }
+
   /** 현재 스테이지 승리: 보상을 주고 다음 스테이지로. 이미 깬 스테이지면 null */
   winStage(stage: number): StageReward | null {
     if (stage !== this.state.dungeon.stage) return null;
@@ -297,6 +501,7 @@ export class Game {
     this.state.stones += reward.stones;
     this.state.box.tickets += reward.tickets;
     this.state.box.parts += reward.parts;
+    this.state.kits += reward.kits;
     this.state.dungeon.stage += 1;
     this.commit();
     return reward;
@@ -314,6 +519,7 @@ export class Game {
     box.tickets -= 1;
     box.opened += 1;
     box.pending = rollEquip(box.level, rng, this.state.nextUid++);
+    this.track('openBox');
     this.commit();
     return box.pending;
   }

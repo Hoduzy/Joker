@@ -6,7 +6,7 @@ import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -48,8 +48,71 @@ export interface GameState {
   corner: { id: string; day: string };
   /** 라이벌 방송부 대결: 다음에 도전할 스테이지 (1부터) */
   dungeon: { stage: number };
+  /** 튜닝 키트 (카드 강화 재료) */
+  kits: number;
+  /** 부원별 호감도 */
+  bond: Record<string, BondState>;
+  /** 휴대폰 문자 */
+  phone: PhoneState;
+  /** 메인 스토리: 본 챕터 번호 */
+  story: { seen: number[] };
+  /** 일일 미션 */
+  missions: MissionState;
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
+}
+
+export interface BondState {
+  /** 누적 호감도 (방송 배치 시간으로 소수점까지 쌓인다) */
+  xp: number;
+  /** 대화·선물 횟수를 센 날짜 */
+  day: string;
+  talks: number;
+  gifts: number;
+  /** 본 개인 이벤트의 레벨 */
+  seenEvents: number[];
+}
+
+export interface PhoneMessage {
+  from: 'them' | 'me';
+  text: string;
+  at: number;
+}
+
+export interface PhoneThread {
+  /** 다음에 올 문자 대화 번호 (texts.json 순서) */
+  next: number;
+  log: PhoneMessage[];
+  /** 답장을 기다리는 대화 번호 (없으면 null) */
+  pending: number | null;
+  /** 안 읽은 문자 수 */
+  unread: number;
+}
+
+export interface PhoneState {
+  threads: Record<string, PhoneThread>;
+  /** 마지막으로 '접속 문자'를 받은 시각 */
+  lastLoginText: number;
+}
+
+export interface MissionState {
+  day: string;
+  ids: string[];
+  progress: Record<string, number>;
+  claimed: string[];
+  bonusClaimed: boolean;
+}
+
+export function createBond(): Record<string, BondState> {
+  const b: Record<string, BondState> = {};
+  for (const m of MEMBERS) b[m.id] = { xp: 0, day: '', talks: 0, gifts: 0, seenEvents: [] };
+  return b;
+}
+
+export function createPhone(): PhoneState {
+  const threads: Record<string, PhoneThread> = {};
+  for (const m of MEMBERS) threads[m.id] = { next: 0, log: [], pending: null, unread: 0 };
+  return { threads, lastLoginText: 0 };
 }
 
 export interface BoxState {
@@ -121,6 +184,11 @@ export function createInitialState(now: number): GameState {
     nextUid: 1,
     corner: todayCorner(now),
     dungeon: { stage: 1 },
+    kits: BALANCE.kits.start,
+    bond: createBond(),
+    phone: createPhone(),
+    story: { seen: [] },
+    missions: { day: '', ids: [], progress: {}, claimed: [], bonusClaimed: false },
     lastTick: now,
   };
 }

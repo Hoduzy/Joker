@@ -3,6 +3,8 @@ import { BALANCE } from '../data/balance';
 import { getMember } from '../data/members';
 import { cardFrame } from './cardView';
 import { h, onTap } from './dom';
+import { lightPillar, sparkle } from './fx';
+import { sfx } from './sfx';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -65,11 +67,14 @@ export function playPullAnimation(results: PullResult[], opts: ShowOptions): Pro
       c.flipped = true;
       c.el.classList.add('is-flipped');
       c.el.setAttribute('aria-label', `${getMember(c.result.card.member)?.name} ${c.result.card.title} (${c.result.card.rarity})`);
-      if (c.result.card.rarity === 'SSR') {
+      const rarity = c.result.card.rarity;
+      if (!skipping) sfx.grade(rarity === 'SSR' ? 5 : rarity === 'SR' ? 3 : 1);
+      if (rarity === 'SSR') {
         flash.classList.remove('is-on');
         void flash.offsetWidth;
         flash.classList.add('is-on');
         sparkle(c.el);
+        if (!skipping) lightPillar('#ffd76b', true);
       }
       if (cards.every((x) => x.flipped)) finish();
     };
@@ -78,7 +83,13 @@ export function playPullAnimation(results: PullResult[], opts: ShowOptions): Pro
     let skipping = false;
     onTap(skip, () => {
       skipping = true;
+      const rest = cards.filter((c) => !c.flipped).map((c) => c.result.card.rarity);
       cards.forEach(flip);
+      // 한꺼번에 넘기면 가장 높은 등급 소리 한 번만
+      if (rest.includes('SSR')) {
+        sfx.grade(5);
+        lightPillar('#ffd76b', true);
+      } else if (rest.length) sfx.grade(rest.includes('SR') ? 3 : 1);
     });
 
     let finished = false;
@@ -119,23 +130,4 @@ export function playPullAnimation(results: PullResult[], opts: ShowOptions): Pro
       }
     })();
   });
-}
-
-/** SSR 카드 주변에 반짝이를 뿌린다 */
-function sparkle(target: HTMLElement) {
-  const rect = target.getBoundingClientRect();
-  const layer = h('div', { class: 'sparkles' });
-  layer.style.left = `${rect.left + rect.width / 2}px`;
-  layer.style.top = `${rect.top + rect.height / 2}px`;
-  for (let i = 0; i < 18; i++) {
-    const s = h('i', { class: 'sparkle' });
-    const a = (i / 18) * Math.PI * 2;
-    const dist = 80 + (i % 4) * 30;
-    s.style.setProperty('--tx', `${Math.cos(a) * dist}px`);
-    s.style.setProperty('--ty', `${Math.sin(a) * dist}px`);
-    s.style.setProperty('--d', `${(i % 5) * 40}ms`);
-    layer.append(s);
-  }
-  document.body.append(layer);
-  setTimeout(() => layer.remove(), 1400);
 }

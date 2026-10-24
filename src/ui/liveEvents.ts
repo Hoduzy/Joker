@@ -1,3 +1,5 @@
+import { popNumber } from './fx';
+import { sfx } from './sfx';
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
@@ -14,7 +16,7 @@ const rand = (min: number, max: number) => min + Math.random() * (max - min);
 function blocked(): boolean {
   return (
     document.visibilityState !== 'visible' ||
-    !!document.querySelector('#modal, #sheet, .pull, .flyer, .accident, .story, .battle')
+    !!document.querySelector('#modal, #sheet, .pull, .flyer, .accident, .story, .battle, .vn, .phone')
   );
 }
 
@@ -113,6 +115,8 @@ export function startLiveEvents(game: Game, studio: Studio, chat: Chat): { syncB
       if (caught) return;
       caught = true;
       game.claimLegend();
+      sfx.grade(3);
+      popNumber({ x: e.clientX, y: e.clientY }, '×3!');
       flyer.classList.add('is-caught');
       chat.burst('legend', 4);
       showStory(story.from, story.text);
@@ -177,9 +181,11 @@ export function startLiveEvents(game: Game, studio: Studio, chat: Chat): { syncB
       const r = game.resolveAccident(fixed);
       overlay.classList.add(fixed ? 'is-fixed' : 'is-failed');
       if (fixed) {
+        sfx.victory();
         toast(`복구 성공! 청취자 +${formatNumber(r.listeners)} · 전파석 +${r.stones}`, gemIcon());
         chat.burst('accidentFixed', 2);
       } else {
+        sfx.defeat();
         toast(`복구 실패… ${BALANCE.accident.penaltyMs / 1000}초 동안 생산 절반`);
         chat.burst('accidentFailed', 2);
       }
