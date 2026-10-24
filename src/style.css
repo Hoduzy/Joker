@@ -215,7 +215,7 @@ p {
   align-items: center;
   gap: 8px;
   min-height: 200px;
-  padding: 14px 10px;
+  padding: 12px 10px 10px;
   border-radius: 16px;
   background: var(--panel-strong);
   border: 1px solid var(--line);
@@ -225,6 +225,86 @@ p {
 .slot--empty {
   border-style: dashed;
   background: transparent;
+}
+
+.slot__stage {
+  position: relative;
+  width: 100%;
+  height: 170px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 85%, color-mix(in srgb, var(--member-color, #fff) 35%, transparent), transparent 70%);
+}
+
+.slot__stage::after {
+  /* 발밑 그림자 */
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 30%;
+  right: 30%;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  filter: blur(3px);
+  z-index: 0;
+}
+
+.sd {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.slot__stage.is-bounce .sd {
+  animation: bounce 0.4s ease;
+}
+
+@keyframes bounce {
+  30% {
+    transform: translateY(-10px) scaleY(1.04);
+  }
+  60% {
+    transform: translateY(0) scaleY(0.96);
+  }
+}
+
+.slot__plus {
+  width: 84px;
+  height: 104px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  margin: auto;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2px var(--line);
+  color: var(--muted);
+  font-size: 36px;
+}
+
+.slot__change {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+  transition: transform 0.08s ease;
+}
+
+.slot__change:active {
+  transform: scale(0.97);
 }
 
 .slot__role {
@@ -288,6 +368,41 @@ p {
   background: transparent;
   box-shadow: inset 0 0 0 2px var(--line);
   color: var(--muted);
+}
+
+/* 표정 이미지 액자: 얼굴 쪽이 보이도록 위쪽 기준으로 자른다 */
+.face {
+  --member-color: #666;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(170deg, color-mix(in srgb, var(--member-color) 45%, #1d1940), #15122e);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+
+.face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 15%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.face--sm {
+  width: 52px;
+  height: 52px;
+}
+
+.face--md {
+  width: 72px;
+  height: 84px;
+}
+
+.face--lg {
+  width: 120px;
+  height: 140px;
 }
 
 /* ── Tower ─────────────────────────── */
@@ -401,7 +516,7 @@ p {
 }
 
 .btn:not(:disabled):active,
-.slot:active,
+.slot--empty:active,
 .member:active,
 .sheet__option:not(:disabled):active {
   transform: scale(0.97);
@@ -717,4 +832,85 @@ p {
 .offline__note {
   font-size: 12px;
   margin-top: 10px;
+}
+
+/* ── Dialogue ─────────────────────── */
+.dialogue {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: min(760px, calc(100% - 32px));
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 14px 18px 14px 14px;
+  border-radius: 22px;
+  background: rgba(23, 20, 51, 0.94);
+  border: 1px solid rgba(255, 207, 92, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transform: translate(-50%, 140%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s ease-out, opacity 0.25s;
+}
+
+.dialogue.is-open {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialogue__face .face {
+  width: 112px;
+  height: 128px;
+  margin-top: -40px; /* 얼굴이 창 위로 살짝 튀어나오게 */
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25), 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.dialogue__body {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+}
+
+.dialogue__name {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent-ink);
+  background: var(--accent);
+  padding: 2px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+
+.dialogue__text {
+  font-size: 18px;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+@media (max-width: 599px) {
+  .dialogue__face .face {
+    width: 84px;
+    height: 96px;
+  }
+
+  .dialogue__text {
+    font-size: 16px;
+  }
+}
+
+/* 대화창이 마지막 카드를 가리지 않도록 아래 여백 */
+.footer {
+  padding-bottom: 120px;
+  gap: 10px;
+}
+
+a.btn {
+  text-decoration: none;
+  color: var(--muted);
 }

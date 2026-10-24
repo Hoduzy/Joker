@@ -6,11 +6,11 @@ import { SLOTS, type SlotDef } from '../data/slots';
 import { STAT_LABELS } from '../data/stats';
 import { formatRate } from '../utils/format';
 import type { Component } from './component';
-import { h, onTap, portrait } from './dom';
+import { h, memberFace, memberSd, onTap } from './dom';
 import { openSheet } from './sheet';
 
 /** 방송 슬롯 4개(DJ/엔지니어/작가/게스트) */
-export function createStudio(game: Game): Component {
+export function createStudio(game: Game, onPoke: (memberId: string) => void): Component {
   const grid = h('div', { class: 'slots' });
   const bonus = h('p', { class: 'studio__bonus' });
   const el = h(
@@ -34,7 +34,7 @@ export function createStudio(game: Game): Component {
         content: h(
           'div',
           { class: 'pick' },
-          portrait(m.color, m.name, 'sm'),
+          memberFace(m, 'neutral', 'sm'),
           h(
             'div',
             { class: 'pick__info' },
@@ -69,16 +69,41 @@ export function createStudio(game: Game): Component {
   function renderSlot(slot: SlotDef): HTMLElement {
     const id = game.state.assignments[slot.id];
     const m = id ? getMember(id) : undefined;
-    const btn = h(
-      'button',
-      { class: `slot${m ? '' : ' slot--empty'}`, type: 'button' },
-      h('div', { class: 'slot__role' }, slot.name, h('span', { class: 'slot__stat' }, STAT_LABELS[slot.mainStat])),
-      m ? portrait(m.color, m.name, 'lg') : h('div', { class: 'portrait portrait--lg portrait--empty' }, '+'),
-      h('div', { class: 'slot__name' }, m ? m.name : '비어 있음'),
-      h('div', { class: 'slot__power' }, m ? `파워 ${Math.round(slotPower(m, slot))}` : '탭해서 배치'),
+    const role = h('div', { class: 'slot__role' }, slot.name, h('span', { class: 'slot__stat' }, STAT_LABELS[slot.mainStat]));
+
+    if (!m) {
+      const empty = h(
+        'button',
+        { class: 'slot slot--empty', type: 'button' },
+        role,
+        h('div', { class: 'slot__stage' }, h('div', { class: 'slot__plus' }, '+')),
+        h('div', { class: 'slot__name' }, '비어 있음'),
+        h('div', { class: 'slot__power' }, '탭해서 배치'),
+      );
+      onTap(empty, () => openPicker(slot));
+      return empty;
+    }
+
+    // SD를 탭하면 대사, 아래 버튼으로 교체
+    const stage = h('button', { class: 'slot__stage', type: 'button', 'aria-label': `${m.name}에게 말 걸기` }, memberSd(m));
+    onTap(stage, () => {
+      stage.classList.remove('is-bounce');
+      void stage.offsetWidth;
+      stage.classList.add('is-bounce');
+      onPoke(m.id);
+    });
+    const change = h('button', { class: 'slot__change', type: 'button' }, '교체');
+    onTap(change, () => openPicker(slot));
+    const card = h(
+      'div',
+      { class: 'slot' },
+      role,
+      stage,
+      h('div', { class: 'slot__name' }, m.name, h('span', { class: 'slot__power' }, ` · 파워 ${Math.round(slotPower(m, slot))}`)),
+      change,
     );
-    onTap(btn, () => openPicker(slot));
-    return btn;
+    card.style.setProperty('--member-color', m.color);
+    return card;
   }
 
   return {

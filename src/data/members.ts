@@ -5,7 +5,7 @@ export type Rarity = 'R' | 'SR' | 'SSR';
 export interface MemberDef {
   id: string;
   name: string;
-  /** 일러스트가 들어가기 전까지 쓰는 대표 색상 */
+  /** 대표 색상 (UI 강조색, 이미지가 없을 때의 대체 박스) */
   color: string;
   rarity: Rarity;
   /** 한 줄 소개 */
@@ -18,7 +18,7 @@ export const MEMBERS: readonly MemberDef[] = [
   {
     id: 'haneul',
     name: '하늘',
-    color: '#7aa2ff',
+    color: '#ff8fb8',
     rarity: 'SSR',
     tagline: '새벽 3시의 목소리',
     stats: { voice: 32, tech: 8, writing: 14, charm: 22 },
@@ -26,7 +26,7 @@ export const MEMBERS: readonly MemberDef[] = [
   {
     id: 'mirae',
     name: '미래',
-    color: '#5fd3b3',
+    color: '#b8c0cc',
     rarity: 'SR',
     tagline: '믹서 앞에서만 수다쟁이',
     stats: { voice: 9, tech: 30, writing: 11, charm: 12 },
@@ -34,7 +34,7 @@ export const MEMBERS: readonly MemberDef[] = [
   {
     id: 'seoyun',
     name: '서윤',
-    color: '#f5b971',
+    color: '#a9c4e8',
     rarity: 'SR',
     tagline: '사연함은 늘 꽉 차 있다',
     stats: { voice: 12, tech: 10, writing: 28, charm: 14 },
@@ -42,7 +42,7 @@ export const MEMBERS: readonly MemberDef[] = [
   {
     id: 'yuri',
     name: '유리',
-    color: '#ff8fb8',
+    color: '#c89a6e',
     rarity: 'R',
     tagline: '오늘의 게스트, 내일도 게스트',
     stats: { voice: 16, tech: 6, writing: 9, charm: 26 },
@@ -50,9 +50,9 @@ export const MEMBERS: readonly MemberDef[] = [
   {
     id: 'dahye',
     name: '다혜',
-    color: '#b28dff',
+    color: '#d94a5a',
     rarity: 'R',
-    tagline: '뭐든 적당히 잘하는 부장',
+    tagline: '방송부 완장은 절대 안 뗀다',
     stats: { voice: 17, tech: 16, writing: 16, charm: 15 },
   },
 ];

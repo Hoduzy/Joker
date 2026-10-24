@@ -5,7 +5,7 @@ import { SLOTS } from '../data/slots';
 import { STAT_KEYS, STAT_LABELS } from '../data/stats';
 import { formatRate } from '../utils/format';
 import type { Component } from './component';
-import { h, onTap, portrait } from './dom';
+import { h, memberFace, onTap } from './dom';
 import { openSheet } from './sheet';
 
 function rateDiffBadge(next: number, current: number): HTMLElement {
@@ -64,7 +64,7 @@ export function createRoster(game: Game): Component {
     const card = h(
       'button',
       { class: `member${slot ? ' is-assigned' : ''}`, type: 'button' },
-      portrait(m.color, m.name, 'md'),
+      memberFace(m, 'neutral', 'md'),
       h(
         'div',
         { class: 'member__body' },

@@ -9,7 +9,10 @@ export type GameEvent =
   /** 배치·레벨 등 화면 구조가 바뀌는 변화 */
   | { type: 'changed' }
   /** 오랫동안 자리를 비웠다가 돌아와서 보상을 받음 */
-  | { type: 'offline-reward'; result: OfflineResult };
+  | { type: 'offline-reward'; result: OfflineResult }
+  /** 슬롯 배치가 바뀜. memberId가 null이면 비움, previous는 원래 있던 부원 */
+  | { type: 'assigned'; slotId: SlotId; memberId: string | null; previous: string | null }
+  | { type: 'tower-up'; level: number };
 
 type Listener = (event: GameEvent) => void;
 
@@ -65,6 +68,8 @@ export class Game {
   assign(slotId: SlotId, memberId: string | null): void {
     this.advance();
     const a = this.state.assignments;
+    const previous = a[slotId];
+    if (previous === memberId) return;
     if (memberId !== null) {
       if (!this.state.ownedMembers.includes(memberId)) return;
       for (const key of Object.keys(a) as SlotId[]) {
@@ -73,6 +78,7 @@ export class Game {
     }
     a[slotId] = memberId;
     this.commit();
+    this.emit({ type: 'assigned', slotId, memberId, previous });
   }
 
   get towerCost(): number {
@@ -90,6 +96,7 @@ export class Game {
     this.state.listeners -= cost;
     this.state.towerLevel += 1;
     this.commit();
+    this.emit({ type: 'tower-up', level: this.state.towerLevel });
     return true;
   }
 

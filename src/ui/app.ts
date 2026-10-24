@@ -4,6 +4,7 @@ import { BALANCE } from '../data/balance';
 import { formatDuration, formatNumber } from '../utils/format';
 import type { Component } from './component';
 import { h, onTap } from './dom';
+import { createDialogue } from './dialogue';
 import { createHeader } from './header';
 import { openModal } from './modal';
 import { createRoster } from './roster';
@@ -13,8 +14,9 @@ import { createTower } from './tower';
 
 /** 화면 전체를 조립하고 게임 이벤트와 연결한다. */
 export function mountApp(root: HTMLElement, game: Game): void {
+  const dialogue = createDialogue();
   const header = createHeader(game);
-  const studio = createStudio(game);
+  const studio = createStudio(game, (id) => dialogue.say(id, 'poke'));
   const tower = createTower(game);
   const roster = createRoster(game);
   const components: Component[] = [header, studio, tower, roster];
@@ -36,8 +38,14 @@ export function mountApp(root: HTMLElement, game: Game): void {
       'main',
       { class: 'layout' },
       h('div', { class: 'layout__main' }, studio.el, tower.el),
-      h('div', { class: 'layout__side' }, roster.el, h('footer', { class: 'footer' }, resetBtn)),
+      h(
+        'div',
+        { class: 'layout__side' },
+        roster.el,
+        h('footer', { class: 'footer' }, h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '캐릭터 이미지 미리보기'), resetBtn),
+      ),
     ),
+    dialogue.el,
   );
 
   const renderAll = () => {
@@ -46,8 +54,26 @@ export function mountApp(root: HTMLElement, game: Game): void {
   };
 
   game.on((event) => {
-    if (event.type === 'changed') renderAll();
-    if (event.type === 'offline-reward') showOfflineReward(event.result);
+    switch (event.type) {
+      case 'changed':
+        renderAll();
+        break;
+      case 'offline-reward':
+        showOfflineReward(event.result, () => {
+          const id = randomAssigned(game);
+          if (id) dialogue.say(id, 'welcomeBack');
+        });
+        break;
+      case 'assigned':
+        if (event.memberId) dialogue.say(event.memberId, 'assigned');
+        else if (event.previous) dialogue.say(event.previous, 'unassigned');
+        break;
+      case 'tower-up': {
+        const id = randomAssigned(game);
+        if (id) dialogue.say(id, 'towerUp');
+        break;
+      }
+    }
   });
 
   renderAll();
@@ -55,7 +81,12 @@ export function mountApp(root: HTMLElement, game: Game): void {
   bindLifecycle(game);
 }
 
-function showOfflineReward(result: OfflineResult): void {
+function randomAssigned(game: Game): string | undefined {
+  const ids = Object.values(game.state.assignments).filter((id): id is string => id !== null);
+  return ids[Math.floor(Math.random() * ids.length)];
+}
+
+function showOfflineReward(result: OfflineResult, onClose: () => void): void {
   closeSheet();
   const capped = result.rawElapsedMs > result.elapsedMs;
   openModal({
@@ -69,6 +100,7 @@ function showOfflineReward(result: OfflineResult): void {
       capped ? h('p', { class: 'offline__note' }, `오프라인 보상은 최대 ${formatDuration(BALANCE.offlineCapMs)}까지 쌓여요.`) : null,
     ),
     confirmLabel: '좋아!',
+    onConfirm: onClose,
   });
 }
 
