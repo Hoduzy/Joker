@@ -1,6 +1,7 @@
 import type { Game } from '../core/game';
 import { h, onTap } from './dom';
 import { openModal } from './modal';
+import { ensureName } from './storyView';
 import { setSoundEnabled, sfx, soundEnabled } from './sfx';
 
 /** 설정: 효과음 켜기/끄기, 데이터 초기화 */
@@ -30,10 +31,14 @@ export function openSettings(game: Game): void {
     }),
   );
 
+  const nameBtn = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, game.state.story.name || '정하기');
+  onTap(nameBtn, () => ensureName(game, () => openSettings(game), true));
+
   const body = h(
     'div',
     { class: 'settings' },
     h('div', { class: 'settings__row' }, h('span', {}, '🔊 효과음'), sound),
+    h('div', { class: 'settings__row' }, h('span', {}, '✏️ 주인공 이름'), nameBtn),
     h('div', { class: 'settings__row' }, h('span', {}, '🖼️ 캐릭터 이미지'), h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '미리보기')),
     h('div', { class: 'settings__row' }, h('span', {}, '🗑️ 저장 데이터'), reset),
   );

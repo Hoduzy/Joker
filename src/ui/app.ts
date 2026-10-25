@@ -22,7 +22,9 @@ import { createStudio } from './studio';
 import { createTabs, ICONS } from './tabs';
 import { gemIcon, toast } from './toast';
 import { startLiveEvents } from './liveEvents';
-import { announceBondLevel, createMembers, hasNewStory, newChapters, playChapter } from './members';
+import { announceBondLevel, createMembers, hasNewStory } from './members';
+import { playEpisode } from './storyView';
+import { CHAPTERS } from '../data/narrative';
 import { missionDef } from '../core/missions';
 import { createLockGate, lockNotice } from './locks';
 import { openMissions } from './missionsView';
@@ -141,8 +143,6 @@ export function mountApp(root: HTMLElement, game: Game): void {
         break;
       }
       case 'milestone': {
-        const fresh = newChapters(game);
-        if (fresh.length) setTimeout(() => toast(`📖 메인 스토리 CHAPTER ${fresh[fresh.length - 1]}이 열렸어요!`), 1500);
         celebrate(
           event.count > 1 ? `🎉 마일스톤 ${event.count}개 달성!` : `🎉 누적 청취자 ${formatNumber(event.threshold)}명 달성!`,
           `전파석 +${formatNumber(event.stones)}`,
@@ -157,6 +157,23 @@ export function mountApp(root: HTMLElement, game: Game): void {
         sfx.chime();
         toast(`📱 ${getMember(event.member)?.name}에게서 문자가 왔어요`);
         break;
+      case 'chapter': {
+        const c = CHAPTERS.find((x) => x.id === event.id);
+        if (!c) break;
+        setTimeout(() => toast(`📖 메인 스토리 CHAPTER ${c.id} 「${c.title}」가 열렸어요 — 부원 › 메인 스토리`), 3000);
+        // 첫 챕터는 바로 보여 준다 (다른 창이 떠 있지 않을 때)
+        if (c.id === 1 && !game.state.story.seen.length) {
+          const tryPlay = (left: number) => {
+            if (document.querySelector('#modal, #sheet, .pull, .battle, .vn, .phone, .celebrate')) {
+              if (left > 0) setTimeout(() => tryPlay(left - 1), 2000);
+              return;
+            }
+            playEpisode(game, '1-1');
+          };
+          setTimeout(() => tryPlay(10), 4000);
+        }
+        break;
+      }
       case 'unlock': {
         const names = event.items.map((u) => u.label).join(' · ');
         const sub = event.items.some((u) => u.slot) ? '새 부원을 배치할 수 있어요!' : '새 기능이 열렸어요!';
@@ -205,10 +222,6 @@ export function mountApp(root: HTMLElement, game: Game): void {
   bindLifecycle(game);
   // 접속 문자 (마지막으로 받은 지 몇 시간 지났으면)
   game.onSessionStart();
-  // 처음 시작한 사람에게는 프롤로그를 바로 보여 준다
-  if (game.state.story.seen.length === 0 && game.state.totalListeners === 0 && !document.getElementById('modal')) {
-    setTimeout(() => playChapter(game, 1), 400);
-  }
 }
 
 function randomAssignedMember(game: Game): string | undefined {

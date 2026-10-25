@@ -89,6 +89,8 @@ export function migrate(data: unknown, now: number): GameState {
   if (version < 5) d = migrateV4toV5(d);
   // v5 → v6: 한정 모집 천장 카운트(gacha.bannerPity) 추가 — 기본값은 normalize에서 채운다
   // v6 → v7: 튜닝 키트·호감도·문자·스토리·일일 미션 추가 — 기본값은 normalize에서 채운다
+  // v7 → v8: 메인 스토리를 새로 썼으므로(챕터 → 화) 본 기록을 비운다
+  if (version < 8) d = { ...d, story: undefined };
   return normalize(d, now);
 }
 
@@ -307,8 +309,15 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     kits: Math.max(0, Math.floor(num(d.kits, BALANCE.kits.start))),
     bond: normalizeBond(d.bond),
     phone: normalizePhone(d.phone),
-    story: { seen: intList((d.story as { seen?: unknown } | undefined)?.seen) },
+    story: normalizeStory(d.story),
     missions: normalizeMissions(d.missions),
     lastTick: Math.min(num(d.lastTick, now), now),
   };
+}
+
+function normalizeStory(raw: unknown): GameState['story'] {
+  const r = (raw ?? {}) as { seen?: unknown; name?: unknown };
+  const seen = Array.isArray(r.seen) ? r.seen.filter((k): k is string => typeof k === 'string' && /^(\d+-\d+|ending:\w+)$/.test(k)) : [];
+  const name = typeof r.name === 'string' ? r.name.trim().slice(0, 8) : '';
+  return { seen: [...new Set(seen)], name };
 }

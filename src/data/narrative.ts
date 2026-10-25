@@ -3,14 +3,20 @@
  *
  * 대사 한 줄(공통 형식)
  *   { "s": 말하는 사람, "e": 표정, "t": 대사, "bg": 배경 }
- *   - s:  부원 id (dahye/mirae/yuri/haneul/seoyun), "me"(주인공), ""(나레이션)
+ *   - s:  부원 id (dahye/mirae/yuri/haneul/seoyun), "me"(주인공), 생략하거나 ""면 나레이션
+ *   - n:  부원이 아닌 사람의 이름표 (예: "백시아", "이모") — 스탠딩 없이 이름만 나온다
+ *   - t 안의 {이름} 은 플레이어가 정한 주인공 이름으로 바뀐다
  *   - e:  neutral / smile / angry / sad / surprised / blush (생략하면 neutral)
  *   - bg: 이 줄부터 바뀌는 배경(장면 전환). classroom / broadcast / hallway / rooftop / street
  *         이미지는 assets/bg/<배경>.png|jpg|webp — 없으면 그라데이션으로 대신 그린다
  *   선택지: { "choice": [ { "t": 보기, "xp": { 부원: 호감도 }, "then": [ 이어지는 대사들 ] } ] }
- *   CG:     { "cg": 부원 id, "caption": 설명 } — assets/cg/<부원>.png 가 있으면 그 이미지, 없으면 빈 칸
+ *   CG:     { "cg": CG id, "caption": 설명 } — assets/cg/<id>.png 가 있으면 그 이미지, 없으면 빈 칸
+ *           (개인 이벤트는 부원 id, 메인 스토리는 story-로 시작하는 id)
  *
- * story.json   chapters[]: { id, title, day, lines } — 챕터 n은 청취자 마일스톤 n-1개 달성 시 열린다
+ * story/chapterNN.json  { id, title, unlock: 누적 청취자, summary, episodes: [{ title, lines }] }
+ *              챕터는 누적 청취자가 unlock을 넘으면 열리고, 화(episode)는 앞의 화를 다 봐야 이어서 볼 수 있다
+ * story/endings.json    부원 → { title, lines } + "true" → { title, minLevel, lines }
+ *              마지막 화를 본 뒤, 다섯 명 모두 호감도 minLevel 이상이면 진엔딩, 아니면 호감도가 가장 높은 부원의 엔딩
  * events.json  부원 → [{ level, title, lines }] — 호감도 레벨 2/4/6/8/10 단둘이 이벤트
  * texts.json   부원 → [{ minLevel, msgs: [받는 문자], choices: [{ t: 답장, xp, reply: [그 답장에 대한 문자] }] }]
  *              순서대로 하나씩 온다. minLevel 호감도가 되어야 다음 문자가 온다
@@ -20,8 +26,10 @@ import bondRaw from './bond.json';
 import eventsRaw from './events.json';
 import { getMember, MEMBERS } from './members';
 import { EXPRESSIONS, type Expression } from './portraits';
-import storyRaw from './story.json';
+import endingsRaw from './story/endings.json';
 import textsRaw from './texts.json';
+
+const chapterFiles = import.meta.glob('./story/chapter*.json', { eager: true, import: 'default' }) as Record<string, unknown>;
 
 export const BACKGROUNDS = ['classroom', 'broadcast', 'hallway', 'rooftop', 'street'] as const;
 export type Background = (typeof BACKGROUNDS)[number];
@@ -34,6 +42,8 @@ export interface ScriptChoice {
 
 export interface ScriptLine {
   s?: string;
+  /** 부원이 아닌 말하는 사람의 이름 */
+  n?: string;
   e?: Expression;
   t?: string;
   bg?: Background;
@@ -42,10 +52,31 @@ export interface ScriptLine {
   caption?: string;
 }
 
+export interface Episode {
+  /** "챕터-화" (예: "1-3") — 본 기록 키 */
+  key: string;
+  chapter: number;
+  /** 챕터 안에서 몇 번째 화인지 (1부터) */
+  no: number;
+  title: string;
+  lines: ScriptLine[];
+}
+
 export interface Chapter {
   id: number;
   title: string;
-  day: string;
+  /** 이 누적 청취자를 넘으면 열린다 */
+  unlock: number;
+  summary: string;
+  episodes: Episode[];
+}
+
+export interface Ending {
+  /** 부원 id, 또는 "true"(진엔딩) */
+  id: string;
+  title: string;
+  /** 진엔딩: 다섯 명 모두 이 호감도 레벨 이상 */
+  minLevel?: number;
   lines: ScriptLine[];
 }
 
@@ -84,9 +115,10 @@ function checkLines(lines: unknown, where: string): ScriptLine[] {
   lines.forEach((l: ScriptLine, i: number) => {
     const w = `${where} lines[${i}]`;
     if (l.s !== undefined && l.s !== '' && l.s !== 'me' && !getMember(l.s)) fail(w, `알 수 없는 말하는 사람 "${l.s}"`);
+    if (l.n !== undefined && (typeof l.n !== 'string' || l.s)) fail(w, 'n(이름표)은 s 없이 문자열로 씁니다');
     if (l.e !== undefined && !(EXPRESSIONS as readonly string[]).includes(l.e)) fail(w, `표정은 ${EXPRESSIONS.join('/')} 중 하나여야 합니다 ("${l.e}")`);
     if (l.bg !== undefined && !(BACKGROUNDS as readonly string[]).includes(l.bg)) fail(w, `배경은 ${BACKGROUNDS.join('/')} 중 하나여야 합니다 ("${l.bg}")`);
-    if (l.cg !== undefined && !getMember(l.cg)) fail(w, `cg에 알 수 없는 부원 "${l.cg}"`);
+    if (l.cg !== undefined && !getMember(l.cg) && !/^story-[\w-]+$/.test(l.cg)) fail(w, `cg는 부원 id 또는 story-로 시작하는 id여야 합니다 ("${l.cg}")`);
     if (l.choice) {
       if (!Array.isArray(l.choice) || l.choice.length < 2) fail(w, '선택지는 2개 이상이어야 합니다');
       l.choice.forEach((c, j) => {
@@ -100,12 +132,38 @@ function checkLines(lines: unknown, where: string): ScriptLine[] {
 }
 
 function load() {
-  const chapters: Chapter[] = (storyRaw as { chapters: Chapter[] }).chapters.map((c, i) => ({
-    id: c.id ?? i + 1,
-    title: c.title,
-    day: c.day ?? '',
-    lines: checkLines(c.lines, `story.json chapters[${i}]`),
-  }));
+  type RawChapter = { id: number; title: string; unlock: number; summary?: string; episodes: { title: string; lines: unknown }[] };
+  const chapters: Chapter[] = Object.entries(chapterFiles)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([file, raw]) => {
+      const c = raw as RawChapter;
+      const w = file.replace('./', '');
+      if (typeof c.id !== 'number' || typeof c.title !== 'string') fail(w, 'id·title이 필요합니다');
+      if (typeof c.unlock !== 'number') fail(w, 'unlock(누적 청취자)이 필요합니다');
+      if (!Array.isArray(c.episodes) || c.episodes.length === 0) fail(w, 'episodes가 비어 있습니다');
+      return {
+        id: c.id,
+        title: c.title,
+        unlock: c.unlock,
+        summary: c.summary ?? '',
+        episodes: c.episodes.map((e, i) => ({
+          key: `${c.id}-${i + 1}`,
+          chapter: c.id,
+          no: i + 1,
+          title: e.title,
+          lines: checkLines(e.lines, `${w} episodes[${i}]`),
+        })),
+      };
+    });
+  chapters.forEach((c, i) => {
+    if (c.id !== i + 1) fail(`story/chapter${String(i + 1).padStart(2, '0')}.json`, `챕터 번호가 ${i + 1}이어야 합니다 (${c.id})`);
+    if (i > 0 && c.unlock < chapters[i - 1].unlock) fail(`챕터 ${c.id}`, 'unlock은 앞 챕터보다 작을 수 없습니다');
+  });
+
+  const endings: Ending[] = Object.entries(endingsRaw as Record<string, { title: string; minLevel?: number; lines: unknown }>).map(([id, e]) => {
+    if (id !== 'true' && !getMember(id)) fail('story/endings.json', `알 수 없는 엔딩 "${id}"`);
+    return { id, title: e.title, minLevel: e.minLevel, lines: checkLines(e.lines, `story/endings.json ${id}`) };
+  });
 
   const events: Record<string, PersonalEvent[]> = {};
   const texts: Record<string, TextConvo[]> = {};
@@ -126,11 +184,14 @@ function load() {
     if (!b) fail('bond.json', `"${m.id}" 항목이 없습니다`);
     bond[m.id] = { favorite: b.favorite, lines: b.lines.map((l) => ({ e: (l.e ?? 'neutral') as Expression, t: l.t })) };
   }
-  return { chapters, events, texts, bond };
+  return { chapters, endings, events, texts, bond };
 }
 
 export const NARRATIVE = load();
 export const CHAPTERS: readonly Chapter[] = NARRATIVE.chapters;
+/** 모든 화를 읽는 순서대로 */
+export const EPISODES: readonly Episode[] = CHAPTERS.flatMap((c) => c.episodes);
+export const ENDINGS: readonly Ending[] = NARRATIVE.endings;
 
-/** 챕터 번호(1부터)가 열리려면 필요한 마일스톤 수 */
-export const chapterUnlock = (id: number) => id - 1;
+export const getEpisode = (key: string) => EPISODES.find((e) => e.key === key);
+export const getEnding = (id: string) => ENDINGS.find((e) => e.id === id);

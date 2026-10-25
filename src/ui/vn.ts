@@ -37,6 +37,8 @@ export interface ScriptOptions {
   onEnd?: (completed: boolean) => void;
   /** 다시보기: 선택지 호감도를 주지 않는다 */
   replay?: boolean;
+  /** 주인공 이름 ({이름} 자리와 ‘나’ 이름표) */
+  name?: string;
 }
 
 type Side = 'left' | 'right';
@@ -65,6 +67,8 @@ interface LogEntry {
  */
 export function playScript(opts: ScriptOptions): void {
   document.querySelector('.vn')?.remove();
+  const me = opts.name || '나';
+  const fill = (text: string) => text.split('{이름}').join(me);
   const queue: ScriptLine[] = [...opts.lines];
   const log: LogEntry[] = [];
   const actors: Actor[] = [];
@@ -205,21 +209,22 @@ export function playScript(opts: ScriptOptions): void {
       cg.replaceChildren(
         url ? h('img', { src: url, alt: line.caption ?? '' }) : h('div', { class: 'vn__cg-empty' }, h('span', {}, '🖼️'), h('strong', {}, 'CG 준비 중'), h('small', {}, `assets/cg/${line.cg}.png`)),
       );
-      if (line.caption) cg.append(h('div', { class: 'vn__caption' }, line.caption));
+      if (line.caption) cg.append(h('div', { class: 'vn__caption' }, fill(line.caption)));
       cg.hidden = false;
       clearCast();
       box.hidden = true;
-      full = line.caption ?? '';
+      full = fill(line.caption ?? '');
       sfx.grade(4);
-      if (line.caption) log.push({ name: '', text: `[CG] ${line.caption}`, kind: 'narration' });
+      if (line.caption) log.push({ name: '', text: `[CG] ${full}`, kind: 'narration' });
       scheduleAuto();
       return;
     }
     cg.hidden = true;
     box.hidden = false;
     const member = line.s && line.s !== 'me' ? getMember(line.s) : undefined;
-    box.classList.toggle('is-narration', !line.s);
+    box.classList.toggle('is-narration', !line.s && !line.n);
     box.classList.toggle('is-me', line.s === 'me');
+    box.classList.toggle('is-other', !!line.n);
     if (member) {
       const a = showActor(member.id, line.e ?? 'neutral');
       a.spoke = ++spokeClock;
@@ -228,11 +233,12 @@ export function playScript(opts: ScriptOptions): void {
       name.style.setProperty('--member-color', member.color);
     } else {
       focus(null);
-      name.textContent = line.s === 'me' ? '나' : '';
+      name.textContent = line.s === 'me' ? me : (line.n ?? '');
       name.style.removeProperty('--member-color');
     }
-    full = line.t ?? '';
-    log.push({ name: member?.name ?? (line.s === 'me' ? '나' : ''), color: member?.color, text: full, kind: member ? 'line' : line.s === 'me' ? 'me' : 'narration' });
+    full = fill(line.t ?? '');
+    const speaker = member?.name ?? (line.s === 'me' ? me : (line.n ?? ''));
+    log.push({ name: speaker, color: member?.color, text: full, kind: member || line.n ? 'line' : line.s === 'me' ? 'me' : 'narration' });
     text.textContent = '';
     next.hidden = true;
     let i = 0;
@@ -251,11 +257,11 @@ export function playScript(opts: ScriptOptions): void {
     box.hidden = false;
     choices.replaceChildren(
       ...(line.choice ?? []).map((c) => {
-        const b = h('button', { class: 'vn__choice', type: 'button' }, c.t);
+        const b = h('button', { class: 'vn__choice', type: 'button' }, fill(c.t));
         onTap(b, () => {
           waitingChoice = false;
           choices.hidden = true;
-          log.push({ name: '선택', text: c.t, kind: 'choice' });
+          log.push({ name: '선택', text: fill(c.t), kind: 'choice' });
           if (!opts.replay) opts.onChoice?.(c.xp);
           if (c.xp && !opts.replay) sfx.chime();
           queue.splice(index + 1, 0, ...(c.then ?? []));
@@ -338,7 +344,7 @@ export function playScript(opts: ScriptOptions): void {
       index += 1;
       const l = queue[index];
       if (l.bg) lastBg = l.bg;
-      if (l.t) log.push({ name: l.s === 'me' ? '나' : l.s ? (getMember(l.s)?.name ?? '') : '', color: l.s ? getMember(l.s)?.color : undefined, text: l.t, kind: l.s === 'me' ? 'me' : l.s ? 'line' : 'narration' });
+      if (l.t) log.push({ name: l.s === 'me' ? me : l.s ? (getMember(l.s)?.name ?? '') : (l.n ?? ''), color: l.s ? getMember(l.s)?.color : undefined, text: fill(l.t), kind: l.s === 'me' ? 'me' : l.s || l.n ? 'line' : 'narration' });
     }
     if (lastBg && lastBg !== bg) {
       clearCast();

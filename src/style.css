@@ -6820,3 +6820,134 @@ body {
     padding: 1px 6px;
   }
 }
+
+/* ══════════ 메인 스토리: 챕터 · 화 ══════════ */
+.chapter-block {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.chapter-block.is-current {
+  border-color: rgba(255, 207, 92, 0.5);
+  box-shadow: 0 0 0 1px rgba(255, 207, 92, 0.2);
+}
+
+.chapter-block.is-locked {
+  opacity: 0.6;
+}
+
+.chapter-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.chapter-head .chapter__text small {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.chapter-block__bar {
+  height: 6px;
+}
+
+.episodes {
+  display: grid;
+  gap: 6px;
+}
+
+.episode {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--panel-strong);
+  text-align: left;
+  font-size: 15px;
+}
+
+.episode.is-locked {
+  opacity: 0.5;
+}
+
+.episode.is-new {
+  background: linear-gradient(90deg, rgba(255, 107, 217, 0.22), rgba(255, 207, 92, 0.12));
+  box-shadow: inset 0 0 0 2px rgba(255, 143, 200, 0.55);
+}
+
+.episode__no {
+  color: var(--accent);
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.is-new .chapter__state {
+  color: var(--accent);
+}
+
+.vn__box.is-other .vn__name {
+  --member-color: #5f5a7d;
+}
+
+.name-prompt {
+  display: grid;
+  gap: 10px;
+  min-width: min(380px, 80vw);
+}
+
+.name-prompt p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.name-prompt small {
+  color: var(--muted);
+}
+
+.name-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+@media (max-width: 599px) {
+  .chapter-block {
+    padding: 10px;
+  }
+  .episode {
+    grid-template-columns: 34px 1fr auto;
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+}
+
+button.chapter-head {
+  width: 100%;
+  text-align: left;
+}
+
+button.chapter-head:disabled {
+  cursor: default;
+  opacity: 1;
+}

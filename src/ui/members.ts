@@ -2,7 +2,9 @@ import { bondLevel, bondProgress, bondStatMult, giftXp, ownsMember, pendingEvent
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
 import { getMember, MEMBERS, type MemberDef } from '../data/members';
-import { CHAPTERS, chapterUnlock, NARRATIVE } from '../data/narrative';
+import { CHAPTERS, NARRATIVE } from '../data/narrative';
+import { hasNewEpisode } from '../core/story';
+import { renderStoryAlbum, renderStoryList } from './storyView';
 import { getPortraits } from '../data/portraits';
 import { formatNumber } from '../utils/format';
 import type { Component } from './component';
@@ -15,37 +17,18 @@ import { cgUrl, playScript } from './vn';
 
 type View = 'members' | 'story' | 'album';
 
+/** 열린 챕터 수 (다시 그릴지 판단용) */
+const CHAPTERS_OPEN = (total: number) => CHAPTERS.filter((c) => total >= c.unlock).length;
+
 const GIFT_THANKS: Record<string, string> = {
   snack: '오, 간식! 방송 끝나고 같이 먹자.',
   drink: '따뜻하다… 고마워. 손이 좀 시렸거든.',
   goods: '방송부 굿즈! 소중히 할게.',
 };
 
-/** 아직 안 본 열린 챕터 */
-export function newChapters(game: Game): number[] {
-  return CHAPTERS.filter((c) => isChapterOpen(game, c.id) && !game.state.story.seen.includes(c.id)).map((c) => c.id);
-}
-
-export function isChapterOpen(game: Game, id: number): boolean {
-  return game.state.milestonesReached >= chapterUnlock(id);
-}
-
 /** 부원·스토리에 새로 볼 게 있는지 (탭 점) */
 export function hasNewStory(game: Game): boolean {
-  return newChapters(game).length > 0 || MEMBERS.some((m) => pendingEvents(game.state, m.id).length > 0);
-}
-
-export function playChapter(game: Game, id: number): void {
-  const c = CHAPTERS.find((x) => x.id === id);
-  if (!c) return;
-  const replay = game.state.story.seen.includes(id);
-  playScript({
-    title: `CHAPTER ${c.id} · ${c.title}`,
-    lines: c.lines,
-    replay,
-    onChoice: (xp) => game.applyChoiceXp(xp),
-    onEnd: (done) => done && !replay && game.markChapterSeen(id),
-  });
+  return hasNewEpisode(game.state) || MEMBERS.some((m) => pendingEvents(game.state, m.id).length > 0);
 }
 
 export function playEvent(game: Game, memberId: string, level: number): void {
@@ -56,6 +39,7 @@ export function playEvent(game: Game, memberId: string, level: number): void {
     title: `${getMember(memberId)?.name} · ${ev.title}`,
     lines: ev.lines,
     replay,
+    name: game.state.story.name,
     onChoice: (xp) => game.applyChoiceXp(xp),
     onEnd: (done) => done && !replay && game.markEventSeen(memberId, level),
   });
@@ -80,10 +64,11 @@ export function createMembers(game: Game): Component {
   function renderTabs() {
     subtabs.replaceChildren(
       ...(Object.keys(views) as View[]).map((v) => {
-        const dot = v === 'story' ? newChapters(game).length > 0 : v === 'members' ? MEMBERS.some((m) => pendingEvents(game.state, m.id).length > 0) : false;
+        const dot = v === 'story' ? hasNewEpisode(game.state) : v === 'members' ? MEMBERS.some((m) => pendingEvents(game.state, m.id).length > 0) : false;
         const b = h('button', { class: `subtab${view === v ? ' is-active' : ''}`, type: 'button', role: 'tab' }, views[v], dot ? h('i', { class: 'tabs__dot' }) : null);
         onTap(b, () => {
           view = v;
+          scrollToCurrent = v === 'story';
           render();
         });
         return b;
@@ -263,24 +248,14 @@ export function createMembers(game: Game): Component {
   }
 
   // ── 메인 스토리
+  let scrollToCurrent = false;
   function renderStory() {
-    story.replaceChildren(
-      h('div', { class: 'chapters__intro' }, h('strong', {}, '“7일 후, 세계는 끝납니다.”'), h('p', {}, '어느 날 방송실 라디오에 잡힌 정체불명의 신호. 누적 청취자 목표를 달성할 때마다 다음 이야기가 열려요.')),
-      ...CHAPTERS.map((c) => {
-        const open = isChapterOpen(game, c.id);
-        const seen = game.state.story.seen.includes(c.id);
-        const need = chapterUnlock(c.id);
-        const row = h(
-          'button',
-          { class: `chapter${open ? '' : ' is-locked'}${open && !seen ? ' is-new' : ''}`, type: 'button', disabled: !open },
-          h('span', { class: 'chapter__no' }, `CH.${c.id}`),
-          h('div', { class: 'chapter__text' }, h('small', {}, c.day), h('strong', {}, open ? c.title : '???')),
-          h('span', { class: 'chapter__state' }, !open ? `🔒 마일스톤 ${need}개 (${game.state.milestonesReached}/${need})` : seen ? '다시보기 ↺' : 'NEW ▶'),
-        );
-        if (open) onTap(row, () => playChapter(game, c.id));
-        return row;
-      }),
-    );
+    story.replaceChildren(renderStoryList(game, renderStory));
+    // 메인 스토리를 처음 열 때만, 지금 볼 챕터가 보이게
+    if (scrollToCurrent) {
+      scrollToCurrent = false;
+      requestAnimationFrame(() => story.querySelector('.chapter-block.is-current')?.scrollIntoView({ block: 'nearest' }));
+    }
   }
 
   // ── 추억 앨범: 본 챕터·이벤트 다시보기 + 레벨 10 CG
@@ -306,14 +281,10 @@ export function createMembers(game: Game): Component {
           return b;
         }),
     );
-    const seenChapters = CHAPTERS.filter((c) => game.state.story.seen.includes(c.id)).map((c) => {
-      const b = h('button', { class: 'album-row', type: 'button' }, h('span', { class: 'chapter__no' }, `CH.${c.id}`), h('span', {}, c.title), h('span', { class: 'chapter__state' }, '↺'));
-      onTap(b, () => playChapter(game, c.id));
-      return b;
-    });
+    const seenChapters = renderStoryAlbum(game);
     album.replaceChildren(
       h('div', { class: 'panel' }, h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, '스페셜 CG'), h('span', { class: 'panel__sub' }, '호감도 10 이벤트')), h('div', { class: 'cg-grid' }, ...cgs)),
-      h('div', { class: 'panel' }, h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, '메인 스토리')), seenChapters.length ? h('div', { class: 'album-list' }, ...seenChapters) : h('p', { class: 'empty' }, '아직 본 챕터가 없어요')),
+      h('div', { class: 'panel' }, h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, '메인 스토리')), seenChapters.length ? h('div', { class: 'album-list' }, ...seenChapters) : h('p', { class: 'empty' }, '아직 본 이야기가 없어요')),
       h('div', { class: 'panel' }, h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, '단둘이 이벤트')), seenEvents.length ? h('div', { class: 'album-list' }, ...seenEvents) : h('p', { class: 'empty' }, '호감도 Lv.2부터 이벤트가 열려요')),
     );
   }
@@ -340,7 +311,7 @@ export function createMembers(game: Game): Component {
     render() {
       // 숫자만 바뀌는 잦은 changed 이벤트에는 다시 그리지 않는다 (말풍선·애니메이션 유지)
       const s = game.state;
-      const key = JSON.stringify([view, selected, s.bond, s.story.seen, s.milestonesReached, Object.keys(s.cards).length, Math.floor(Math.log10(Math.max(1, s.listeners)) * 4)]);
+      const key = JSON.stringify([view, selected, s.bond, s.story, CHAPTERS_OPEN(s.totalListeners), Object.keys(s.cards).length, Math.floor(Math.log10(Math.max(1, s.listeners)) * 4)]);
       if (key === lastKey) return;
       lastKey = key;
       render();

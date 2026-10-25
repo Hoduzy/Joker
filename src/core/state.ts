@@ -6,7 +6,7 @@ import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -55,7 +55,8 @@ export interface GameState {
   /** 휴대폰 문자 */
   phone: PhoneState;
   /** 메인 스토리: 본 챕터 번호 */
-  story: { seen: number[] };
+  /** 메인 스토리: 본 화·엔딩 키("1-3", "ending:dahye"), 주인공 이름 */
+  story: { seen: string[]; name: string };
   /** 일일 미션 */
   missions: MissionState;
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
@@ -187,7 +188,7 @@ export function createInitialState(now: number): GameState {
     kits: BALANCE.kits.start,
     bond: createBond(),
     phone: createPhone(),
-    story: { seen: [] },
+    story: { seen: [], name: '' },
     missions: { day: '', ids: [], progress: {}, claimed: [], bonusClaimed: false },
     lastTick: now,
   };

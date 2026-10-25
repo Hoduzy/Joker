@@ -12,12 +12,16 @@ import { BALANCE } from '../src/data/balance';
 import { CARDS, getCard } from '../src/data/cards';
 import { SLOTS } from '../src/data/slots';
 import { MEMBERS } from '../src/data/members';
-import { BACKGROUNDS, CHAPTERS, NARRATIVE } from '../src/data/narrative';
+import { BACKGROUNDS, CHAPTERS, ENDINGS, EPISODES, NARRATIVE, getEpisode } from '../src/data/narrative';
+import { episodeAvailable, nextEpisode, pickEnding, withName } from '../src/core/story';
 import { standUrl } from '../src/data/portraits';
 
 describe('narrative data', () => {
-  it('has 10 chapters, 5 events, 10 texts and 10 bond lines per member', () => {
+  it('has 10 chapters of 5 episodes, endings, 5 events, 10 texts and 10 bond lines per member', () => {
     expect(CHAPTERS).toHaveLength(10);
+    for (const c of CHAPTERS) expect(c.episodes).toHaveLength(5);
+    expect(CHAPTERS.map((c) => c.unlock)).toEqual([100, 1000, 10000, 30000, 50000, 100000, 200000, 400000, 700000, 1000000]);
+    expect(ENDINGS.map((e) => e.id).sort()).toEqual([...MEMBERS.map((m) => m.id), 'true'].sort());
     for (const m of MEMBERS) {
       expect(NARRATIVE.events[m.id].map((e) => e.level)).toEqual([...BALANCE.bond.eventLevels]);
       expect(NARRATIVE.texts[m.id]).toHaveLength(10);
@@ -26,12 +30,74 @@ describe('narrative data', () => {
       expect(last.lines.some((l) => l.cg === m.id)).toBe(true);
     }
   });
+
+  it('gives every episode at least one choice and 20+ lines', () => {
+    for (const ep of EPISODES) {
+      expect(ep.lines.some((l) => l.choice), ep.key).toBe(true);
+      expect(ep.lines.length, ep.key).toBeGreaterThanOrEqual(20);
+    }
+  });
+});
+
+describe('story progress', () => {
+  it('opens chapters by total listeners and episodes in order', () => {
+    const g = openGame();
+    g.state.totalListeners = 0;
+    g.state.story.seen = [];
+    expect(episodeAvailable(g.state, EPISODES[0])).toBe(false);
+    g.state.totalListeners = 100;
+    expect(episodeAvailable(g.state, EPISODES[0])).toBe(true);
+    expect(episodeAvailable(g.state, EPISODES[1])).toBe(false);
+    g.markStorySeen('1-1');
+    expect(nextEpisode(g.state)?.key).toBe('1-2');
+    // 다음 챕터 첫 화는 앞 화를 다 봐도 청취자가 모자라면 잠김
+    for (let i = 2; i <= 5; i++) g.markStorySeen(`1-${i}`);
+    expect(episodeAvailable(g.state, getEpisode('2-1')!)).toBe(false);
+    g.state.totalListeners = 1000;
+    expect(episodeAvailable(g.state, getEpisode('2-1')!)).toBe(true);
+  });
+
+  it('emits a chapter event when crossing its threshold', () => {
+    const g = openGame();
+    g.state.totalListeners = 950;
+    g.state.milestonesReached = 3;
+    g.state.assignments.dj = 'haneul-r';
+    const got: number[] = [];
+    g.on((e) => e.type === 'chapter' && got.push(e.id));
+    g.state.lastTick = Date.now() - 60 * 60 * 1000;
+    g.advance();
+    expect(got).toContain(2);
+  });
+
+  it('picks the true ending when everyone is close, else the highest bond', () => {
+    const g = openGame();
+    for (const m of MEMBERS) g.state.bond[m.id].xp = 0;
+    g.state.bond.mirae.xp = 500;
+    expect(pickEnding(g.state)?.id).toBe('mirae');
+    for (const m of MEMBERS) g.state.bond[m.id].xp = BALANCE.bond.xpTable[5];
+    expect(pickEnding(g.state)?.id).toBe('true');
+  });
+
+  it('fills in the player name', () => {
+    expect(withName('받는 사람 {이름}', '하루')).toBe('받는 사람 하루');
+    expect(withName('{이름}!', '')).toBe('나!');
+  });
+});
+
+describe('save migration v7 → v8', () => {
+  it('clears old story progress and keeps a valid name', () => {
+    const s = migrate({ version: 7, story: { seen: [1, 2, 3] } }, 0);
+    expect(s.story).toEqual({ seen: [], name: '' });
+    const t = migrate({ version: 8, story: { seen: ['1-1', 'bad', 'ending:dahye', '1-1'], name: '  아주긴이름입니다요  ' } }, 0);
+    expect(t.story.seen).toEqual(['1-1', 'ending:dahye']);
+    expect(t.story.name).toBe('아주긴이름입니다');
+  });
 });
 
 describe('story backgrounds', () => {
   it('starts every chapter and event with a background from assets/bg', () => {
     expect([...BACKGROUNDS]).toEqual(['classroom', 'broadcast', 'hallway', 'rooftop', 'street']);
-    for (const c of CHAPTERS) expect(BACKGROUNDS).toContain(c.lines[0].bg);
+    for (const ep of EPISODES) expect(BACKGROUNDS, ep.key).toContain(ep.lines[0].bg);
     for (const m of MEMBERS) for (const ev of NARRATIVE.events[m.id]) expect(BACKGROUNDS).toContain(ev.lines[0].bg);
   });
 

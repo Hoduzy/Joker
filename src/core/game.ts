@@ -5,6 +5,7 @@ import { enhanceCost, enhanceKits, enhanceSuccessRate, listenersPerSecond, maxCa
 import { bondLevel, giftCost, giftXp, ownsMember, refreshBondDay, unlockedLines } from './bond';
 import { claimableCount, isMissionDone, refreshMissions, trackMission, type MissionKind } from './missions';
 import { deliverText, replyText } from './phone';
+import { newlyOpenedChapters } from './story';
 import { isUnlocked, newlyUnlocked, slotUnlocked, type Feature, type UnlockDef } from './unlocks';
 import { dayKey, pick } from '../data/flavor';
 import type { Expression } from '../data/portraits';
@@ -49,7 +50,9 @@ export type GameEvent =
   /** 일일 미션 하나 달성 */
   | { type: 'mission'; id: string }
   /** 누적 청취자로 새 자리·기능이 열림 */
-  | { type: 'unlock'; items: UnlockDef[] };
+  | { type: 'unlock'; items: UnlockDef[] }
+  /** 누적 청취자로 메인 스토리 챕터가 열림 */
+  | { type: 'chapter'; id: number };
 
 export type EnhanceResult = 'success' | 'fail';
 
@@ -203,6 +206,7 @@ export class Game {
       this.emit({ type: 'unlock', items: opened });
       this.emit({ type: 'changed' });
     }
+    for (const c of newlyOpenedChapters(before, this.state.totalListeners)) this.emit({ type: 'chapter', id: c.id });
   }
 
   /** 방송에 배치된 카드의 부원에게, 배치해 둔 시간만큼 호감도 */
@@ -292,8 +296,14 @@ export class Game {
     this.commit();
   }
 
-  markChapterSeen(id: number): void {
-    if (!this.state.story.seen.includes(id)) this.state.story.seen.push(id);
+  /** 메인 스토리 화·엔딩을 끝까지 봤다 (key: "1-3" 또는 endingKey(id)) */
+  markStorySeen(key: string): void {
+    if (!this.state.story.seen.includes(key)) this.state.story.seen.push(key);
+    this.commit();
+  }
+
+  setPlayerName(name: string): void {
+    this.state.story.name = name.trim().slice(0, 8);
     this.commit();
   }
 
