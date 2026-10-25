@@ -9,14 +9,14 @@ export const BALANCE = {
   /** 카드의 담당 슬롯에 배치했을 때 파워 보너스 (+30%) */
   slotBonus: 0.3,
   /** 능력치 1점당 초당 청취자 (송신탑 배율 적용 전) */
-  listenersPerPower: 0.03,
+  listenersPerPower: 0.02,
   /** 4개 슬롯이 모두 찼을 때의 보너스 배율 */
   fullLineupBonus: 1.2,
 
   /** 송신탑 */
   tower: {
     baseCost: 60,
-    costGrowth: 1.62,
+    costGrowth: 1.66,
     /** 레벨당 생산 배율 증가 (복리) */
     outputGrowth: 1.22,
   },
@@ -45,8 +45,8 @@ export const BALANCE = {
   /** 돌파 */
   limitBreak: {
     max: 5,
-    /** 돌파 1단계당 능력치 +12% */
-    statBonusPerLevel: 0.12,
+    /** 돌파 1단계당 능력치 +6% */
+    statBonusPerLevel: 0.06,
     /** 최대 돌파 카드를 또 뽑으면 전파석으로 돌려준다 */
     overflowRefund: { R: 20, SR: 60, SSR: 300 } satisfies Record<Rarity, number>,
   },
@@ -143,8 +143,8 @@ export const BALANCE = {
     /** 최대 레벨 = base + perLimitBreak × 돌파 단계 */
     maxLevelBase: 20,
     maxLevelPerLimitBreak: 4,
-    /** 레벨 1당 능력치 +6% */
-    statPerLevel: 0.06,
+    /** 레벨 1당 능력치 +2% */
+    statPerLevel: 0.02,
     /** 레벨 n → n+1 비용 = base[등급] × growth^(n-1) */
     costBase: { R: 50, SR: 90, SSR: 150 } satisfies Record<Rarity, number>,
     costGrowth: 1.22,
@@ -189,8 +189,8 @@ export const BALANCE = {
     xpTable: [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200],
     /** 방송에 배치해 둔 1분당 호감도 (오프라인 포함, 오프라인 상한 적용) */
     placementXpPerMin: 1,
-    /** 호감도 레벨 1당 그 부원 카드 능력치 +3% */
-    statPerLevel: 0.03,
+    /** 호감도 레벨 1당 그 부원 카드 능력치 +2% */
+    statPerLevel: 0.02,
     /** 대화: 하루 이 횟수까지 호감도를 준다 */
     talkXp: 3,
     talksPerDay: 5,

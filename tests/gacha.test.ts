@@ -112,6 +112,7 @@ describe('Game.pull', () => {
     g.state.totalListeners = 1e9;
     g.state.milestonesReached = 99;
     g.state.cards['haneul-ssr'] = { limitBreak: 0, level: 1, obtainedAt: 0 };
+    g.state.cards['haneul-r'] = { limitBreak: 0, level: 1, obtainedAt: 0 };
     g.assign('dj', 'haneul-r');
     g.assign('guest', 'haneul-ssr');
     expect(g.state.assignments.dj).toBeNull();
@@ -120,6 +121,7 @@ describe('Game.pull', () => {
 
   it('grants stones on tower level up and milestones', () => {
     const g = new Game(0);
+    g.state.assignments.dj = null; // 오프라인 생산으로 마일스톤이 먼저 터지지 않게
     g.state.stones = 0;
     g.state.listeners = 1000;
     g.upgradeTower();

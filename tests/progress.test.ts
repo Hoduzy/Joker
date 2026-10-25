@@ -10,7 +10,7 @@ import { getCard } from '../src/data/cards';
 describe('card enhancement', () => {
   it('raises stats per level', () => {
     const card = getCard('haneul-r')!;
-    expect(cardStats(card, { limitBreak: 0, level: 11 }).voice).toBe(Math.round(32 * (1 + 10 * BALANCE.enhance.statPerLevel)));
+    expect(cardStats(card, { limitBreak: 0, level: 11 }).voice).toBe(Math.round(card.stats.voice * (1 + 10 * BALANCE.enhance.statPerLevel)));
   });
 
   it('caps level by limit break', () => {

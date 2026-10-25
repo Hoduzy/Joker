@@ -159,13 +159,12 @@ export function emptyAssignments(): Record<SlotId, string | null> {
 }
 
 /** 부원마다 R 카드 1장씩 */
+/** 처음 시작할 때 있는 부원: 방송부장(다혜) 한 명. 나머지 부원은 뽑기로 만난다 */
+export const STARTER_MEMBER = 'dahye';
+
 export function starterCards(now: number): Record<string, OwnedCard> {
-  const cards: Record<string, OwnedCard> = {};
-  for (const m of MEMBERS) {
-    const id = starterCardOf(m.id);
-    if (id) cards[id] = { limitBreak: 0, level: 1, obtainedAt: now };
-  }
-  return cards;
+  const id = starterCardOf(STARTER_MEMBER);
+  return id ? { [id]: { limitBreak: 0, level: 1, obtainedAt: now } } : {};
 }
 
 export function createInitialState(now: number): GameState {
@@ -177,7 +176,8 @@ export function createInitialState(now: number): GameState {
     stones: BALANCE.stones.welcomeGift,
     milestonesReached: 0,
     cards: starterCards(now),
-    assignments: emptyAssignments(),
+    // 부장이 혼자 DJ 자리를 지키는 데서 시작
+    assignments: { ...emptyAssignments(), dj: starterCardOf(STARTER_MEMBER) ?? null },
     gacha: { pity: 0, bannerPity: {}, totalPulls: 0 },
     equipment: emptyEquipment(),
     box: createBox(now),

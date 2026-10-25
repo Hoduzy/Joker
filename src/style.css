@@ -6763,3 +6763,60 @@ body {
     font-size: 22px;
   }
 }
+
+/* 입부 전 부원 */
+.mrow.is-locked .face,
+.mrow.is-locked .portrait,
+.mlocked__face .face,
+.mlocked__face .portrait {
+  filter: brightness(0) opacity(0.55);
+}
+
+.mrow.is-locked {
+  opacity: 0.7;
+}
+
+.mlocked {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+.mlocked p {
+  max-width: 420px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.mlocked__face .face,
+.mlocked__face .portrait {
+  width: 140px;
+  height: 140px;
+}
+
+/* 폰: 10연 결과를 4열로 크게, 작은 카드에서는 제목을 줄인다 */
+@media (max-width: 599px) {
+  .pull__stage--many {
+    --card-w: min(21vw, 15vh);
+    grid-template-columns: repeat(4, var(--card-w));
+    gap: 30px 8px;
+  }
+  .pull__stage--many .cardf__title {
+    font-size: 10px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .pull__stage--many .cardf__name {
+    font-size: 9px;
+  }
+  .pull__stage--many .pull__badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+}

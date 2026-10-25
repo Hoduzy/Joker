@@ -1,26 +1,26 @@
 [
-  { "id": "haneul-r",   "member": "haneul", "rarity": "R",   "title": "마이크 체크, 원 투",   "slot": "dj",       "stats": { "voice": 32, "tech": 8,  "writing": 14, "charm": 22 }, "quote": "목소리 잘 들려? 그럼 시작한다~!" },
-  { "id": "haneul-sr",  "member": "haneul", "rarity": "SR",  "title": "앵콜은 라디오로",      "slot": "guest",    "stats": { "voice": 38, "tech": 10, "writing": 16, "charm": 36 }, "quote": "무대가 없으면 전파에 올라가면 되지!" },
-  { "id": "haneul-ssr", "member": "haneul", "rarity": "SSR", "title": "새벽 3시의 아이돌",    "slot": "dj",       "stats": { "voice": 60, "tech": 12, "writing": 22, "charm": 40 }, "quote": "잠 못 드는 너를 위해, 오늘도 ON AIR." },
+  { "id": "haneul-r",   "member": "haneul", "rarity": "R",   "title": "마이크 체크, 원 투",   "slot": "dj",       "stats": { "voice": 38, "tech": 9, "writing": 16, "charm": 26 }, "quote": "목소리 잘 들려? 그럼 시작한다~!" },
+  { "id": "haneul-sr",  "member": "haneul", "rarity": "SR",  "title": "앵콜은 라디오로",      "slot": "guest",    "stats": { "voice": 111, "tech": 29, "writing": 47, "charm": 105 }, "quote": "무대가 없으면 전파에 올라가면 되지!" },
+  { "id": "haneul-ssr", "member": "haneul", "rarity": "SSR", "title": "새벽 3시의 아이돌",    "slot": "dj",       "stats": { "voice": 342, "tech": 68, "writing": 125, "charm": 228 }, "quote": "잠 못 드는 너를 위해, 오늘도 ON AIR." },
 
-  { "id": "mirae-r",    "member": "mirae",  "rarity": "R",   "title": "믹서 앞 수다쟁이",     "slot": "engineer", "stats": { "voice": 9,  "tech": 30, "writing": 11, "charm": 12 }, "quote": "…페이더 올린다." },
-  { "id": "mirae-sr",   "member": "mirae",  "rarity": "SR",  "title": "송출 로그 일지",       "slot": "writer",   "stats": { "voice": 12, "tech": 40, "writing": 22, "charm": 14 }, "quote": "오늘 끊김 0회. 기록해 둘게." },
-  { "id": "mirae-ssr",  "member": "mirae",  "rarity": "SSR", "title": "한밤의 납땜 공방",     "slot": "engineer", "stats": { "voice": 16, "tech": 62, "writing": 20, "charm": 24 }, "quote": "이 송신기, 내가 처음부터 다시 만들었어." },
+  { "id": "mirae-r",    "member": "mirae",  "rarity": "R",   "title": "믹서 앞 수다쟁이",     "slot": "engineer", "stats": { "voice": 12, "tech": 39, "writing": 14, "charm": 16 }, "quote": "…페이더 올린다." },
+  { "id": "mirae-sr",   "member": "mirae",  "rarity": "SR",  "title": "송출 로그 일지",       "slot": "writer",   "stats": { "voice": 45, "tech": 151, "writing": 83, "charm": 53 }, "quote": "오늘 끊김 0회. 기록해 둘게." },
+  { "id": "mirae-ssr",  "member": "mirae",  "rarity": "SSR", "title": "한밤의 납땜 공방",     "slot": "engineer", "stats": { "voice": 91, "tech": 353, "writing": 114, "charm": 137 }, "quote": "이 송신기, 내가 처음부터 다시 만들었어." },
 
-  { "id": "seoyun-r",   "member": "seoyun", "rarity": "R",   "title": "사연함 지킴이",        "slot": "writer",   "stats": { "voice": 12, "tech": 10, "writing": 28, "charm": 14 }, "quote": "오늘 온 사연은 열두 통이에요." },
-  { "id": "seoyun-sr",  "member": "seoyun", "rarity": "SR",  "title": "비 오는 날의 편지",    "slot": "dj",       "stats": { "voice": 24, "tech": 12, "writing": 36, "charm": 18 }, "quote": "이 사연은… 제가 직접 읽어 드릴게요." },
-  { "id": "seoyun-ssr", "member": "seoyun", "rarity": "SSR", "title": "보내지 못한 엽서",     "slot": "writer",   "stats": { "voice": 24, "tech": 16, "writing": 58, "charm": 30 }, "quote": "이 엽서의 받는 사람은… 비밀이에요." },
+  { "id": "seoyun-r",   "member": "seoyun", "rarity": "R",   "title": "사연함 지킴이",        "slot": "writer",   "stats": { "voice": 16, "tech": 13, "writing": 37, "charm": 18 }, "quote": "오늘 온 사연은 열두 통이에요." },
+  { "id": "seoyun-sr",  "member": "seoyun", "rarity": "SR",  "title": "비 오는 날의 편지",    "slot": "dj",       "stats": { "voice": 87, "tech": 43, "writing": 130, "charm": 65 }, "quote": "이 사연은… 제가 직접 읽어 드릴게요." },
+  { "id": "seoyun-ssr", "member": "seoyun", "rarity": "SSR", "title": "보내지 못한 엽서",     "slot": "writer",   "stats": { "voice": 137, "tech": 91, "writing": 330, "charm": 171 }, "quote": "이 엽서의 받는 사람은… 비밀이에요." },
 
-  { "id": "yuri-r",     "member": "yuri",   "rarity": "R",   "title": "오늘의 게스트",        "slot": "guest",    "stats": { "voice": 16, "tech": 6,  "writing": 9,  "charm": 26 }, "quote": "안녕하세요~ 오늘의 게스트예요!" },
-  { "id": "yuri-sr",    "member": "yuri",   "rarity": "SR",  "title": "게스트 DJ 데뷔",       "slot": "dj",       "stats": { "voice": 30, "tech": 8,  "writing": 12, "charm": 34 }, "quote": "오늘은 내가 진행이다! 떨려…!" },
-  { "id": "yuri-ssr",   "member": "yuri",   "rarity": "SSR", "title": "고정 게스트 확정!",    "slot": "guest",    "stats": { "voice": 30, "tech": 12, "writing": 18, "charm": 58 }, "quote": "이제 매주 와도 되는 거지? 그치?" },
+  { "id": "yuri-r",     "member": "yuri",   "rarity": "R",   "title": "오늘의 게스트",        "slot": "guest",    "stats": { "voice": 22, "tech": 8, "writing": 13, "charm": 37 }, "quote": "안녕하세요~ 오늘의 게스트예요!" },
+  { "id": "yuri-sr",    "member": "yuri",   "rarity": "SR",  "title": "게스트 DJ 데뷔",       "slot": "dj",       "stats": { "voice": 102, "tech": 27, "writing": 41, "charm": 115 }, "quote": "오늘은 내가 진행이다! 떨려…!" },
+  { "id": "yuri-ssr",   "member": "yuri",   "rarity": "SSR", "title": "고정 게스트 확정!",    "slot": "guest",    "stats": { "voice": 173, "tech": 69, "writing": 104, "charm": 335 }, "quote": "이제 매주 와도 되는 거지? 그치?" },
 
-  { "id": "dahye-r",    "member": "dahye",  "rarity": "R",   "title": "방송부장의 완장",      "slot": "engineer", "stats": { "voice": 17, "tech": 16, "writing": 16, "charm": 15 }, "quote": "완장 찬 사람 말은 들어." },
-  { "id": "dahye-sr",   "member": "dahye",  "rarity": "SR",  "title": "사고 없는 방송",       "slot": "writer",   "stats": { "voice": 22, "tech": 22, "writing": 26, "charm": 18 }, "quote": "큐시트는 세 번 확인했어." },
-  { "id": "dahye-ssr",  "member": "dahye",  "rarity": "SSR", "title": "심야방송부 부장",      "slot": "dj",       "stats": { "voice": 44, "tech": 30, "writing": 30, "charm": 30 }, "quote": "이 방송부는 내가 지킨다. 끝까지." },
+  { "id": "dahye-r",    "member": "dahye",  "rarity": "R",   "title": "방송부장의 완장",      "slot": "dj",       "stats": { "voice": 29, "tech": 27, "writing": 27, "charm": 25 }, "quote": "완장 찬 사람 말은 들어." },
+  { "id": "dahye-sr",   "member": "dahye",  "rarity": "SR",  "title": "사고 없는 방송",       "slot": "writer",   "stats": { "voice": 78, "tech": 78, "writing": 92, "charm": 64 }, "quote": "큐시트는 세 번 확인했어." },
+  { "id": "dahye-ssr",  "member": "dahye",  "rarity": "SSR", "title": "심야방송부 부장",      "slot": "dj",       "stats": { "voice": 283, "tech": 193, "writing": 193, "charm": 193 }, "quote": "이 방송부는 내가 지킨다. 끝까지." },
 
-  { "id": "dahye-redcoat-ssr", "member": "dahye", "outfit": "dahye-redcoat", "limited": "winter-festival", "rarity": "SSR", "title": "방송제의 붉은 지휘자", "slot": "dj",       "stats": { "voice": 52, "tech": 34, "writing": 30, "charm": 40 }, "quote": "오늘 무대, 큐는 내가 준다." },
-  { "id": "mirae-lab-ssr",     "member": "mirae", "outfit": "mirae-lab",     "limited": "winter-festival", "rarity": "SSR", "title": "심야 연구실",          "slot": "engineer", "stats": { "voice": 18, "tech": 70, "writing": 26, "charm": 28 }, "quote": "고글 쓰면… 집중 모드야. 말 걸지 마." },
-  { "id": "dahye-winter-sr",   "member": "dahye", "outfit": "dahye-winter",  "limited": "winter-festival", "rarity": "SR",  "title": "겨울밤 귀갓길",        "slot": "writer",   "stats": { "voice": 26, "tech": 24, "writing": 32, "charm": 22 }, "quote": "…추우니까 빨리 들어가. 방송 듣고 자." },
-  { "id": "mirae-work-sr",     "member": "mirae", "outfit": "mirae-work",    "limited": "winter-festival", "rarity": "SR",  "title": "현장 출동 엔지니어",   "slot": "engineer", "stats": { "voice": 12, "tech": 46, "writing": 14, "charm": 18 }, "quote": "케이블 다 깔았어. …칭찬해도 돼." }
+  { "id": "dahye-redcoat-ssr", "member": "dahye", "outfit": "dahye-redcoat", "limited": "winter-festival", "rarity": "SSR", "title": "방송제의 붉은 지휘자", "slot": "dj",       "stats": { "voice": 297, "tech": 194, "writing": 171, "charm": 228 }, "quote": "오늘 무대, 큐는 내가 준다." },
+  { "id": "mirae-lab-ssr",     "member": "mirae", "outfit": "mirae-lab",     "limited": "winter-festival", "rarity": "SSR", "title": "심야 연구실",          "slot": "engineer", "stats": { "voice": 92, "tech": 358, "writing": 133, "charm": 143 }, "quote": "고글 쓰면… 집중 모드야. 말 걸지 마." },
+  { "id": "dahye-winter-sr",   "member": "dahye", "outfit": "dahye-winter",  "limited": "winter-festival", "rarity": "SR",  "title": "겨울밤 귀갓길",        "slot": "writer",   "stats": { "voice": 79, "tech": 73, "writing": 97, "charm": 67 }, "quote": "…추우니까 빨리 들어가. 방송 듣고 자." },
+  { "id": "mirae-work-sr",     "member": "mirae", "outfit": "mirae-work",    "limited": "winter-festival", "rarity": "SR",  "title": "현장 출동 엔지니어",   "slot": "engineer", "stats": { "voice": 32, "tech": 121, "writing": 37, "charm": 47 }, "quote": "케이블 다 깔았어. …칭찬해도 돼." }
 ]

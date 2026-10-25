@@ -1,15 +1,16 @@
 import { openGame } from './helpers';
 import { describe, expect, it } from 'vitest';
-import { bondLevel, giftXp, pendingEvents, unlockedLines } from '../src/core/bond';
+import { bondLevel, giftXp, ownsMember, pendingEvents, unlockedLines } from '../src/core/bond';
 import { battleScore, rivalHp } from '../src/core/dungeon';
-import { cardStats, enhanceSuccessRate, listenersPerSecond } from '../src/core/economy';
+import { cardStats, enhanceSuccessRate, listenersPerSecond, maxCardLevel, slotPower, type CardProgress } from '../src/core/economy';
 import { missionsForDay, refreshMissions } from '../src/core/missions';
 import { isUnlocked, newlyUnlocked, nextUnlock, slotUnlocked } from '../src/core/unlocks';
 import { unreadTotal } from '../src/core/phone';
 import { migrate } from '../src/core/save';
-import { SAVE_VERSION } from '../src/core/state';
+import { SAVE_VERSION, createInitialState } from '../src/core/state';
 import { BALANCE } from '../src/data/balance';
-import { getCard } from '../src/data/cards';
+import { CARDS, getCard } from '../src/data/cards';
+import { SLOTS } from '../src/data/slots';
 import { MEMBERS } from '../src/data/members';
 import { BACKGROUNDS, CHAPTERS, NARRATIVE } from '../src/data/narrative';
 import { standUrl } from '../src/data/portraits';
@@ -231,5 +232,37 @@ describe('unlocks', () => {
     s.totalListeners = BALANCE.unlocks.missions;
     refreshMissions(s, '2026-10-25');
     expect(s.missions.ids).not.toContain('accident1');
+  });
+});
+
+describe('starting club and rarity order', () => {
+  it('starts with only the club president on the DJ seat', () => {
+    const s = createInitialState(0);
+    expect(Object.keys(s.cards)).toEqual(['dahye-r']);
+    expect(s.assignments.dj).toBe('dahye-r');
+    expect(ownsMember(s, 'haneul')).toBe(false);
+  });
+
+  it('keeps members you have not recruited out of talks, gifts and texts', () => {
+    const g = openGame();
+    for (const id of Object.keys(g.state.cards)) if (!id.startsWith('dahye')) delete g.state.cards[id];
+    g.state.listeners = 1e9;
+    expect(g.talk('haneul')).toBeNull();
+    expect(g.gift('haneul', 'snack')).toBeNull();
+    expect(g.sendText('haneul')).toBe(false);
+    expect(g.talk('dahye')).not.toBeNull();
+  });
+
+  it('a maxed card is always weaker than a fresh card one rarity higher (in its own seat)', () => {
+    const maxLb = BALANCE.limitBreak.max;
+    const maxed = { limitBreak: maxLb, level: maxCardLevel(maxLb), bond: BALANCE.bond.maxLevel };
+    const fresh = { limitBreak: 0, level: 1, bond: 1 };
+    const own = (c: (typeof CARDS)[number], p: CardProgress) => slotPower(c, p, SLOTS.find((s) => s.id === c.slot)!);
+    const order = ['R', 'SR', 'SSR'] as const;
+    for (let i = 0; i < order.length - 1; i++) {
+      const lowMax = Math.max(...CARDS.filter((c) => c.rarity === order[i]).map((c) => own(c, maxed)));
+      const highMin = Math.min(...CARDS.filter((c) => c.rarity === order[i + 1]).map((c) => own(c, fresh)));
+      expect(lowMax).toBeLessThan(highMin);
+    }
   });
 });

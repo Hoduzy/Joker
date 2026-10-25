@@ -1,13 +1,13 @@
 import { MEMBERS } from '../data/members';
 import { NARRATIVE } from '../data/narrative';
-import { memberBondLevel } from './bond';
+import { memberBondLevel, ownsMember } from './bond';
 import type { GameState } from './state';
 
 /** 이 부원에게서 지금 다음 문자가 올 수 있는지 (답장 대기 중이 아니고, 호감도 조건 충족) */
 export function canReceive(state: GameState, memberId: string): boolean {
   const t = state.phone.threads[memberId];
   const convo = NARRATIVE.texts[memberId]?.[t?.next ?? 0];
-  return !!t && t.pending === null && !!convo && memberBondLevel(state, memberId) >= convo.minLevel;
+  return !!t && ownsMember(state, memberId) && t.pending === null && !!convo && memberBondLevel(state, memberId) >= convo.minLevel;
 }
 
 /**

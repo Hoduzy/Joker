@@ -2,7 +2,7 @@ import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 import { enhanceCost, enhanceKits, enhanceSuccessRate, listenersPerSecond, maxCardLevel, towerUpgradeCost, withAssignment } from './economy';
-import { bondLevel, giftCost, giftXp, refreshBondDay, unlockedLines } from './bond';
+import { bondLevel, giftCost, giftXp, ownsMember, refreshBondDay, unlockedLines } from './bond';
 import { claimableCount, isMissionDone, refreshMissions, trackMission, type MissionKind } from './missions';
 import { deliverText, replyText } from './phone';
 import { isUnlocked, newlyUnlocked, slotUnlocked, type Feature, type UnlockDef } from './unlocks';
@@ -245,7 +245,7 @@ export class Game {
   /** 대화: 지금 레벨까지 열린 대사 중 하나. 하루 일정 횟수까지 호감도도 준다 */
   talk(memberId: string): { e: Expression; t: string; xp: number } | null {
     const b = this.state.bond[memberId];
-    if (!b) return null;
+    if (!b || !ownsMember(this.state, memberId)) return null;
     refreshBondDay(b, dayKey(new Date()));
     const line = pick(unlockedLines(memberId, bondLevel(b.xp)));
     if (!line) return null;
@@ -276,7 +276,7 @@ export class Game {
     this.advance();
     const b = this.state.bond[memberId];
     const cost = this.giftCost(giftId);
-    if (!b || this.giftsLeft(memberId) <= 0 || this.state.listeners < cost) return null;
+    if (!b || !ownsMember(this.state, memberId) || this.giftsLeft(memberId) <= 0 || this.state.listeners < cost) return null;
     this.state.listeners -= cost;
     b.gifts += 1;
     const xp = giftXp(memberId, giftId);

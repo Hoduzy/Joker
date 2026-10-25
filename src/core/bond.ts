@@ -1,4 +1,5 @@
 import { BALANCE } from '../data/balance';
+import { getCard } from '../data/cards';
 import { NARRATIVE } from '../data/narrative';
 import type { BondState, GameState } from './state';
 
@@ -18,6 +19,11 @@ export function bondProgress(xp: number): { level: number; current: number; need
   if (level >= BALANCE.bond.maxLevel) return null;
   const table = BALANCE.bond.xpTable;
   return { level, current: xp - table[level - 1], need: table[level] - table[level - 1] };
+}
+
+/** 그 부원의 카드를 한 장이라도 가지고 있는지 (= 입부했는지) */
+export function ownsMember(state: GameState, memberId: string): boolean {
+  return Object.keys(state.cards).some((id) => getCard(id)?.member === memberId);
 }
 
 export function memberBondLevel(state: GameState, memberId: string): number {
@@ -61,6 +67,7 @@ export function unlockedLines(memberId: string, level: number) {
 
 /** 레벨에 도달했지만 아직 안 본 개인 이벤트 레벨들 */
 export function pendingEvents(state: GameState, memberId: string): number[] {
+  if (!ownsMember(state, memberId)) return [];
   const level = memberBondLevel(state, memberId);
   const seen = state.bond[memberId]?.seenEvents ?? [];
   return (NARRATIVE.events[memberId] ?? []).filter((e) => e.level <= level && !seen.includes(e.level)).map((e) => e.level);

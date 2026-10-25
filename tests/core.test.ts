@@ -30,19 +30,22 @@ describe('cards.json', () => {
 
 describe('economy', () => {
   it('produces nothing with an empty lineup', () => {
-    expect(listenersPerSecond(createInitialState(0))).toBe(0);
+    const s = createInitialState(0);
+    s.assignments.dj = null;
+    expect(listenersPerSecond(s)).toBe(0);
   });
 
   it('applies the slot bonus only in the card\'s own slot', () => {
     const card = getCard('haneul-r')!; // 담당: DJ
-    const base = 32 + (8 + 14 + 22) * 0.2;
+    const { voice, tech, writing, charm } = card.stats;
+    const base = voice + (tech + writing + charm) * 0.2;
     expect(slotPower(card, BASE_PROGRESS, dj)).toBeCloseTo(base * (1 + BALANCE.slotBonus));
-    expect(slotPower(card, BASE_PROGRESS, guest)).toBeCloseTo(22 + (32 + 8 + 14) * 0.2);
+    expect(slotPower(card, BASE_PROGRESS, guest)).toBeCloseTo(charm + (voice + tech + writing) * 0.2);
   });
 
   it('raises stats with limit break', () => {
     const card = getCard('haneul-ssr')!;
-    expect(cardStats(card, { limitBreak: 5, level: 1 }).voice).toBe(Math.round(60 * (1 + 5 * BALANCE.limitBreak.statBonusPerLevel)));
+    expect(cardStats(card, { limitBreak: 5, level: 1 }).voice).toBe(Math.round(card.stats.voice * (1 + 5 * BALANCE.limitBreak.statBonusPerLevel)));
   });
 
   it('applies the full lineup bonus only when every slot is filled', () => {
@@ -137,7 +140,7 @@ describe('save migration', () => {
   });
 
   it('gives starter cards when nothing usable is owned', () => {
-    expect(Object.keys(migrate({ version: 2, cards: {} }, 0).cards)).toHaveLength(5);
+    expect(Object.keys(migrate({ version: 2, cards: {} }, 0).cards)).toEqual(['dahye-r']);
   });
 });
 

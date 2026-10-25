@@ -1,4 +1,4 @@
-import { bondLevel, bondProgress, bondStatMult, giftXp, pendingEvents } from '../core/bond';
+import { bondLevel, bondProgress, bondStatMult, giftXp, ownsMember, pendingEvents } from '../core/bond';
 import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
 import { getMember, MEMBERS, type MemberDef } from '../data/members';
@@ -64,7 +64,8 @@ export function playEvent(game: Game, memberId: string, level: number): void {
 /** 부원 탭: 부원 상세(대화·선물·대사·이벤트), 메인 스토리, 추억 앨범 */
 export function createMembers(game: Game): Component {
   let view: View = 'members';
-  let selected = MEMBERS[0].id;
+  // 처음에는 입부한 부원(부장)부터
+  let selected = MEMBERS.find((m) => ownsMember(game.state, m.id))?.id ?? MEMBERS[0].id;
 
   const subtabs = h('div', { class: 'subtabs', role: 'tablist' });
   const list = h('div', { class: 'mlist' });
@@ -92,13 +93,29 @@ export function createMembers(game: Game): Component {
 
   // ── 부원 목록 + 상세
   function renderList() {
+    // 입부한 부원을 앞에
+    const ordered = [...MEMBERS].sort((a, b) => Number(ownsMember(game.state, b.id)) - Number(ownsMember(game.state, a.id)));
     list.replaceChildren(
-      ...MEMBERS.map((m) => {
+      ...ordered.map((m) => {
         const b = game.state.bond[m.id];
         const lv = bondLevel(b.xp);
         const p = bondProgress(b.xp);
         const fill = h('div', { class: 'heart-bar__fill' });
         fill.style.width = `${p ? (p.current / p.need) * 100 : 100}%`;
+        if (!ownsMember(game.state, m.id)) {
+          // 아직 입부 전: 실루엣
+          const locked = h(
+            'button',
+            { class: `mrow is-locked${selected === m.id ? ' is-active' : ''}`, type: 'button' },
+            memberFace(m, 'neutral', 'sm'),
+            h('div', { class: 'mrow__text' }, h('strong', {}, '???'), h('span', { class: 'mrow__lv' }, '입부 전')),
+          );
+          onTap(locked, () => {
+            selected = m.id;
+            render();
+          });
+          return locked;
+        }
         const btn = h(
           'button',
           { class: `mrow${selected === m.id ? ' is-active' : ''}`, type: 'button' },
@@ -130,6 +147,18 @@ export function createMembers(game: Game): Component {
 
   function renderDetail() {
     const m = getMember(selected)!;
+    if (!ownsMember(game.state, m.id)) {
+      detail.replaceChildren(
+        h(
+          'div',
+          { class: 'panel mlocked' },
+          h('div', { class: 'mlocked__face' }, memberFace(m, 'neutral', 'lg')),
+          h('h2', { class: 'panel__title' }, '아직 입부하지 않은 부원'),
+          h('p', {}, '부원 모집(뽑기)에서 이 부원의 카드를 얻으면 방송부에 들어와요. 들어오면 대화·선물·문자·단둘이 이벤트가 열려요.'),
+        ),
+      );
+      return;
+    }
     const b = game.state.bond[m.id];
     const lv = bondLevel(b.xp);
     const p = bondProgress(b.xp);
@@ -311,7 +340,7 @@ export function createMembers(game: Game): Component {
     render() {
       // 숫자만 바뀌는 잦은 changed 이벤트에는 다시 그리지 않는다 (말풍선·애니메이션 유지)
       const s = game.state;
-      const key = JSON.stringify([view, selected, s.bond, s.story.seen, s.milestonesReached, Math.floor(Math.log10(Math.max(1, s.listeners)) * 4)]);
+      const key = JSON.stringify([view, selected, s.bond, s.story.seen, s.milestonesReached, Object.keys(s.cards).length, Math.floor(Math.log10(Math.max(1, s.listeners)) * 4)]);
       if (key === lastKey) return;
       lastKey = key;
       render();
