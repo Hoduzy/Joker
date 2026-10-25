@@ -1,3 +1,4 @@
+import { formatNumber } from '../utils/format';
 import { isFullLineup, limitBreakOf, progressOf, slotPower } from '../core/economy';
 import { equipBonuses } from '../core/equipment';
 import type { Game } from '../core/game';
@@ -32,6 +33,18 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): St
   );
 
   function renderSlot(slot: SlotDef): HTMLElement {
+    if (!game.slotUnlocked(slot.id)) {
+      // 아직 안 열린 자리: 갓 생긴 방송부라 사람이 없다
+      const at = BALANCE.unlocks.slots[slot.id];
+      return h(
+        'div',
+        { class: 'slot slot--locked', 'aria-label': `${slot.name} 자리 (잠김)` },
+        h('div', { class: 'slot__role' }, slot.name),
+        h('div', { class: 'slot__stage' }, h('div', { class: 'slot__lock' }, '🔒')),
+        h('div', { class: 'slot__name' }, '빈 자리'),
+        h('div', { class: 'slot__power' }, `누적 청취자 ${formatNumber(at)}명에 열려요`),
+      );
+    }
     const cardId = game.state.assignments[slot.id];
     const card = cardId ? getCard(cardId) : undefined;
     const member = card ? getMember(card.member) : undefined;
@@ -134,7 +147,12 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): St
       }
       const full = isFullLineup(game.state);
       const pct = Math.round((BALANCE.fullLineupBonus - 1) * 100);
-      bonus.textContent = full ? `풀 라인업 보너스 +${pct}%` : `4명 모두 배치 시 +${pct}%`;
+      const open = SLOTS.filter((sl) => game.slotUnlocked(sl.id)).length;
+      bonus.textContent = full
+        ? `풀 라인업 보너스 +${pct}%`
+        : open < SLOTS.length
+          ? `열린 자리 ${open} / ${SLOTS.length}`
+          : `4명 모두 배치 시 +${pct}%`;
       bonus.classList.toggle('is-active', full);
     },
   };

@@ -1,5 +1,6 @@
 import { BALANCE } from '../data/balance';
 import type { GameState } from './state';
+import { isUnlocked, type Feature } from './unlocks';
 
 export type MissionKind =
   | 'openBox'
@@ -38,11 +39,24 @@ export function missionDef(id: string): MissionDef | undefined {
   return MISSION_POOL.find((m) => m.id === id);
 }
 
-/** 날짜 키로 정해지는 오늘의 미션 5개 (택배·대결은 항상 포함) */
-export function missionsForDay(day: string): string[] {
+/** 미션 종류 → 그 미션을 하려면 열려 있어야 하는 기능 */
+const KIND_FEATURE: Partial<Record<MissionKind, Feature>> = {
+  openBox: 'box',
+  battle: 'dungeon',
+  pull: 'gacha',
+  enhance: 'enhance',
+  legend: 'legend',
+  accident: 'accident',
+};
+
+/**
+ * 날짜 키로 정해지는 오늘의 미션 5개 (택배·대결은 항상 포함).
+ * canDo를 주면 아직 안 열린 기능의 미션은 뽑지 않는다
+ */
+export function missionsForDay(day: string, canDo: (kind: MissionKind) => boolean = () => true): string[] {
   let seed = 0;
   for (const ch of day) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
-  const rest = MISSION_POOL.filter((m) => m.id !== 'box30' && m.id !== 'battle3').map((m) => m.id);
+  const rest = MISSION_POOL.filter((m) => m.id !== 'box30' && m.id !== 'battle3' && canDo(m.kind)).map((m) => m.id);
   // 날짜로 섞기 (같은 날이면 항상 같은 결과)
   for (let i = rest.length - 1; i > 0; i--) {
     seed = (seed * 1103515245 + 12345) >>> 0;
@@ -54,8 +68,13 @@ export function missionsForDay(day: string): string[] {
 
 /** 날짜가 바뀌었으면 새 미션으로 */
 export function refreshMissions(state: GameState, day: string): boolean {
+  if (!isUnlocked(state, 'missions')) return false;
   if (state.missions.day === day && state.missions.ids.length) return false;
-  state.missions = { day, ids: missionsForDay(day), progress: {}, claimed: [], bonusClaimed: false };
+  const canDo = (kind: MissionKind) => {
+    const f = KIND_FEATURE[kind];
+    return !f || isUnlocked(state, f);
+  };
+  state.missions = { day, ids: missionsForDay(day, canDo), progress: {}, claimed: [], bonusClaimed: false };
   return true;
 }
 

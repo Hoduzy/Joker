@@ -85,7 +85,7 @@ export function startLiveEvents(game: Game, studio: Studio, chat: Chat): { syncB
   }
   function trySpawn(kind: 'legend' | 'accident') {
     // 방송 중이 아니면(아무도 배치 안 됨) 이벤트도 없다
-    if (blocked() || game.baseRate <= 0) {
+    if (blocked() || game.baseRate <= 0 || !game.isUnlocked(kind)) {
       window.setTimeout(() => trySpawn(kind), 4000);
       return;
     }

@@ -24,6 +24,7 @@ import { gemIcon, toast } from './toast';
 import { startLiveEvents } from './liveEvents';
 import { announceBondLevel, createMembers, hasNewStory, newChapters, playChapter } from './members';
 import { missionDef } from '../core/missions';
+import { createLockGate, lockNotice } from './locks';
 import { openMissions } from './missionsView';
 import { openPhone } from './phone';
 import { openSettings } from './settings';
@@ -43,7 +44,7 @@ export function mountApp(root: HTMLElement, game: Game): void {
   installSfx();
   const header = createHeader(game, {
     phone: () => openPhone(game),
-    missions: () => openMissions(game),
+    missions: () => (game.isUnlocked('missions') ? openMissions(game) : lockNotice('missions')),
     settings: () => openSettings(game),
   });
   const members = createMembers(game);
@@ -51,10 +52,13 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const cardList = createCardList(game);
   const gacha = createGacha(game, (results) => sayAboutNewCard(results));
   const collection = createCollection(game);
-  const delivery = createDelivery(game);
+  const delivery = createLockGate(game, 'box', createDelivery(game), '📦', '협찬사에서 장비를 보내 주기 시작해요. 택배를 열어 마이크·헤드폰 같은 장비를 모아 보세요.');
+  delivery.el.classList.add('delivery-gate');
   const chat = createChat(game);
   const dungeon = createDungeon(game);
-  const components: Component[] = [header, delivery, studio, cardList, gacha, collection, chat, dungeon, members];
+  const dungeonGate = createLockGate(game, 'dungeon', dungeon, '⚡', '이웃 학교 방송부들이 우리를 눈여겨보기 시작했어요. 청취자를 빼앗아 오는 대결이 열려요.');
+  const gachaGate = createLockGate(game, 'gacha', gacha, '✉️', '방송이 조금 알려지면 입부 신청서가 날아오기 시작해요. 첫 목표를 달성해 보세요!');
+  const components: Component[] = [header, delivery, studio, cardList, gachaGate, collection, chat, dungeonGate, members];
 
   const screens: Record<ScreenId, HTMLElement> = {
     studio: h(
@@ -70,8 +74,8 @@ export function mountApp(root: HTMLElement, game: Game): void {
       ),
     ),
     members: h('main', { class: 'screen', 'data-screen': 'members' }, members.el),
-    dungeon: h('main', { class: 'screen', 'data-screen': 'dungeon' }, dungeon.el),
-    gacha: h('main', { class: 'screen', 'data-screen': 'gacha' }, gacha.el),
+    dungeon: h('main', { class: 'screen', 'data-screen': 'dungeon' }, dungeonGate.el),
+    gacha: h('main', { class: 'screen', 'data-screen': 'gacha' }, gachaGate.el),
     collection: h('main', { class: 'screen', 'data-screen': 'collection' }, collection.el),
   };
 
@@ -153,6 +157,18 @@ export function mountApp(root: HTMLElement, game: Game): void {
         sfx.chime();
         toast(`📱 ${getMember(event.member)?.name}에게서 문자가 왔어요`);
         break;
+      case 'unlock': {
+        const names = event.items.map((u) => u.label).join(' · ');
+        const sub = event.items.some((u) => u.slot) ? '새 부원을 배치할 수 있어요!' : '새 기능이 열렸어요!';
+        // 마일스톤 축하와 같은 순간에 오는 경우가 많아, 그 축하가 끝난 뒤에 보여 준다
+        const show = () => {
+          sfx.levelUp();
+          celebrate(`🔓 ${names} 열림!`, sub);
+        };
+        // (마일스톤 이벤트는 같은 프레임에 해금 다음으로 오므로 한 박자 늦춰 확인)
+        setTimeout(() => (document.querySelector('.celebrate') ? setTimeout(show, 2600) : show()), 0);
+        break;
+      }
       case 'mission':
         sfx.chime();
         toast(`📋 미션 달성! ${missionDef(event.id)?.label ?? ''} — 보상을 받으세요`);
@@ -227,7 +243,11 @@ function startLoop(game: Game, components: Component[], tabs: ReturnType<typeof 
     game.advance();
     for (const c of components) c.tick?.();
     tabs.setDot('gacha', game.canPull(1));
-    if (++dotClock % 30 === 0) tabs.setDot('members', hasNewStory(game));
+    if (++dotClock % 30 === 0) {
+      tabs.setDot('members', hasNewStory(game));
+      tabs.setLocked('dungeon', !game.isUnlocked('dungeon'));
+      tabs.setLocked('gacha', !game.isUnlocked('gacha'));
+    }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

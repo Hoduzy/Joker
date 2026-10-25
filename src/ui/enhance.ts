@@ -10,6 +10,7 @@ import { formatNumber } from '../utils/format';
 import { cardFrame, rarityBadge, slotName } from './cardView';
 import { h, onTap } from './dom';
 import { popNumber, sparkle } from './fx';
+import { lockNotice } from './locks';
 import { openModal } from './modal';
 import { sfx } from './sfx';
 
@@ -18,6 +19,7 @@ import { sfx } from './sfx';
  * 강화 비용은 청취자, 최대 레벨은 돌파 단계에 따라 오른다.
  */
 export function openEnhance(game: Game, card: CardDef): void {
+  if (!game.isUnlocked('enhance')) return lockNotice('enhance');
   const member = getMember(card.member)!;
   const body = h('div', { class: 'enh' });
   let unsubscribe: (() => void) | null = null;

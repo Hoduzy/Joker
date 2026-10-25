@@ -1,7 +1,7 @@
+import { openGame } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { isBossStage, rivalFor, rivalHp, stageReward, BOSSES, RIVALS } from '../src/core/dungeon';
 import { cardStats, enhanceCost, listenersPerSecond, maxCardLevel } from '../src/core/economy';
-import { Game } from '../src/core/game';
 import { migrate } from '../src/core/save';
 import { SAVE_VERSION } from '../src/core/state';
 import { BALANCE } from '../src/data/balance';
@@ -26,7 +26,7 @@ describe('card enhancement', () => {
   });
 
   it('spends listeners, raises production, and stops at the cap', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.assignments.dj = 'haneul-r';
     const before = listenersPerSecond(g.state);
     g.state.listeners = 1e12;
@@ -40,7 +40,7 @@ describe('card enhancement', () => {
   });
 
   it('refuses when listeners are short', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.listeners = 0;
     expect(g.enhance('haneul-r')).toBeNull();
     expect(g.enhance('not-owned')).toBeNull();
@@ -69,7 +69,7 @@ describe('rival dungeon', () => {
   });
 
   it('pays first-clear rewards once and advances', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.stones = 0;
     const r = g.winStage(1)!;
     expect(r.stones).toBe(stageReward(1).stones);

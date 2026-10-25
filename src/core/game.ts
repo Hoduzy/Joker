@@ -1,10 +1,11 @@
 import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
-import type { SlotId } from '../data/slots';
+import { SLOT_IDS, type SlotId } from '../data/slots';
 import { enhanceCost, enhanceKits, enhanceSuccessRate, listenersPerSecond, maxCardLevel, towerUpgradeCost, withAssignment } from './economy';
 import { bondLevel, giftCost, giftXp, refreshBondDay, unlockedLines } from './bond';
 import { claimableCount, isMissionDone, refreshMissions, trackMission, type MissionKind } from './missions';
 import { deliverText, replyText } from './phone';
+import { isUnlocked, newlyUnlocked, slotUnlocked, type Feature, type UnlockDef } from './unlocks';
 import { dayKey, pick } from '../data/flavor';
 import type { Expression } from '../data/portraits';
 import { stageReward, type StageReward } from './dungeon';
@@ -46,7 +47,9 @@ export type GameEvent =
   /** 새 문자 도착 */
   | { type: 'phone'; member: string }
   /** 일일 미션 하나 달성 */
-  | { type: 'mission'; id: string };
+  | { type: 'mission'; id: string }
+  /** 누적 청취자로 새 자리·기능이 열림 */
+  | { type: 'unlock'; items: UnlockDef[] };
 
 export type EnhanceResult = 'success' | 'fail';
 
@@ -79,6 +82,16 @@ export class Game {
 
   constructor(now = Date.now()) {
     this.state = loadGame(now);
+    // 아직 안 열린 자리에 있던 카드는 내린다 (해금 도입 전 세이브)
+    for (const slot of SLOT_IDS) if (!slotUnlocked(this.state, slot)) this.state.assignments[slot] = null;
+  }
+
+  isUnlocked(feature: Feature): boolean {
+    return isUnlocked(this.state, feature);
+  }
+
+  slotUnlocked(slot: SlotId): boolean {
+    return slotUnlocked(this.state, slot);
   }
 
   on(listener: Listener): () => void {
@@ -182,8 +195,14 @@ export class Game {
   }
 
   private addListeners(amount: number): void {
+    const before = this.state.totalListeners;
     this.state.listeners += amount;
     this.state.totalListeners += amount;
+    const opened = newlyUnlocked(before, this.state.totalListeners);
+    if (opened.length) {
+      this.emit({ type: 'unlock', items: opened });
+      this.emit({ type: 'changed' });
+    }
   }
 
   /** 방송에 배치된 카드의 부원에게, 배치해 둔 시간만큼 호감도 */
@@ -387,6 +406,7 @@ export class Game {
     const previous = this.state.assignments[slotId];
     if (previous === cardId) return;
     if (cardId !== null && (!this.state.cards[cardId] || !getCard(cardId))) return;
+    if (cardId !== null && !slotUnlocked(this.state, slotId)) return;
     this.state.assignments = withAssignment(this.state, slotId, cardId);
     this.commit();
     this.emit({ type: 'assigned', slotId, cardId, previous });
@@ -426,14 +446,14 @@ export class Game {
   }
 
   canPull(count: 1 | 10): boolean {
-    return this.state.stones >= this.pullCost(count);
+    return this.isUnlocked('gacha') && this.state.stones >= this.pullCost(count);
   }
 
   /** 뽑기. 전파석이 모자라거나 모집 기간이 아니면 null */
   pull(count: 1 | 10, rng?: Rng, bannerId = STANDARD_BANNER): PullResult[] | null {
     this.advance();
     const cost = this.pullCost(count);
-    if (this.state.stones < cost || !this.bannerOpen(bannerId)) return null;
+    if (!this.isUnlocked('gacha') || this.state.stones < cost || !this.bannerOpen(bannerId)) return null;
     this.state.stones -= cost;
     const results = rollPulls(this.state, count, rng, Date.now(), bannerId);
     this.track('pull', count);
@@ -461,7 +481,7 @@ export class Game {
 
   canEnhance(cardId: string): boolean {
     const cost = this.enhanceCost(cardId);
-    return cost !== null && this.state.listeners >= cost && this.state.kits >= this.enhanceKitCost(cardId);
+    return this.isUnlocked('enhance') && cost !== null && this.state.listeners >= cost && this.state.kits >= this.enhanceKitCost(cardId);
   }
 
   /**
@@ -496,7 +516,7 @@ export class Game {
 
   /** 현재 스테이지 승리: 보상을 주고 다음 스테이지로. 이미 깬 스테이지면 null */
   winStage(stage: number): StageReward | null {
-    if (stage !== this.state.dungeon.stage) return null;
+    if (stage !== this.state.dungeon.stage || !this.isUnlocked('dungeon')) return null;
     const reward = stageReward(stage);
     this.state.stones += reward.stones;
     this.state.box.tickets += reward.tickets;
@@ -513,7 +533,7 @@ export class Game {
   openBox(rng: Rng = Math.random): EquipItem | null {
     this.advance();
     const box = this.state.box;
-    if (box.pending || box.tickets <= 0) return null;
+    if (!this.isUnlocked('box') || box.pending || box.tickets <= 0) return null;
     // 가득 찬 상태에서 쓰면 그때부터 충전 시계가 돈다
     if (box.tickets >= BALANCE.tickets.max) box.ticketClock = Date.now();
     box.tickets -= 1;

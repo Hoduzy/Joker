@@ -1,6 +1,7 @@
 import type { Game } from '../core/game';
 import { towerMultiplier } from '../core/economy';
 import { unreadTotal } from '../core/phone';
+import { nextUnlock } from '../core/unlocks';
 import { milestoneReward, milestoneThreshold } from '../core/rewards';
 import { formatNumber, formatRate } from '../utils/format';
 import type { Component } from './component';
@@ -67,6 +68,8 @@ export function createHeader(game: Game, actions: HeaderActions): Component {
   const goalText = h('span', { class: 'goal__text' });
   const goalFill = h('div', { class: 'goal__fill' });
   const goalReward = h('span', { class: 'goal__reward' });
+  // 다음에 열릴 자리·기능
+  const unlockChip = h('span', { class: 'goal__unlock' });
   const goal = h(
     'div',
     { class: 'goal' },
@@ -74,6 +77,7 @@ export function createHeader(game: Game, actions: HeaderActions): Component {
     goalText,
     h('div', { class: 'goal__bar' }, goalFill),
     goalReward,
+    unlockChip,
     boosts,
   );
 
@@ -125,6 +129,14 @@ export function createHeader(game: Game, actions: HeaderActions): Component {
 
       setBadge(phone.badge, unreadTotal(s));
       setBadge(missions.badge, game.missionClaimable);
+      missions.btn.classList.toggle('is-locked', !game.isUnlocked('missions'));
+      const upcoming = nextUnlock(s);
+      const unlockText = upcoming ? `🔒 ${upcoming.label} · ${formatNumber(upcoming.at)}` : '';
+      if (unlockChip.textContent !== unlockText) {
+        unlockChip.textContent = unlockText;
+        unlockChip.hidden = !upcoming;
+        unlockChip.title = upcoming ? `누적 청취자 ${formatNumber(upcoming.at)}명이 되면 ${upcoming.label}이(가) 열려요` : '';
+      }
       phone.btn.classList.toggle('is-ringing', unreadTotal(s) > 0);
 
       const step = s.milestonesReached;

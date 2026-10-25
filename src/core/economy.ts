@@ -4,6 +4,7 @@ import { SLOTS, type SlotDef, type SlotId } from '../data/slots';
 import { STAT_KEYS, type Stats } from '../data/stats';
 import { getCorner } from '../data/flavor';
 import { bondStatMult, memberBondLevel } from './bond';
+import { slotUnlocked } from './unlocks';
 import { equipBonuses, type EquipBonuses } from './equipment';
 import type { GameState } from './state';
 
@@ -92,7 +93,7 @@ export function totalPower(state: GameState): number {
   for (const slot of SLOTS) {
     const id = state.assignments[slot.id];
     const card = id ? getCard(id) : undefined;
-    if (!card) continue;
+    if (!card || !slotUnlocked(state, slot.id)) continue;
     const power = slotPower(card, progressOf(state, card.id), slot, bonus);
     // 오늘의 코너가 미는 슬롯
     sum += slot.id === cornerSlot ? power * (1 + BALANCE.cornerBonus) : power;

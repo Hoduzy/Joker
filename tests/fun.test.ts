@@ -1,6 +1,6 @@
+import { openGame } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { listenersPerSecond } from '../src/core/economy';
-import { Game } from '../src/core/game';
 import { migrate } from '../src/core/save';
 import { createInitialState, SAVE_VERSION } from '../src/core/state';
 import { BALANCE } from '../src/data/balance';
@@ -36,7 +36,7 @@ describe('today\'s corner', () => {
   });
 
   it('changes the corner when the date changes', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.corner = { id: CORNERS[0].id, day: '2000-01-01' };
     g.advance();
     expect(g.state.corner.day).toBe(dayKey(new Date()));
@@ -45,7 +45,7 @@ describe('today\'s corner', () => {
 });
 
 function lineupGame() {
-  const g = new Game();
+  const g = openGame();
   g.state.assignments = { dj: 'haneul-r', engineer: 'mirae-r', writer: 'seoyun-r', guest: 'yuri-r' };
   return g;
 }
@@ -72,7 +72,7 @@ describe('legend story boost', () => {
   });
 
   it('comes more often with the equipment option', () => {
-    const g = new Game();
+    const g = openGame();
     expect(g.legendFrequency()).toBe(1);
     g.state.equipment.mic = { uid: 1, item: 'mic-school', grade: 'epic', main: 1, subs: [{ id: 'legendStoryPct', value: 25 }], boxLevel: 1 };
     expect(g.legendFrequency()).toBe(1.25);
@@ -110,7 +110,9 @@ describe('broadcast accident', () => {
 
 describe('milestone event', () => {
   it('emits one event for several milestones', () => {
-    const g = new Game();
+    const g = openGame();
+    g.state.totalListeners = 0;
+    g.state.milestonesReached = 0;
     const events: unknown[] = [];
     g.on((e) => e.type === 'milestone' && events.push(e));
     g.state.totalListeners = 1500;

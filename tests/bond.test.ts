@@ -1,9 +1,10 @@
+import { openGame } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { bondLevel, giftXp, pendingEvents, unlockedLines } from '../src/core/bond';
 import { battleScore, rivalHp } from '../src/core/dungeon';
-import { cardStats, enhanceSuccessRate } from '../src/core/economy';
-import { Game } from '../src/core/game';
-import { missionsForDay } from '../src/core/missions';
+import { cardStats, enhanceSuccessRate, listenersPerSecond } from '../src/core/economy';
+import { missionsForDay, refreshMissions } from '../src/core/missions';
+import { isUnlocked, newlyUnlocked, nextUnlock, slotUnlocked } from '../src/core/unlocks';
 import { unreadTotal } from '../src/core/phone';
 import { migrate } from '../src/core/save';
 import { SAVE_VERSION } from '../src/core/state';
@@ -52,7 +53,7 @@ describe('bond', () => {
   });
 
   it('grows from placement time', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.assignments.dj = 'haneul-r';
     g.state.lastTick = Date.now() - 10 * 60000;
     g.advance();
@@ -61,13 +62,13 @@ describe('bond', () => {
   });
 
   it('gives xp for talks up to the daily limit', () => {
-    const g = new Game();
+    const g = openGame();
     for (let i = 0; i < BALANCE.bond.talksPerDay + 2; i++) g.talk('yuri');
     expect(g.state.bond.yuri.xp).toBe(BALANCE.bond.talkXp * BALANCE.bond.talksPerDay);
   });
 
   it('allows 3 gifts a day and favorites count double', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.listeners = 1e12;
     const fav = NARRATIVE.bond.yuri.favorite;
     expect(giftXp('yuri', fav)).toBe(BALANCE.bond.gifts.find((x) => x.id === fav)!.xp * 2);
@@ -77,7 +78,7 @@ describe('bond', () => {
   });
 
   it('opens personal events at levels 2/4/6/8/10', () => {
-    const g = new Game();
+    const g = openGame();
     g.addBond('mirae', BALANCE.bond.xpTable[3]);
     expect(pendingEvents(g.state, 'mirae')).toEqual([2, 4]);
     g.markEventSeen('mirae', 2);
@@ -87,7 +88,7 @@ describe('bond', () => {
 
 describe('phone', () => {
   it('delivers a text, takes a reply, and moves to the next one', () => {
-    const g = new Game();
+    const g = openGame();
     expect(g.sendText('dahye')).toBe(true);
     expect(unreadTotal(g.state)).toBeGreaterThan(0);
     expect(g.sendText('dahye')).toBe(false); // 답장 전에는 다음 문자가 안 온다
@@ -97,7 +98,7 @@ describe('phone', () => {
   });
 
   it('sends a login text only after the interval', () => {
-    const g = new Game();
+    const g = openGame();
     const now = Date.now();
     g.state.phone.lastLoginText = now;
     g.onSessionStart(now + 1000);
@@ -116,7 +117,7 @@ describe('daily missions', () => {
   });
 
   it('tracks progress, pays stones, then the all-clear bonus', () => {
-    const g = new Game();
+    const g = openGame();
     g.advance();
     g.state.stones = 0;
     for (let i = 0; i < 3; i++) g.recordBattle();
@@ -134,7 +135,7 @@ describe('daily missions', () => {
 
 describe('kits and battle', () => {
   it('exchanges parts for kits', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.box.parts = BALANCE.kits.partsPerKit * 2;
     const kits = g.state.kits;
     expect(g.exchangeKits(3)).toBe(false);
@@ -144,7 +145,7 @@ describe('kits and battle', () => {
   });
 
   it('needs kits to enhance and can fail at high levels', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.listeners = 1e12;
     g.state.kits = 0;
     expect(g.enhance('haneul-r')).toBeNull();
@@ -158,7 +159,7 @@ describe('kits and battle', () => {
   });
 
   it('gives tickets and kits on a normal win', () => {
-    const g = new Game();
+    const g = openGame();
     const t = g.state.box.tickets;
     const k = g.state.kits;
     g.winStage(1);
@@ -183,5 +184,52 @@ describe('save migration v6 → v7', () => {
     expect(s.phone.threads.yuri.next).toBe(0);
     expect(s.story.seen).toEqual([]);
     expect(s.missions.ids).toEqual([]);
+  });
+});
+
+describe('unlocks', () => {
+  it('starts as a new club with one DJ seat and opens more by total listeners', () => {
+    const s = migrate({ version: 7 }, 0);
+    expect(slotUnlocked(s, 'dj')).toBe(true);
+    expect(slotUnlocked(s, 'engineer')).toBe(false);
+    expect(isUnlocked(s, 'gacha')).toBe(false);
+    expect(nextUnlock(s)?.key).toBe('gacha');
+    s.totalListeners = BALANCE.unlocks.slots.engineer;
+    expect(slotUnlocked(s, 'engineer')).toBe(true);
+    expect(newlyUnlocked(0, BALANCE.unlocks.box).map((u) => u.key)).toEqual(['gacha', 'slot:engineer', 'box']);
+  });
+
+  it('ignores cards in locked seats and refuses locked features', () => {
+    const g = openGame();
+    g.state.totalListeners = 0;
+    g.state.assignments.dj = 'haneul-r';
+    const one = listenersPerSecond(g.state);
+    g.state.assignments.engineer = 'mirae-r';
+    expect(listenersPerSecond(g.state)).toBe(one);
+    g.assign('writer', 'seoyun-r');
+    expect(g.state.assignments.writer).toBeNull();
+    g.state.stones = 1e6;
+    expect(g.pull(1)).toBeNull();
+    expect(g.openBox()).toBeNull();
+    expect(g.winStage(1)).toBeNull();
+  });
+
+  it('emits an unlock event when crossing a threshold', () => {
+    const g = openGame();
+    g.state.totalListeners = 250;
+    g.state.milestonesReached = 1;
+    g.state.assignments.dj = 'haneul-r';
+    const got: string[] = [];
+    g.on((e) => e.type === 'unlock' && got.push(...e.items.map((u) => u.key)));
+    g.state.lastTick = Date.now() - 60 * 60 * 1000;
+    g.advance();
+    expect(got).toContain('slot:engineer');
+  });
+
+  it('only picks missions for unlocked features', () => {
+    const s = migrate({ version: 7 }, 0);
+    s.totalListeners = BALANCE.unlocks.missions;
+    refreshMissions(s, '2026-10-25');
+    expect(s.missions.ids).not.toContain('accident1');
   });
 });

@@ -97,6 +97,8 @@ describe('duplicates', () => {
 describe('Game.pull', () => {
   it('charges stones and refuses when short', () => {
     const g = new Game(0);
+    g.state.totalListeners = 1e9;
+    g.state.milestonesReached = 99;
     g.state.stones = 1600;
     expect(g.pull(10, seeded(1))).toHaveLength(10);
     expect(g.state.stones).toBe(0); // 첫 10연은 최대 돌파 환원이 생길 수 없다
@@ -107,6 +109,8 @@ describe('Game.pull', () => {
 
   it('keeps one member in only one slot', () => {
     const g = new Game(0);
+    g.state.totalListeners = 1e9;
+    g.state.milestonesReached = 99;
     g.state.cards['haneul-ssr'] = { limitBreak: 0, level: 1, obtainedAt: 0 };
     g.assign('dj', 'haneul-r');
     g.assign('guest', 'haneul-ssr');

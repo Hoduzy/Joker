@@ -15,6 +15,7 @@ const guest = SLOTS.find((s) => s.id === 'guest')!;
 
 function withLineup() {
   const s = createInitialState(0);
+  s.totalListeners = 1e9; // 네 자리 모두 열린 상태
   s.assignments = { dj: 'haneul-r', engineer: 'mirae-r', writer: 'seoyun-r', guest: 'yuri-r' };
   return s;
 }

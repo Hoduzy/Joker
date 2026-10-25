@@ -30,6 +30,11 @@ export function createTabs(tabs: TabDef[], onChange: (id: string) => void) {
         btn.setAttribute('aria-selected', String(tabId === id));
       }
     },
+    /** 아직 안 열린 탭: 흐리게 + 자물쇠 (눌러서 안내는 볼 수 있다) */
+    setLocked(id: string, locked: boolean) {
+      const btn = buttons.get(id);
+      if (btn && btn.classList.contains('is-locked') !== locked) btn.classList.toggle('is-locked', locked);
+    },
     /** 탭 위 작은 점 (예: 뽑기 가능) */
     setDot(id: string, on: boolean) {
       const dot = buttons.get(id)?.querySelector<HTMLElement>('.tabs__dot');

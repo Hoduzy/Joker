@@ -1,7 +1,7 @@
+import { openGame } from './helpers';
 import { readdirSync, existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { pityOf, pull, rateTable, type Rng } from '../src/core/gacha';
-import { Game } from '../src/core/game';
 import { migrate } from '../src/core/save';
 import { createInitialState, SAVE_VERSION } from '../src/core/state';
 import { BANNERS, isBannerActive, STANDARD_BANNER } from '../src/data/banners';
@@ -83,7 +83,7 @@ describe('limited banner', () => {
     expect(isBannerActive(banner, banner.start - 1)).toBe(false);
     expect(isBannerActive(banner, DURING)).toBe(true);
     expect(isBannerActive(banner, banner.end + 1)).toBe(false);
-    const g = new Game();
+    const g = openGame();
     g.state.stones = 99999;
     const open = isBannerActive(banner, Date.now());
     expect(g.pull(1, undefined, banner.id) !== null).toBe(open);

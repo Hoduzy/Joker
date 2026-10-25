@@ -1,3 +1,4 @@
+import { openGame } from './helpers';
 import { describe, expect, it } from 'vitest';
 import {
   boxRates,
@@ -14,7 +15,6 @@ import {
 } from '../src/core/equipment';
 import { listenersPerSecond } from '../src/core/economy';
 import type { Rng } from '../src/core/gacha';
-import { Game } from '../src/core/game';
 import { migrate } from '../src/core/save';
 import { createInitialState, SAVE_VERSION } from '../src/core/state';
 import { BALANCE } from '../src/data/balance';
@@ -144,7 +144,7 @@ describe('tickets', () => {
 
 describe('Game box flow', () => {
   it('opens, equips, and salvages the replaced item', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.stones = 0;
     const first = g.openBox(seeded(1))!;
     expect(first).not.toBeNull();
@@ -172,7 +172,7 @@ describe('Game box flow', () => {
   });
 
   it('levels up the box with parts and unlocks auto open at 5', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.box.parts = 1000;
     expect(g.autoUnlocked).toBe(false);
     for (let i = 0; i < 4; i++) expect(g.levelUpBox()).toBe(true);
@@ -182,7 +182,7 @@ describe('Game box flow', () => {
   });
 
   it('buys tickets with listeners', () => {
-    const g = new Game();
+    const g = openGame();
     g.state.listeners = g.ticketCost * 10;
     expect(g.buyTickets(10)).toBe(true);
     expect(g.state.box.tickets).toBe(BALANCE.tickets.start + 10);

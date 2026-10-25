@@ -9,16 +9,16 @@ export const BALANCE = {
   /** 카드의 담당 슬롯에 배치했을 때 파워 보너스 (+30%) */
   slotBonus: 0.3,
   /** 능력치 1점당 초당 청취자 (송신탑 배율 적용 전) */
-  listenersPerPower: 0.1,
+  listenersPerPower: 0.03,
   /** 4개 슬롯이 모두 찼을 때의 보너스 배율 */
   fullLineupBonus: 1.2,
 
   /** 송신탑 */
   tower: {
-    baseCost: 50,
-    costGrowth: 1.55,
+    baseCost: 60,
+    costGrowth: 1.62,
     /** 레벨당 생산 배율 증가 (복리) */
-    outputGrowth: 1.3,
+    outputGrowth: 1.22,
   },
 
   /** 전파석 */
@@ -89,7 +89,22 @@ export const BALANCE = {
     start: 10,
     /** 청취자로 1장 구매 비용: base × growth^(송신탑 레벨-1) — 생산량과 같은 비율로 오른다 */
     buyBase: 100,
-    buyGrowth: 1.3,
+    buyGrowth: 1.22,
+  },
+
+  /**
+   * 해금: 누적 청취자가 이 수를 넘으면 열린다 (갓 생긴 방송부처럼 DJ 한 자리로 시작)
+   * slots: 방송 자리, 나머지: 기능
+   */
+  unlocks: {
+    slots: { dj: 0, engineer: 300, writer: 3000, guest: 30000 },
+    gacha: 100,
+    box: 1000,
+    enhance: 3000,
+    legend: 3000,
+    dungeon: 10000,
+    missions: 10000,
+    accident: 30000,
   },
 
   /** 오늘의 코너가 미는 슬롯의 파워 보너스 (+20%) */
@@ -183,7 +198,7 @@ export const BALANCE = {
     giftsPerDay: 3,
     /** 선물 비용(청취자) = 기본 × 선물 배율 × growth^(송신탑 레벨-1), 좋아하는 선물은 호감도 2배 */
     giftCostBase: 80,
-    giftCostGrowth: 1.3,
+    giftCostGrowth: 1.22,
     gifts: [
       { id: 'snack', name: '편의점 간식', emoji: '🍙', costMult: 1, xp: 30 },
       { id: 'drink', name: '따뜻한 캔음료', emoji: '☕', costMult: 2, xp: 55 },

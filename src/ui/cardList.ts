@@ -22,7 +22,7 @@ export function createCardList(game: Game): Component {
     const slot = SLOTS.find((s) => game.state.assignments[s.id] === card.id);
     const stats = cardStats(card, progressOf(game.state, card.id));
     const level = game.state.cards[card.id]?.level ?? 1;
-    const enhanceBtn = h('button', { class: 'member__enhance', type: 'button' }, h('span', {}, '강화'), h('small', {}, game.enhanceCost(card.id) === null ? 'MAX' : `Lv.${level}`));
+    const enhanceBtn = h('button', { class: 'member__enhance', type: 'button' }, h('span', {}, '강화'), h('small', {}, !game.isUnlocked('enhance') ? '🔒' : game.enhanceCost(card.id) === null ? 'MAX' : `Lv.${level}`));
     enhanceBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       openEnhance(game, card);
