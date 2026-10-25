@@ -5,8 +5,8 @@
  *   { "s": 말하는 사람, "e": 표정, "t": 대사, "bg": 배경 }
  *   - s:  부원 id (dahye/mirae/yuri/haneul/seoyun), "me"(주인공), ""(나레이션)
  *   - e:  neutral / smile / angry / sad / surprised / blush (생략하면 neutral)
- *   - bg: 이 줄부터 바뀌는 배경. classroom / broadcast / rooftop / tower / street /
- *         library / practice / rain / playground / dawn
+ *   - bg: 이 줄부터 바뀌는 배경(장면 전환). classroom / broadcast / hallway / rooftop / street
+ *         이미지는 assets/bg/<배경>.png|jpg|webp — 없으면 그라데이션으로 대신 그린다
  *   선택지: { "choice": [ { "t": 보기, "xp": { 부원: 호감도 }, "then": [ 이어지는 대사들 ] } ] }
  *   CG:     { "cg": 부원 id, "caption": 설명 } — assets/cg/<부원>.png 가 있으면 그 이미지, 없으면 빈 칸
  *
@@ -23,7 +23,7 @@ import { EXPRESSIONS, type Expression } from './portraits';
 import storyRaw from './story.json';
 import textsRaw from './texts.json';
 
-export const BACKGROUNDS = ['classroom', 'broadcast', 'rooftop', 'tower', 'street', 'library', 'practice', 'rain', 'playground', 'dawn'] as const;
+export const BACKGROUNDS = ['classroom', 'broadcast', 'hallway', 'rooftop', 'street'] as const;
 export type Background = (typeof BACKGROUNDS)[number];
 
 export interface ScriptChoice {

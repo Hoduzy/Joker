@@ -18,6 +18,8 @@ export interface PortraitSet {
   full?: string;
   sd?: string;
   faces: Partial<Record<Expression, string>>;
+  /** 스토리용 스탠딩: stand_<표정>.png */
+  stands: Partial<Record<Expression, string>>;
 }
 
 const files = import.meta.glob('/assets/characters/*/*.png', {
@@ -31,9 +33,11 @@ for (const [file, url] of Object.entries(files)) {
   const match = /\/assets\/characters\/([^/]+)\/([^/]+)\.png$/.exec(file);
   if (!match) continue;
   const [, id, name] = match;
-  const set = portraits.get(id) ?? { faces: {} };
+  const set = portraits.get(id) ?? { faces: {}, stands: {} };
+  const stand = /^stand_(\w+)$/.exec(name)?.[1];
   if (name === 'full' || name === 'sd') set[name] = url;
   else if ((EXPRESSIONS as readonly string[]).includes(name)) set.faces[name as Expression] = url;
+  else if (stand && (EXPRESSIONS as readonly string[]).includes(stand)) set.stands[stand as Expression] = url;
   portraits.set(id, set);
 }
 
@@ -46,6 +50,17 @@ export function faceUrl(id: string, expr: Expression = 'neutral', fallback?: str
   const set = portraits.get(id);
   const url = set?.faces[expr] ?? set?.faces.neutral;
   return url ?? (fallback && fallback !== id ? faceUrl(fallback, expr) : undefined);
+}
+
+/**
+ * 스토리 스탠딩 이미지. 그 표정 → 기본 → 웃음 → 아무 스탠딩 → 전신(full.png) 순서로 찾는다.
+ * cropped: 스탠딩(허벅지쯤까지 잘린 그림)이면 true, 전신 대체면 false
+ */
+export function standUrl(id: string, expr: Expression = 'neutral'): { url?: string; cropped: boolean } {
+  const set = portraits.get(id);
+  const stands = set?.stands ?? {};
+  const url = stands[expr] ?? stands.neutral ?? stands.smile ?? Object.values(stands)[0];
+  return url ? { url, cropped: true } : { url: set?.full, cropped: false };
 }
 
 export function sdUrl(id: string, fallback?: string): string | undefined {

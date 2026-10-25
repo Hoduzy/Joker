@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "cut-sheets": "node scripts/cut-sheets.mjs"
+    "cut-sheets": "node scripts/cut-sheets.mjs",
+    "stands": "node scripts/stands.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

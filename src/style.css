@@ -4607,6 +4607,7 @@ a.btn {
   inset: 0;
   z-index: 88;
   background: #000;
+  overflow: hidden;
   animation: fade-in 0.3s ease;
 }
 
@@ -4623,170 +4624,153 @@ a.btn {
 .vn__stage {
   position: absolute;
   inset: 0;
-  overflow: hidden;
   cursor: pointer;
 }
 
+/* 배경: 화면 가득, 겹쳐 놓고 새 배경을 페이드 인 */
+.vn__bgs,
 .vn__bg {
   position: absolute;
   inset: 0;
-  transition: background 0.6s ease;
 }
 
-.vn__bg::after {
-  content: '';
+.vn__bg {
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.vn__bg.is-on {
+  opacity: 1;
+}
+
+/* 이미지가 없을 때 대신 쓰는 그라데이션 */
+.vn__bg--classroom:not(.has-image) {
+  background-image: linear-gradient(180deg, #ffe7c2 0%, #f6c995 55%, #a8724a 56%, #7b4f33 100%);
+}
+.vn__bg--broadcast:not(.has-image) {
+  background-image: radial-gradient(ellipse at 50% 30%, #3a2c6b, #120d2a 70%);
+}
+.vn__bg--hallway:not(.has-image) {
+  background-image: linear-gradient(180deg, #6b4a5e 0%, #c98a6a 50%, #e7b07a 70%, #7a5244 100%);
+}
+.vn__bg--rooftop:not(.has-image) {
+  background-image:
+    repeating-linear-gradient(90deg, #4b475e 0 4px, transparent 4px 44px),
+    linear-gradient(180deg, #ff9a8b 0%, #ffc3a0 40%, #ffe0b5 62%, #8e8aa3 63%, #5e5a73 100%);
+  background-size: 100% 14%, 100% 100%;
+  background-position: 0 56%, 0 0;
+  background-repeat: no-repeat;
+}
+.vn__bg--street:not(.has-image) {
+  background-image: linear-gradient(180deg, #8fd3ff 0%, #c6ecff 50%, #b9c9a4 51%, #8a9a74 100%);
+}
+
+/* 캐릭터: 화면 아래에 붙여서 크게. 1명이면 가운데, 2명이면 왼쪽·오른쪽 */
+.vn__cast {
   position: absolute;
   inset: 0;
-  background-repeat: no-repeat;
-  opacity: 0.9;
-}
-
-/* 배경: 이미지 없이 그라데이션 + 소품 패턴 */
-.vn__bg--classroom {
-  background: linear-gradient(180deg, #ffe7c2 0%, #f6c995 55%, #a8724a 56%, #7b4f33 100%);
-}
-.vn__bg--classroom::after {
-  background:
-    linear-gradient(90deg, transparent 8%, #2f5d48 8%, #2f5d48 52%, transparent 52%) 0 18% / 100% 30%,
-    repeating-linear-gradient(90deg, transparent 0 60%, rgba(255, 255, 255, 0.35) 60% 62%) 60% 10% / 40% 40%;
-  background-repeat: no-repeat;
-}
-.vn__bg--broadcast {
-  background: radial-gradient(ellipse at 50% 30%, #3a2c6b, #120d2a 70%);
-}
-.vn__bg--broadcast::after {
-  background:
-    radial-gradient(circle at 80% 22%, #ff4d6d 0 10px, transparent 11px),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0 6px, transparent 6px 22px) 0 70% / 100% 10%,
-    linear-gradient(transparent 60%, #241a48 60%);
-  background-repeat: no-repeat;
-}
-.vn__bg--rooftop {
-  background: linear-gradient(180deg, #ff9a8b 0%, #ffc3a0 40%, #ffe0b5 62%, #8e8aa3 63%, #5e5a73 100%);
-}
-.vn__bg--rooftop::after {
-  background: repeating-linear-gradient(90deg, #4b475e 0 4px, transparent 4px 40px) 0 54% / 100% 12%;
-  background-repeat: no-repeat;
-}
-.vn__bg--tower {
-  background: linear-gradient(180deg, #0b1440 0%, #23246a 60%, #3d2a6e 100%);
-}
-.vn__bg--tower::after {
-  background:
-    radial-gradient(circle at 50% 18%, #ff4d6d 0 6px, rgba(255, 77, 109, 0.3) 7px 22px, transparent 23px),
-    linear-gradient(80deg, transparent 47%, #8a8fb5 47% 48%, transparent 48%),
-    linear-gradient(100deg, transparent 52%, #8a8fb5 52% 53%, transparent 53%),
-    radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 12%, #fff, transparent), radial-gradient(1.5px 1.5px at 85% 40%, #fff, transparent);
-}
-.vn__bg--street {
-  background: linear-gradient(180deg, #2b2257 0%, #6b3f7a 50%, #3b3150 70%, #24203a 100%);
-}
-.vn__bg--street::after {
-  background: radial-gradient(circle at 25% 35%, rgba(255, 220, 140, 0.8) 0 8px, rgba(255, 220, 140, 0.15) 9px 70px, transparent 71px),
-    radial-gradient(circle at 75% 30%, rgba(255, 220, 140, 0.8) 0 8px, rgba(255, 220, 140, 0.15) 9px 70px, transparent 71px);
-}
-.vn__bg--library {
-  background: linear-gradient(180deg, #e8d7b8, #c9ab7c);
-}
-.vn__bg--library::after {
-  background: repeating-linear-gradient(90deg, #8a4b3a 0 18px, #3e6b5a 18px 30px, #c99a4b 30px 44px, #5b4a8a 44px 58px, transparent 58px 62px) 0 12% / 100% 22%,
-    repeating-linear-gradient(90deg, #6b4a8a 0 14px, #b55b4b 14px 30px, #4b7a8a 30px 46px, transparent 46px 50px) 0 40% / 100% 22%;
-  background-repeat: no-repeat;
-}
-.vn__bg--practice {
-  background: linear-gradient(180deg, #d6e4f0, #a9bccc 70%, #8396a8);
-}
-.vn__bg--practice::after {
-  background: linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.6) 10% 40%, transparent 40% 60%, rgba(255, 255, 255, 0.6) 60% 90%, transparent 90%) 0 20% / 100% 40%;
-  background-repeat: no-repeat;
-}
-.vn__bg--rain {
-  background: linear-gradient(180deg, #4a5670, #2c3446);
-}
-.vn__bg--rain::after {
-  background: repeating-linear-gradient(105deg, transparent 0 14px, rgba(200, 220, 255, 0.25) 14px 15px);
-  animation: rain 0.5s linear infinite;
-}
-@keyframes rain {
-  to {
-    background-position: -20px 60px;
-  }
-}
-.vn__bg--playground {
-  background: linear-gradient(180deg, #8fd3ff 0%, #c6ecff 55%, #e2c69a 56%, #c9a675 100%);
-}
-.vn__bg--playground::after {
-  background: radial-gradient(ellipse at 20% 20%, #fff 0 30px, transparent 31px), radial-gradient(ellipse at 70% 14%, #fff 0 22px, transparent 23px);
-}
-.vn__bg--dawn {
-  background: linear-gradient(180deg, #1d2a5c 0%, #6a5a9a 40%, #ffb38a 75%, #ffe3b0 100%);
-}
-.vn__bg--dawn::after {
-  background: radial-gradient(circle at 50% 95%, #fff3c4 0 40px, rgba(255, 220, 160, 0.4) 41px 140px, transparent 141px);
+  pointer-events: none;
 }
 
 .vn__actor {
   position: absolute;
+  bottom: 0;
   left: 50%;
-  bottom: clamp(150px, 24vh, 220px);
-  transform: translateX(-50%);
-  width: min(52vh, 72vw);
-  aspect-ratio: 1;
-  display: grid;
-  place-items: end center;
+  height: min(90%, 900px);
+  aspect-ratio: 0.62;
+  transform: translateX(calc(-50% + var(--x, 0%)));
+  transition:
+    transform 0.45s ease,
+    opacity 0.4s ease,
+    filter 0.3s ease;
 }
 
-.vn__actor .face,
-.vn__actor .portrait {
-  width: 100%;
-  height: 100%;
-  border-radius: 50% 50% 24px 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+.vn__actor[data-side='left'] {
+  --x: -52%;
 }
 
-.vn__actor .face img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.vn__actor[data-side='right'] {
+  --x: 52%;
 }
 
-.vn__actor.is-enter {
-  animation: vn-enter 0.35s ease;
+.vn__actor.is-solo {
+  --x: 0%;
 }
 
-@keyframes vn-enter {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 16px);
-  }
+.vn__actor.is-entering {
+  opacity: 0;
+  transform: translate(calc(-50% + var(--x, 0%)), 6%);
 }
 
-.vn__box {
+.vn__actor.is-leaving {
+  opacity: 0;
+  transform: translate(calc(-50% + var(--x, 0%)), 3%);
+}
+
+/* 말하지 않는 캐릭터는 살짝 어둡게, 조금 작게 */
+.vn__actor.is-dim {
+  filter: brightness(0.62) saturate(0.85);
+  transform: translateX(calc(-50% + var(--x, 0%))) scale(0.97);
+  transform-origin: 50% 100%;
+}
+
+.vn__stand {
   position: absolute;
   left: 50%;
-  bottom: max(20px, env(safe-area-inset-bottom));
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  max-width: none;
   transform: translateX(-50%);
-  width: min(920px, calc(100% - 32px));
-  min-height: 140px;
-  padding: 22px 28px 26px;
-  border-radius: 22px;
-  background: rgba(14, 11, 34, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.25));
+  transition: opacity 0.35s ease;
+}
+
+/* 스탠딩이 없어 전신(full.png)을 쓸 때: 무릎 아래를 화면 밖으로 */
+.vn__stand.is-full {
+  height: 165%;
+  bottom: -70%;
+}
+
+.vn__stand.is-fading {
+  opacity: 0;
+}
+
+/* 대사창 */
+.vn__box {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(1000px, calc(100% - 32px));
+  min-height: 150px;
+  padding: 26px 30px 28px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(20, 16, 44, 0.72), rgba(12, 9, 30, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .vn__name {
-  --member-color: var(--accent);
+  --member-color: #e8e4ff;
   position: absolute;
-  top: -18px;
-  left: 24px;
-  padding: 6px 18px;
-  border-radius: 999px;
+  top: -20px;
+  left: 26px;
+  min-width: 96px;
+  padding: 7px 20px;
+  border-radius: 12px 12px 12px 4px;
   background: var(--member-color);
-  color: #1a1030;
+  color: #fff;
   font-weight: 900;
-  font-size: 17px;
+  font-size: 18px;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--member-color) 50%, transparent);
 }
 
 .vn__name:empty {
@@ -4794,23 +4778,24 @@ a.btn {
 }
 
 .vn__box.is-me .vn__name {
-  background: #e8e4ff;
+  --member-color: #7d8bb0;
 }
 
 .vn__text {
-  font-size: clamp(17px, 2.2vw, 21px);
-  line-height: 1.65;
+  font-size: clamp(18px, 2.2vw, 22px);
+  line-height: 1.7;
   white-space: pre-wrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .vn__box.is-narration .vn__text {
-  color: #d9d4f5;
+  color: #e2ddf8;
   font-style: italic;
 }
 
 .vn__next {
   position: absolute;
-  right: 22px;
+  right: 24px;
   bottom: 12px;
   font-size: 13px;
   color: var(--accent);
@@ -4820,14 +4805,14 @@ a.btn {
 .vn__choices {
   position: absolute;
   inset: 0 0 auto 0;
-  bottom: 190px;
-  z-index: 2;
+  bottom: 200px;
+  z-index: 3;
   display: grid;
   align-content: center;
   justify-items: center;
   gap: 12px;
   padding: 0 24px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .vn__choice {
@@ -4868,7 +4853,7 @@ a.btn {
   top: max(12px, env(safe-area-inset-top));
   left: 16px;
   right: 16px;
-  z-index: 3;
+  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4891,12 +4876,101 @@ a.btn {
 }
 
 .vn__btn {
+  min-width: 56px;
   min-height: 42px;
-  padding: 0 16px;
+  padding: 0 14px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.vn__btn.is-on {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+
+.vn__btn--close {
+  min-width: 42px;
+  padding: 0;
+}
+
+/* 지난 대사 */
+.vn__log {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background: rgba(8, 6, 22, 0.9);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade-in 0.2s ease;
+}
+
+.vn__log-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 12px;
+  font-size: 18px;
+}
+
+.vn__log-list {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
+}
+
+.vn__log-item {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.vn__log-item p {
+  grid-column: 2;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.vn__log-name {
+  --member-color: #a7a2c7;
+  color: var(--member-color);
+  text-align: right;
+}
+
+.vn__log-item.is-me .vn__log-name {
+  color: #9fb0d8;
+}
+
+.vn__log-item.is-narration p {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.vn__log-item.is-choice p {
+  color: var(--accent);
   font-weight: 800;
-  font-size: 14px;
+}
+
+.vn__log-item.is-choice .vn__log-name {
+  color: var(--accent);
 }
 
 .vn__cg {
@@ -4944,6 +5018,29 @@ a.btn {
   font-weight: 800;
   color: #ffe3f1;
   text-shadow: 0 0 20px rgba(255, 140, 200, 0.6);
+}
+
+@media (max-width: 700px) {
+  .vn__actor {
+    height: min(70%, 640px);
+  }
+  .vn__actor[data-side='left'] {
+    --x: -38%;
+  }
+  .vn__actor[data-side='right'] {
+    --x: 38%;
+  }
+  .vn__log-item {
+    grid-template-columns: 64px 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vn__bg,
+  .vn__actor,
+  .vn__stand {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ══════════ 문자 ══════════ */

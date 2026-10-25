@@ -10,7 +10,8 @@ import { SAVE_VERSION } from '../src/core/state';
 import { BALANCE } from '../src/data/balance';
 import { getCard } from '../src/data/cards';
 import { MEMBERS } from '../src/data/members';
-import { CHAPTERS, NARRATIVE } from '../src/data/narrative';
+import { BACKGROUNDS, CHAPTERS, NARRATIVE } from '../src/data/narrative';
+import { standUrl } from '../src/data/portraits';
 
 describe('narrative data', () => {
   it('has 10 chapters, 5 events, 10 texts and 10 bond lines per member', () => {
@@ -22,6 +23,18 @@ describe('narrative data', () => {
       const last = NARRATIVE.events[m.id].at(-1)!;
       expect(last.lines.some((l) => l.cg === m.id)).toBe(true);
     }
+  });
+});
+
+describe('story backgrounds', () => {
+  it('starts every chapter and event with a background from assets/bg', () => {
+    expect([...BACKGROUNDS]).toEqual(['classroom', 'broadcast', 'hallway', 'rooftop', 'street']);
+    for (const c of CHAPTERS) expect(BACKGROUNDS).toContain(c.lines[0].bg);
+    for (const m of MEMBERS) for (const ev of NARRATIVE.events[m.id]) expect(BACKGROUNDS).toContain(ev.lines[0].bg);
+  });
+
+  it('has a stand image for every member', () => {
+    for (const m of MEMBERS) expect(standUrl(m.id, 'sad')).toMatchObject({ cropped: true });
   });
 });
 
