@@ -98,10 +98,15 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): St
     if (index < 0 || !slotEl) return false;
     bubbles.querySelector(`[data-member="${memberId}"]`)?.remove();
     const bubble = h('div', { class: 'bubble', 'data-member': memberId }, text);
-    bubble.style.left = `${slotEl.offsetLeft + slotEl.offsetWidth / 2}px`;
+    const center = slotEl.offsetLeft + slotEl.offsetWidth / 2;
     // 역할 이름 줄 아래, SD 머리 위쯤
     bubble.style.top = `${slotEl.offsetTop + 56}px`;
     bubbles.append(bubble);
+    // 좁은 화면에서 말풍선이 밖으로 나가지 않게 가로 위치를 안쪽으로 당기고, 꼬리는 그 부원을 가리키게
+    const half = bubble.offsetWidth / 2;
+    const left = Math.min(Math.max(center, half), bubbles.clientWidth - half);
+    bubble.style.left = `${left}px`;
+    bubble.style.setProperty('--tail', `${center - left}px`);
     window.clearTimeout(bubbleTimers.get(memberId));
     bubbleTimers.set(
       memberId,

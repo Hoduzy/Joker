@@ -14,7 +14,7 @@ import { h, onTap } from './dom';
 export function createCardList(game: Game): Component {
   const list = h('div', { class: 'roster' });
   const count = h('span', { class: 'panel__sub' });
-  const el = h('section', { class: 'panel' }, h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, '보유 카드'), count), list);
+  const el = h('section', { class: 'panel roster-panel' }, h('div', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, '보유 카드'), count), list);
 
   function renderCard(card: CardDef): HTMLElement {
     const member = getMember(card.member)!;

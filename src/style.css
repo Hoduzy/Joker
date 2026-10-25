@@ -176,18 +176,6 @@ p {
   align-content: start;
 }
 
-/* 아이패드 가로 / 큰 화면: 2단 */
-/* 방송실 아래쪽(슬롯+송신탑 | 보유 카드): 화면이 아니라 들어 있는 칸 너비 기준 */
-.studio-main {
-  container: studio / inline-size;
-}
-
-@container studio (min-width: 900px) {
-  .layout {
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  }
-}
-
 .panel {
   padding: 18px;
   border-radius: var(--radius);
@@ -224,9 +212,22 @@ p {
   gap: 12px;
 }
 
-@container studio (min-width: 600px) and (max-width: 899px) {
+/* 오늘의 방송 칸이 충분히 넓으면 4칸 한 줄 */
+.studio {
+  container: slots / inline-size;
+}
+
+@container slots (min-width: 520px) {
   .slots {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  /* 4칸일 때는 역할 이름만 (능력치 표시는 숨겨 높이를 맞춘다) */
+  .slot__role {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  .slot__stat {
+    display: none;
   }
 }
 
@@ -2854,12 +2855,28 @@ a.btn {
   }
 }
 
-/* ── 방송실 배치 (채팅 포함) ───────── */
+/* ── 방송실 배치 ───────────────────── */
+/* 패널들을 한 격자에 직접 놓고 화면 크기마다 순서·칸을 바꾼다 */
 .studio-screen {
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'delivery' 'chat' 'main';
+  grid-template-areas: 'studio' 'delivery' 'chat' 'cards';
+}
+
+.studio-screen > .studio-main,
+.studio-main > .layout,
+.studio-main .layout__main,
+.studio-main .layout__side {
+  display: contents;
+}
+
+.studio-screen .studio {
+  grid-area: studio;
+}
+
+.studio-screen .roster-panel {
+  grid-area: cards;
 }
 
 .studio-screen > .delivery {
@@ -2869,25 +2886,36 @@ a.btn {
 
 .studio-screen > .chat {
   grid-area: chat;
-  height: 280px;
+  height: 220px;
 }
 
-.studio-screen > .studio-main {
-  grid-area: main;
-}
-
-/* 아이패드 가로: 채팅이 오른쪽에 붙어 따라온다 */
+/* 아이패드 가로: 위 [오늘의 방송 | 채팅], 아래 [협찬 택배 | 보유 카드(안에서 스크롤)] */
 @media (min-width: 1100px) {
   .studio-screen {
-    grid-template-columns: minmax(0, 1fr) 300px;
-    grid-template-areas: 'delivery chat' 'main chat';
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-areas: 'studio chat' 'delivery cards';
   }
   .studio-screen > .chat {
-    position: sticky;
-    top: calc(var(--hud-h, 120px) + 16px);
-    height: calc(100dvh - var(--hud-h, 120px) - var(--tabs-h, 68px) - env(safe-area-inset-bottom) - 64px);
-    min-height: 360px;
+    height: auto;
+    min-height: 0;
+    contain: size;
+  }
+  .studio-screen .roster-panel {
+    contain: size;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .studio-screen .roster-panel .roster {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+  }
+  .studio-screen .roster-panel .member {
+    flex: none;
   }
 }
 
@@ -3026,7 +3054,7 @@ a.btn {
 .bubble::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: calc(50% + var(--tail, 0px));
   bottom: -7px;
   margin-left: -7px;
   border: 7px solid transparent;
@@ -5810,4 +5838,805 @@ a.btn {
 .kit__none {
   color: var(--muted);
   font-size: 14px;
+}
+
+/* ══════════════════════════════════════════════
+   폰 전용 레이아웃 (세로 600px 미만)
+   아이패드 레이아웃은 그대로 두고, 폰에서는 한 손으로 보기 편하게 정리한다
+   ══════════════════════════════════════════════ */
+
+/* 어떤 화면에서도 가로 스크롤이 생기지 않게 (숫자 자릿수가 바뀔 때 화면이 흔들리던 원인) */
+html,
+body {
+  overflow-x: hidden;
+}
+
+#app {
+  overflow-x: clip;
+}
+
+.hud__count,
+.hud__rate,
+.goal__text {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+  #app {
+    --tabs-h: 58px;
+    padding: max(8px, env(safe-area-inset-top)) 10px calc(var(--tabs-h) + env(safe-area-inset-bottom) + 16px);
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .panel__title {
+    font-size: 17px;
+  }
+
+  /* ── 헤더: [ON AIR · 청취자 · 전파석 · 아이콘] / [송신탑 버튼] / [다음 목표 바] */
+  .hud {
+    margin: 0 -2px 10px;
+    padding: 8px 10px 8px;
+    border-radius: 16px;
+  }
+
+  .hud__top {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'brand stats icons'
+      'tower tower tower';
+    align-items: center;
+    gap: 8px 8px;
+  }
+
+  .hud__brand {
+    grid-area: brand;
+  }
+
+  .hud__title {
+    display: none;
+  }
+
+  .onair {
+    font-size: 9px;
+    padding: 3px 5px;
+    letter-spacing: 0.06em;
+  }
+
+  .hud__stats {
+    grid-area: stats;
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .hud__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .hud__label {
+    display: none;
+  }
+
+  /* 숫자 칸 너비를 고정해서 자릿수가 바뀌어도 옆 요소가 움직이지 않게 */
+  .hud__stat:first-child {
+    width: 4.9em;
+    flex: none;
+  }
+
+  .hud__count {
+    font-size: 19px;
+    line-height: 1.1;
+  }
+
+  .hud__count--stones {
+    font-size: 16px;
+  }
+
+  .hud__rate {
+    font-size: 11px;
+  }
+
+  .hud__gem {
+    gap: 4px;
+  }
+
+  .hud__gem .gem {
+    transform: scale(0.8);
+  }
+
+  .hud__icons {
+    grid-area: icons;
+    gap: 4px;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    font-size: 18px;
+  }
+
+  .icon-btn__badge {
+    min-width: 17px;
+    height: 17px;
+    font-size: 10px;
+    top: -4px;
+    right: -4px;
+  }
+
+  .tower-btn {
+    grid-area: tower;
+    min-height: 40px;
+    padding: 4px 12px 4px 8px;
+    border-radius: 11px;
+  }
+
+  .tower-btn__icon {
+    font-size: 18px;
+  }
+
+  .tower-btn__text {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .tower-btn__text strong {
+    font-size: 14px;
+  }
+
+  .tower-btn__text small {
+    font-size: 12px;
+  }
+
+  .goal {
+    margin-top: 6px;
+    gap: 6px;
+  }
+
+  .goal__label {
+    font-size: 11px;
+  }
+
+  .goal__text {
+    display: none;
+  }
+
+  .goal__bar {
+    height: 5px;
+  }
+
+  .goal__reward {
+    font-size: 11px;
+  }
+
+  .hud__boosts {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+
+  .boost {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  /* ── 아래 탭: 아이콘 위, 글자 아래 */
+  .tabs {
+    gap: 2px;
+    padding: 4px 4px max(4px, env(safe-area-inset-bottom));
+  }
+
+  .tabs__btn {
+    height: 50px;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 11px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  .tabs__btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tabs__dot {
+    top: 5px;
+    right: calc(50% - 18px);
+    width: 8px;
+    height: 8px;
+  }
+
+  /* ── 방송실: 오늘의 방송 → 협찬 택배 → 보유 카드 → 채팅 순서 */
+  .studio-screen {
+    gap: 10px;
+    grid-template-areas: 'studio' 'delivery' 'cards' 'chat';
+  }
+
+  .studio-screen > .chat {
+    height: 200px;
+  }
+
+  /* 오늘의 방송: 4칸을 한 줄로 */
+  .studio .panel__head {
+    margin-bottom: 8px;
+  }
+
+  .slots {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .slot {
+    min-height: 0;
+    gap: 3px;
+    padding: 6px 4px;
+    border-radius: 12px;
+  }
+
+  .slot__role {
+    font-size: 12px;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .slot__stat,
+  .slot__card,
+  .slot__corner {
+    display: none;
+  }
+
+  .slot__stage {
+    height: 96px;
+  }
+
+  .slot__name {
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+  }
+
+  .slot__name .rarity,
+  .slot__name [class*='badge'] {
+    transform: scale(0.85);
+  }
+
+  .slot__lv {
+    font-size: 10px;
+  }
+
+  .slot__power {
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .slot__power .tag {
+    display: none;
+  }
+
+  .slot__change {
+    min-height: 32px;
+    font-size: 12px;
+    border-radius: 9px;
+  }
+
+  .slot__plus {
+    width: 52px;
+    height: 70px;
+    font-size: 26px;
+  }
+
+  /* 협찬 택배: 장비 칸은 아이콘만 작게, 상자는 가운데 */
+  .delivery {
+    margin-bottom: 0;
+  }
+
+  .delivery .panel__head {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .delivery__main {
+    grid-template-columns: 56px minmax(0, 1fr) 56px;
+    gap: 6px;
+  }
+
+  .delivery__gear {
+    gap: 6px;
+  }
+
+  .gear {
+    width: 56px;
+    min-height: 0;
+    padding: 4px;
+    border-radius: 11px;
+  }
+
+  .gear__name {
+    font-size: 10px;
+  }
+
+  .delivery__stage {
+    padding: 10px 0 0;
+    gap: 6px;
+  }
+
+  .box {
+    width: 150px;
+    height: 136px;
+  }
+
+  .delivery__row {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+  }
+
+  .delivery__controls .btn--small {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  /* 보유 카드: 한 줄 요약형 */
+  .member {
+    min-height: 0;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 13px;
+  }
+
+  .member .cardf,
+  .member > :first-child {
+    flex: none;
+  }
+
+  .member__name {
+    font-size: 15px;
+  }
+
+  .member__tagline {
+    font-size: 12px;
+  }
+
+  .stats {
+    gap: 2px 8px;
+  }
+
+  .stat {
+    grid-template-columns: 2.6em 1fr 1.8em;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .member__enhance {
+    min-width: 52px;
+    padding: 6px;
+  }
+
+  /* 능력치 막대는 카드 상세에서 보고, 목록에서는 숨겨 깔끔하게 */
+  .member .stats {
+    display: none;
+  }
+
+  .member__top {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+
+  /* 뽑기 */
+  .gacha__title {
+    font-size: 22px;
+  }
+
+  .gacha__desc {
+    font-size: 13px;
+  }
+
+  .gacha__buttons .btn {
+    min-height: 64px;
+  }
+
+  /* 부원 대사창: 탭 바로 위, 작게 */
+  .dialogue {
+    width: calc(100% - 16px);
+    gap: 10px;
+    padding: 10px 12px 10px 10px;
+    bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom) + 8px);
+  }
+
+  .dialogue__face .face {
+    width: 64px;
+    height: 74px;
+    margin-top: -26px;
+  }
+
+  .dialogue__text {
+    font-size: 14px;
+  }
+
+  .toasts {
+    width: calc(100% - 24px);
+    justify-items: center;
+  }
+
+  .toast {
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  /* 모달·시트 */
+  .modal__panel {
+    width: calc(100% - 20px) !important;
+    max-height: calc(100dvh - 40px);
+    padding: 18px 14px;
+  }
+
+  .modal__title {
+    font-size: 18px;
+  }
+
+  /* 도감: 3열 */
+  .collection .cards-grid,
+  .collection__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  /* 부원 탭 */
+  .subtabs {
+    gap: 6px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+  }
+
+  .subtab {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .mlist {
+    grid-auto-columns: 128px;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  .mrow {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .mrow .face,
+  .mrow .portrait {
+    width: 40px;
+    height: 40px;
+  }
+
+  .mstage {
+    min-height: 0;
+    padding: 10px;
+  }
+
+  .mstage__figure img {
+    max-height: 40vh;
+  }
+
+  .mstage__bubble {
+    font-size: 14px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .gifts {
+    gap: 6px;
+  }
+
+  .gift {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  .gift__emoji {
+    font-size: 24px;
+  }
+
+  /* 대결 */
+  .dungeon__vs {
+    gap: 6px;
+  }
+
+  .dungeon__stat {
+    padding: 8px 4px;
+  }
+
+  .dungeon__stat span {
+    font-size: 10px;
+  }
+
+  .dungeon__stat strong,
+  .dungeon__stat .odds {
+    font-size: 16px;
+  }
+
+  .dungeon__tip {
+    font-size: 12px;
+  }
+
+  .tug__side {
+    height: 96px;
+  }
+
+  .tug__side--us .battle__member {
+    margin-right: -26px;
+  }
+
+  .tug__field {
+    gap: 4px;
+  }
+
+  .tug__knot {
+    font-size: 26px;
+  }
+
+  /* 비주얼 노벨 */
+  .vn__top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .vn__title {
+    align-self: flex-start;
+    font-size: 12px;
+  }
+
+  .vn__tools {
+    justify-content: flex-end;
+  }
+
+  .vn__btn {
+    min-width: 46px;
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .vn__box {
+    width: calc(100% - 16px);
+    min-height: 128px;
+    padding: 22px 16px 22px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .vn__name {
+    font-size: 15px;
+    min-width: 72px;
+    padding: 5px 14px;
+    left: 14px;
+    top: -16px;
+  }
+
+  .vn__text {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .vn__actor {
+    height: 74%;
+    bottom: 110px;
+  }
+
+  .vn__actor[data-side='left'] {
+    --x: -26%;
+  }
+
+  .vn__actor[data-side='right'] {
+    --x: 26%;
+  }
+
+  .vn__choices {
+    bottom: 160px;
+  }
+
+  .vn__choice {
+    font-size: 15px;
+    padding: 13px 16px;
+  }
+
+  /* 문자: 폰에서는 화면 전체 */
+  .phone {
+    padding: 0;
+  }
+
+  .phone__body {
+    width: 100%;
+    height: 100dvh;
+    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+    border-radius: 0;
+    border: none;
+  }
+
+  .phone__screen {
+    border-radius: 20px;
+  }
+
+  .phone__close {
+    top: max(12px, env(safe-area-inset-top));
+    right: 14px;
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* 폰 가로: 헤더를 한 줄로 얇게 */
+@media (max-height: 500px) and (orientation: landscape) {
+  #app {
+    --tabs-h: 50px;
+    padding-top: max(6px, env(safe-area-inset-top));
+  }
+
+  .hud {
+    position: relative;
+    padding: 6px 12px;
+    margin-bottom: 8px;
+  }
+
+  .hud__title {
+    font-size: 16px;
+  }
+
+  .hud__label {
+    display: none;
+  }
+
+  .hud__count {
+    font-size: 20px;
+  }
+
+  .tower-btn {
+    min-height: 40px;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+  }
+
+  .goal {
+    margin-top: 4px;
+  }
+
+  .tabs__btn {
+    height: 42px;
+    font-size: 13px;
+  }
+
+  .vn__actor {
+    height: 95%;
+  }
+
+  .vn__box {
+    min-height: 100px;
+    padding: 18px 20px;
+  }
+}
+
+/* 아이패드 세로: 헤더 한 줄에 다 들어가게 (제목은 숨기고 ON AIR만) */
+@media (min-width: 600px) and (max-width: 1099px) {
+  .hud__title {
+    display: none;
+  }
+  .hud__top {
+    gap: 12px;
+  }
+  .tower-btn__text {
+    white-space: nowrap;
+  }
+  .hud__stats {
+    gap: 16px;
+  }
+}
+
+/* 아주 좁은 폰 (iPhone SE 등) */
+@media (max-width: 380px) {
+  .hud__stat:first-child {
+    width: 4.4em;
+  }
+  .hud__count {
+    font-size: 17px;
+  }
+  .hud__count--stones {
+    font-size: 14px;
+  }
+  .hud__stats {
+    gap: 6px;
+  }
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+  .onair {
+    font-size: 8px;
+    padding: 3px 4px;
+  }
+}
+
+@media (max-width: 599px) {
+  .bubble {
+    max-width: 150px;
+    font-size: 12px;
+    padding: 6px 9px;
+  }
+}
+
+/* iPhone SE: 청취자와 전파석을 위아래로 (초당 증가량은 생략) */
+@media (max-width: 380px) {
+  .hud__stats {
+    flex-direction: column;
+    gap: 0;
+  }
+  .hud__stat:first-child {
+    width: auto;
+  }
+  .hud__stat:first-child .hud__rate {
+    display: none;
+  }
+}
+
+/* 폰 세로가 아닐 때도 숫자 칸 너비를 고정해서 송신탑 버튼·전파석이 밀리지 않게 */
+@media (min-width: 600px) {
+  .hud__stat:first-child .hud__count {
+    display: inline-block;
+    min-width: 5.2em;
+    text-align: right;
+  }
+  .hud__stat:first-child .hud__rate {
+    display: inline-block;
+    min-width: 6.4em;
+  }
+  .hud__count--stones {
+    display: inline-block;
+    min-width: 4.2em;
+  }
+}
+
+/* 폰 가로: 슬롯·상자를 낮게 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .onair {
+    white-space: nowrap;
+  }
+  .slot {
+    min-height: 0;
+  }
+  .slot__stage {
+    height: 100px;
+  }
+  .box {
+    width: 160px;
+    height: 145px;
+  }
 }
