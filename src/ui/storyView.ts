@@ -51,6 +51,7 @@ export function playEpisode(game: Game, key: string): void {
       title: `CH.${ep.chapter} ${chapter.title} · ${ep.no}화 ${ep.title}`,
       lines: ep.lines,
       replay,
+      card: { overline: `CHAPTER ${ep.chapter} · EPISODE ${ep.no}`, title: ep.title, frequency: ep.frequency, unstable: ep.unstable, short: replay },
       name: game.state.story.name,
       onChoice: (xp) => game.applyChoiceXp(xp),
       onEnd: (done) => {
@@ -76,6 +77,7 @@ export function playEnding(game: Game, id: string): void {
     title: `EPILOGUE · ${who} · ${ending.title}`,
     lines: ending.lines,
     replay,
+    card: { overline: `EPILOGUE · ${who}`, title: ending.title, frequency: ending.frequency, short: replay },
     name: game.state.story.name,
     onChoice: (xp) => game.applyChoiceXp(xp),
     onEnd: (done) => done && !replay && game.markStorySeen(key),

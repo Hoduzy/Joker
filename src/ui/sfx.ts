@@ -113,6 +113,70 @@ const arp = (notes: number[], step: number, opts: Omit<Tone, 'freq'>) => notes.f
 // 음 이름 → 주파수
 const C5 = 523.25, E5 = 659.25, G5 = 783.99, A5 = 880, C6 = 1046.5, E6 = 1318.5, G6 = 1568, C7 = 2093;
 
+/**
+ * 라디오 다이얼 돌리는 소리: 지지직 노이즈의 대역을 이리저리 쓸어 가며, 중간중간 방송 조각(삐— 하는 음)이 스친다.
+ * dur초 동안. unstable이면 끝까지 잦아들지 않고 흔들린다. 돌려받은 함수를 부르면 바로 멈춘다.
+ */
+function tuningNoise(dur: number, unstable: boolean): () => void {
+  if (!enabled || !ctx || !master) return () => {};
+  const c = ctx;
+  const t0 = c.currentTime;
+  const len = Math.floor(c.sampleRate * (dur + 0.2));
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const band = c.createBiquadFilter();
+  band.type = 'bandpass';
+  band.Q.value = 1.2;
+  // 다이얼을 돌리는 것처럼 대역을 이리저리
+  band.frequency.setValueAtTime(500, t0);
+  const steps = 7;
+  for (let i = 1; i <= steps; i++) band.frequency.linearRampToValueAtTime(400 + Math.random() * 3200, t0 + (dur * i) / steps);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.08);
+  if (unstable) {
+    gain.gain.linearRampToValueAtTime(0.12, t0 + dur * 0.7);
+    gain.gain.linearRampToValueAtTime(0.09, t0 + dur);
+  } else {
+    gain.gain.setValueAtTime(0.22, t0 + dur * 0.75);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  }
+  src.connect(band).connect(gain).connect(master);
+  src.start(t0);
+  src.stop(t0 + dur + 0.2);
+  // 스쳐 가는 방송 조각
+  const blips: OscillatorNode[] = [];
+  for (let i = 0; i < 3; i++) {
+    const at = t0 + dur * (0.15 + i * 0.22) + Math.random() * 0.05;
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(600 + Math.random() * 900, at);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.05, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.12);
+    o.connect(g).connect(master);
+    o.start(at);
+    o.stop(at + 0.14);
+    blips.push(o);
+  }
+  return () => {
+    const now = c.currentTime;
+    try {
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+      src.stop(now + 0.1);
+      blips.forEach((b) => b.stop(now + 0.01));
+    } catch {
+      // 이미 끝남
+    }
+  };
+}
+
 export const sfx = {
   tap() {
     tone({ freq: 880, to: 1200, dur: 0.05, type: 'triangle', vol: 0.12 });
@@ -193,6 +257,20 @@ export const sfx = {
   flash() {
     noise(0.35, 0.12, 0, 5200);
     tone({ freq: C6, to: C7, dur: 0.35, type: 'sine', vol: 0.08 });
+  },
+  /** 타이틀 카드: 다이얼 돌리는 지지직 (멈추는 함수를 돌려준다) */
+  tuning(dur: number, unstable = false): () => void {
+    return tuningNoise(dur, unstable);
+  },
+  /** 주파수가 딱 맞았을 때: 짧은 딸깍 + 맑은 음 */
+  tuned() {
+    noise(0.03, 0.25, 0, 3000);
+    tone({ freq: 1320, dur: 0.18, type: 'sine', vol: 0.1, at: 0.02 });
+  },
+  /** 끝까지 안 맞을 때: 흔들리는 낮은 음 */
+  detuned() {
+    tone({ freq: 660, to: 610, dur: 0.5, type: 'sine', vol: 0.06 });
+    tone({ freq: 668, to: 700, dur: 0.5, type: 'sine', vol: 0.05 });
   },
   /** 감정 아이콘이 톡 하고 뜰 때. 아이콘마다 조금씩 다르게 */
   emote(kind: string) {

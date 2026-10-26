@@ -5,7 +5,10 @@
   "summary": "미래가 창고에서 찾은 옛 방송 테이프. 그 속 목소리가 서윤과 똑같다.",
   "episodes": [
     {
+      "chapter": 5,
+      "episode": 1,
       "title": "창고 정리",
+      "frequency": 97.5,
       "lines": [
         { "bg": "broadcast", "t": "7월 초. 방송제 성공으로 방송부에 처음으로 상금이 나왔다. 30만 원." },
         { "s": "haneul", "e": "smile", "t": "30만 원! 뭐 사지? 소파? 미니 냉장고? 방송실에 냉장고 있으면 완전 아지트잖아!", "action": "jump", "emote": "music" },
@@ -47,7 +50,10 @@
       ]
     },
     {
+      "chapter": 5,
+      "episode": 2,
       "title": "둘만의 수리",
+      "frequency": 97.5,
       "lines": [
         { "bg": "broadcast", "t": "밤 9시. 방송이 없는 날의 방송실. 미래와 나만 남아 있었다." },
         { "t": "작업대 위에 뒷판을 연 카세트 데크. 미래가 헤드랜턴을 쓰고, 나는 부품 통을 들고 옆에 앉았다." },
@@ -92,7 +98,11 @@
       ]
     },
     {
+      "chapter": 5,
+      "episode": 3,
       "title": "같은 목소리",
+      "frequency": 97.5,
+      "signal": "unstable",
       "lines": [
         { "bg": "broadcast", "t": "다음 날 방과 후. 다섯 명이 고친 데크 앞에 모였다." },
         { "s": "haneul", "e": "surprised", "t": "미래랑 {이름} 둘이서 밤새웠다며? 둘이서? 밤새?", "action": "jump", "emote": "question" },
@@ -132,7 +142,11 @@
       ]
     },
     {
+      "chapter": 5,
+      "episode": 4,
       "title": "엽서 소인",
+      "frequency": 97.5,
+      "signal": "unstable",
       "lines": [
         { "bg": "classroom", "t": "그날 밤, 집에 오자마자 수첩을 펼쳤다. 그동안 받은 서윤의 엽서. 여섯 장." },
         { "t": "첫 번째 엽서. 소인이 번져서 읽을 수 없던 그 엽서." },
@@ -173,7 +187,11 @@
       ]
     },
     {
+      "chapter": 5,
+      "episode": 5,
       "title": "직접 묻다",
+      "frequency": 97.5,
+      "signal": "unstable",
       "lines": [
         { "bg": "rooftop", "t": "다음 날 밤 11시. 나는 미래와 함께 옥상 송신탑 아래에 섰다." },
         { "s": "mirae", "e": "neutral", "t": "수신기를 송신 모드로 바꿨어. 이 탑 주파수로 말하면, 그 신호가 있는 대역으로 같이 나가." },

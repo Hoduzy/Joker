@@ -7447,3 +7447,318 @@ button.chapter-head:disabled {
     opacity: 0.45;
   }
 }
+
+/* ══════════ 에피소드 타이틀 카드 (라디오 다이얼) ══════════ */
+.tcard {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  background: radial-gradient(ellipse at 50% 45%, #1a1530 0%, #0b0916 55%, #040309 100%);
+  color: #fff;
+  opacity: 1;
+  transition: opacity 0.45s ease;
+  animation: tcard-in 0.3s ease both;
+}
+
+@keyframes tcard-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.tcard.is-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tcard.is-skip {
+  transition-duration: 0.25s;
+}
+
+/* 회상: 세피아 */
+.tcard.is-flashback {
+  background: radial-gradient(ellipse at 50% 45%, #3a2c1c 0%, #1c140c 60%, #0b0805 100%);
+}
+
+.tcard.is-flashback .tcard__body {
+  filter: sepia(0.85) saturate(0.9);
+}
+
+/* 지지직 화면 + 노이즈 줄무늬: 주파수가 맞으면 걷힌다 */
+.tcard__noise {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  mix-blend-mode: screen;
+  opacity: 0.22;
+  transition: opacity 0.6s ease;
+}
+
+.tcard__stripes {
+  position: absolute;
+  inset: -20% 0;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0 2px, transparent 2px 5px, rgba(255, 255, 255, 0.04) 5px 6px, transparent 6px 11px);
+  animation: tcard-roll 0.35s steps(4) infinite;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+@keyframes tcard-roll {
+  to {
+    transform: translateY(11px);
+  }
+}
+
+.tcard.is-clear .tcard__noise {
+  opacity: 0.04;
+}
+
+.tcard.is-clear .tcard__stripes {
+  opacity: 0;
+}
+
+.tcard.is-unstable.is-clear .tcard__noise {
+  opacity: 0.12;
+}
+
+.tcard.is-unstable.is-clear .tcard__stripes {
+  opacity: 0.35;
+}
+
+.tcard__body {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: clamp(22px, 5vh, 44px);
+  width: min(560px, calc(100% - 40px));
+  text-align: center;
+}
+
+/* 주파수 표시창 */
+.tcard__dial {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.tcard__freq {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  color: #ffcf6b;
+  text-shadow:
+    0 0 12px rgba(255, 190, 80, 0.75),
+    0 0 32px rgba(255, 150, 40, 0.35);
+}
+
+.tcard__num {
+  min-width: 4.2ch;
+  font-size: clamp(46px, 13vw, 92px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.tcard__unit {
+  font-size: clamp(14px, 3.4vw, 20px);
+  opacity: 0.8;
+}
+
+.tcard__scale {
+  position: relative;
+  width: 100%;
+  height: 34px;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0 1px, transparent 1px 4%) top / 100% 10px no-repeat;
+}
+
+.tcard__marks {
+  position: absolute;
+  inset: 14px 0 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.tcard__needle {
+  position: absolute;
+  top: -8px;
+  width: 2px;
+  height: 26px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: #ff4d5a;
+  box-shadow: 0 0 10px rgba(255, 77, 90, 0.9);
+}
+
+.tcard.is-unstable.is-locked .tcard__needle {
+  animation: tcard-wobble 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes tcard-wobble {
+  from {
+    transform: translateX(-3px);
+  }
+  to {
+    transform: translateX(3px);
+  }
+}
+
+/* 제목: 처음엔 흐리고 번져 있다가 주파수가 맞으면 또렷하게 */
+.tcard__text {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.tcard__over {
+  font-size: clamp(11px, 2.8vw, 14px);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.tcard__title {
+  font-size: clamp(28px, 7.5vw, 54px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  word-break: keep-all;
+  text-shadow: 0 2px 24px rgba(120, 90, 255, 0.45);
+}
+
+.tcard__over,
+.tcard__title {
+  opacity: 0.25;
+  filter: blur(7px);
+  transform: scaleX(1.06);
+  transition:
+    opacity 0.55s ease,
+    filter 0.55s ease,
+    transform 0.55s ease;
+}
+
+.tcard.is-clear .tcard__over,
+.tcard.is-clear .tcard__title {
+  opacity: 1;
+  filter: blur(0);
+  transform: none;
+}
+
+/* 끝까지 안 맞는 신호: 제목이 가끔 지직 */
+.tcard.is-unstable.is-clear .tcard__title {
+  animation: tcard-glitch 1.8s steps(1) infinite;
+}
+
+@keyframes tcard-glitch {
+  0%,
+  86%,
+  100% {
+    transform: none;
+    text-shadow: 0 2px 24px rgba(120, 90, 255, 0.45);
+  }
+  88% {
+    transform: translateX(3px) skewX(-6deg);
+    text-shadow:
+      -3px 0 rgba(255, 60, 90, 0.8),
+      3px 0 rgba(60, 220, 255, 0.8);
+  }
+  91% {
+    transform: translateX(-2px);
+    text-shadow:
+      2px 0 rgba(255, 60, 90, 0.7),
+      -2px 0 rgba(60, 220, 255, 0.7);
+  }
+  94% {
+    transform: none;
+    opacity: 0.6;
+  }
+}
+
+/* ON AIR 램프 */
+.tcard__air {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border: 1px solid rgba(255, 90, 100, 0.55);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #ff8a92;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.2s;
+}
+
+.tcard.is-clear .tcard__air {
+  opacity: 1;
+}
+
+.tcard__lamp {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff3b4a;
+  box-shadow: 0 0 10px #ff3b4a;
+  animation: tcard-lamp 1s steps(1) infinite;
+}
+
+@keyframes tcard-lamp {
+  50% {
+    opacity: 0.25;
+    box-shadow: none;
+  }
+}
+
+.tcard.is-unstable .tcard__lamp {
+  animation: tcard-lamp-flicker 1.3s steps(1) infinite;
+}
+
+@keyframes tcard-lamp-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0.2;
+  }
+  26% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.35;
+  }
+  62% {
+    opacity: 1;
+  }
+}
+
+/* 다시보기·연출 줄이기: 노이즈 없이 페이드만 */
+.tcard.is-calm .tcard__noise,
+.tcard.is-calm .tcard__stripes {
+  display: none;
+}
+
+.tcard.is-calm .tcard__over,
+.tcard.is-calm .tcard__title {
+  filter: none;
+  transform: none;
+}
+
+.reduce-motion .tcard__title,
+.reduce-motion .tcard__needle,
+.reduce-motion .tcard__lamp {
+  animation: none !important;
+}

@@ -28,9 +28,13 @@
  *   CG:     { "cg": CG id, "caption": 설명 } — assets/cg/<id>.png 가 있으면 그 이미지, 없으면 빈 칸
  *           (개인 이벤트는 부원 id, 메인 스토리는 story-로 시작하는 id)
  *
- * story/chapterNN.json  { id, title, unlock: 누적 청취자, summary, episodes: [{ title, lines }] }
+ * story/chapterNN.json  { id, title, unlock: 누적 청취자, summary, episodes: [{ chapter, episode, title, frequency, signal?, lines }] }
  *              챕터는 누적 청취자가 unlock을 넘으면 열리고, 화(episode)는 앞의 화를 다 봐야 이어서 볼 수 있다
- * story/endings.json    부원 → { title, lines } + "true" → { title, minLevel, lines }
+ *              화를 시작할 때 타이틀 카드: 라디오 다이얼이 frequency(MHz)에 맞춰지며 제목이 나온다
+ *                - frequency: 87.5~108 사이 숫자. "1996"이면 회상 화 (세피아 + 숫자 대신 1996)
+ *                - signal: "unstable"이면 주파수가 끝까지 안 맞고 흔들린다 (서윤 등장·서윤 중심 화)
+ *                - chapter·episode는 파일·순서와 같아야 한다 (틀리면 오류)
+ * story/endings.json    부원 → { title, frequency, lines } + "true" → { title, frequency, minLevel, lines }
  *              마지막 화를 본 뒤, 다섯 명 모두 호감도 minLevel 이상이면 진엔딩, 아니면 호감도가 가장 높은 부원의 엔딩
  * events.json  부원 → [{ level, title, lines }] — 호감도 레벨 2/4/6/8/10 단둘이 이벤트
  * texts.json   부원 → [{ minLevel, msgs: [받는 문자], choices: [{ t: 답장, xp, reply: [그 답장에 대한 문자] }] }]
@@ -89,6 +93,10 @@ export interface Episode {
   /** 챕터 안에서 몇 번째 화인지 (1부터) */
   no: number;
   title: string;
+  /** 타이틀 카드 주파수: "89.7" 같은 MHz, 회상 화는 "1996" */
+  frequency: string;
+  /** 주파수가 끝까지 안 맞는 화 (서윤) */
+  unstable: boolean;
   lines: ScriptLine[];
 }
 
@@ -105,6 +113,7 @@ export interface Ending {
   /** 부원 id, 또는 "true"(진엔딩) */
   id: string;
   title: string;
+  frequency: string;
   /** 진엔딩: 다섯 명 모두 이 호감도 레벨 이상 */
   minLevel?: number;
   lines: ScriptLine[];
@@ -192,8 +201,17 @@ export function checkLines(lines: unknown, where: string): ScriptLine[] {
   return lines as ScriptLine[];
 }
 
+/** 89.7 → "89.7", "1996" → "1996". FM 대역(87.5~108)이나 회상(1996)만 */
+function readFrequency(v: unknown, where: string): string {
+  if (v === '1996') return v;
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
+  if (!(n >= 87.5 && n <= 108)) fail(where, `frequency는 87.5~108 사이 숫자나 "1996"이어야 합니다 (${String(v)})`);
+  return n.toFixed(1);
+}
+
 function load() {
-  type RawChapter = { id: number; title: string; unlock: number; summary?: string; episodes: { title: string; lines: unknown }[] };
+  type RawEpisode = { chapter?: number; episode?: number; title: string; frequency?: unknown; signal?: string; lines: unknown };
+  type RawChapter = { id: number; title: string; unlock: number; summary?: string; episodes: RawEpisode[] };
   const chapters: Chapter[] = Object.entries(chapterFiles)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([file, raw]) => {
@@ -207,13 +225,21 @@ function load() {
         title: c.title,
         unlock: c.unlock,
         summary: c.summary ?? '',
-        episodes: c.episodes.map((e, i) => ({
-          key: `${c.id}-${i + 1}`,
-          chapter: c.id,
-          no: i + 1,
-          title: e.title,
-          lines: checkLines(e.lines, `${w} episodes[${i}]`),
-        })),
+        episodes: c.episodes.map((e, i) => {
+          const we = `${w} episodes[${i}]`;
+          if (e.chapter !== undefined && e.chapter !== c.id) fail(we, `chapter가 ${c.id}이어야 합니다 (${e.chapter})`);
+          if (e.episode !== undefined && e.episode !== i + 1) fail(we, `episode가 ${i + 1}이어야 합니다 (${e.episode})`);
+          if (e.signal !== undefined && e.signal !== 'unstable') fail(we, `signal은 "unstable"만 쓸 수 있습니다 ("${e.signal}")`);
+          return {
+            key: `${c.id}-${i + 1}`,
+            chapter: c.id,
+            no: i + 1,
+            title: e.title,
+            frequency: readFrequency(e.frequency ?? 89.7, we),
+            unstable: e.signal === 'unstable',
+            lines: checkLines(e.lines, we),
+          };
+        }),
       };
     });
   chapters.forEach((c, i) => {
@@ -221,9 +247,9 @@ function load() {
     if (i > 0 && c.unlock < chapters[i - 1].unlock) fail(`챕터 ${c.id}`, 'unlock은 앞 챕터보다 작을 수 없습니다');
   });
 
-  const endings: Ending[] = Object.entries(endingsRaw as Record<string, { title: string; minLevel?: number; lines: unknown }>).map(([id, e]) => {
+  const endings: Ending[] = Object.entries(endingsRaw as Record<string, { title: string; frequency?: unknown; minLevel?: number; lines: unknown }>).map(([id, e]) => {
     if (id !== 'true' && !getMember(id)) fail('story/endings.json', `알 수 없는 엔딩 "${id}"`);
-    return { id, title: e.title, minLevel: e.minLevel, lines: checkLines(e.lines, `story/endings.json ${id}`) };
+    return { id, title: e.title, frequency: readFrequency(e.frequency ?? 89.7, `story/endings.json ${id}`), minLevel: e.minLevel, lines: checkLines(e.lines, `story/endings.json ${id}`) };
   });
 
   const events: Record<string, PersonalEvent[]> = {};

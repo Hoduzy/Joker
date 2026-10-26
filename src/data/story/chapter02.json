@@ -5,7 +5,10 @@
   "summary": "폐부를 막으려면 부원이 다섯 명 있어야 한다. 주인공은 미래와 하늘을 데려온다.",
   "episodes": [
     {
+      "chapter": 2,
+      "episode": 1,
       "title": "송신탑의 주인",
+      "frequency": 91.3,
       "lines": [
         { "bg": "classroom", "s": "yuri", "e": "neutral", "t": "자, 작전 회의. 부원 다섯 명. 지금 셋. 두 명이 더 필요해." },
         { "s": "me", "t": "아무나 끌고 오면 안 돼?" },
@@ -51,7 +54,10 @@
       ]
     },
     {
+      "chapter": 2,
+      "episode": 2,
       "title": "기계 앞에서만",
+      "frequency": 91.3,
       "lines": [
         { "bg": "broadcast", "t": "방과 후. 방송실 믹서 한쪽 채널이 또 지직거렸다." },
         { "s": "dahye", "e": "angry", "t": "3번 채널 또 죽었어. 이 믹서, 나보다 나이 많아.", "emote": "angry" },
@@ -97,7 +103,10 @@
       ]
     },
     {
+      "chapter": 2,
+      "episode": 3,
       "title": "얼굴 없는 노래",
+      "frequency": 91.3,
       "lines": [
         { "bg": "hallway", "t": "부원 넷. 남은 한 자리는 ‘목소리’였다. 다혜 선배는 진행을, 미래는 기계를, 유리는 사연을 맡겠다고 했다." },
         { "s": "yuri", "e": "neutral", "t": "노래하는 사람이 있으면 좋겠어. 밤 방송에 라이브 한 곡. 그거 하나로 분위기 완전 달라지거든." },
@@ -139,7 +148,10 @@
       ]
     },
     {
+      "chapter": 2,
+      "episode": 4,
       "title": "네 번째 부원",
+      "frequency": 91.3,
       "lines": [
         { "bg": "broadcast", "t": "밤 9시 50분. 미래가 고친 믹서의 모든 채널에 초록불이 들어왔다." },
         { "s": "mirae", "e": "smile", "t": "16채널 전부 살았어. 노이즈 플로어 마이너스 80. 90년대 콘솔에서 이 정도면 기적이야.", "emote": "sparkle" },
@@ -182,7 +194,11 @@
       ]
     },
     {
+      "chapter": 2,
+      "episode": 5,
       "title": "다섯 번째 서명",
+      "frequency": 91.3,
+      "signal": "unstable",
       "lines": [
         { "bg": "hallway", "t": "다음 날 아침. 다혜 선배와 나는 입부 신청서 묶음을 들고 교무실 앞에 섰다." },
         { "s": "dahye", "e": "neutral", "t": "나, 너, 유리, 미래, 하늘. 다섯 명." },

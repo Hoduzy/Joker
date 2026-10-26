@@ -5,6 +5,7 @@ import { h, onTap } from './dom';
 import { emoteSvg } from './emotes';
 import { reducedMotion } from './motion';
 import { sfx } from './sfx';
+import { playTitleCard, type TitleCard } from './titleCard';
 
 /** 이벤트 CG: assets/cg/<부원 id>.png (아직 없으면 빈 칸으로 보여 준다) */
 const cgFiles = import.meta.glob('/assets/cg/*.{png,jpg,jpeg,webp}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -66,6 +67,8 @@ export interface ScriptOptions {
   replay?: boolean;
   /** 주인공 이름 ({이름} 자리와 ‘나’ 이름표) */
   name?: string;
+  /** 시작할 때 타이틀 카드 (에피소드·엔딩) */
+  card?: TitleCard;
 }
 
 type Side = 'left' | 'right';
@@ -617,7 +620,9 @@ export function playScript(opts: ScriptOptions): void {
   });
 
   setBg(queue.find((l) => l.bg)?.bg ?? 'classroom', true);
-  advance();
+  // 타이틀 카드가 걷히기 시작하면 첫 대사
+  if (opts.card) playTitleCard(root, opts.card, advance);
+  else advance();
 }
 
 function readAuto(): boolean {

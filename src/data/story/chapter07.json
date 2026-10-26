@@ -5,7 +5,10 @@
   "summary": "유리가 주인공보다 먼저 서윤을 알고 있었다는 사실이 드러난다. 그리고 방송부는 리그 본선에 오른다.",
   "episodes": [
     {
+      "chapter": 7,
+      "episode": 1,
       "title": "서랍 속 상자",
+      "frequency": 100.7,
       "lines": [
         { "bg": "classroom", "t": "8월, 여름방학 보충수업이 끝난 오후. 빈 교실에서 유리와 둘이 방학 숙제를 하고 있었다." },
         { "s": "yuri", "e": "angry", "t": "수학 문제집 30쪽까지라니. 선생님은 우리가 방송부인 거 모르나 봐.", "emote": "sweat" },
@@ -46,7 +49,10 @@
       ]
     },
     {
+      "chapter": 7,
+      "episode": 2,
       "title": "유리의 고백 반쪽",
+      "frequency": 100.7,
       "lines": [
         { "bg": "classroom", "s": "yuri", "e": "neutral", "t": "그다음 날부터 우리 집 우편함에 엽서가 오기 시작했어. 내 앞으로가 아니라, 네 앞으로." },
         { "s": "me", "t": "왜 너희 집으로?" },
@@ -84,7 +90,10 @@
       ]
     },
     {
+      "chapter": 7,
+      "episode": 3,
       "title": "엽서에 적힌 말",
+      "frequency": 100.7,
       "lines": [
         { "bg": "broadcast", "t": "그날 저녁. 유리와 나는 방송실에 엽서를 펼쳐 놓았다. 다른 부원들도 하나둘 모여들었다." },
         { "s": "haneul", "e": "surprised", "t": "이거 전부 서윤 엽서야? 세상에, 몇 장이야?", "action": "jump", "emote": "exclaim" },
@@ -124,7 +133,10 @@
       ]
     },
     {
+      "chapter": 7,
+      "episode": 4,
       "title": "완장",
+      "frequency": 100.7,
       "lines": [
         { "bg": "rooftop", "t": "다음 날 방과 후. 다혜 선배가 나를 옥상으로 불렀다. 송신탑 아래, 둘뿐이었다." },
         { "s": "dahye", "e": "neutral", "t": "…어제 엽서. 다시 보여 줘." },
@@ -161,7 +173,10 @@
       ]
     },
     {
+      "chapter": 7,
+      "episode": 5,
       "title": "본선 진출",
+      "frequency": 100.7,
       "lines": [
         { "bg": "broadcast", "t": "리그 본선 1라운드. 8개교 중 4개교가 결승에 간다. 주제는 ‘우리가 숨겨 온 것’." },
         { "s": "dahye", "e": "neutral", "t": "주제가 이거라면, 우리가 할 방송은 하나밖에 없어." },

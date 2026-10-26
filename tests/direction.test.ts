@@ -46,3 +46,20 @@ describe('연출 태그', () => {
     }
   });
 });
+
+describe('타이틀 카드 데이터', () => {
+  it('every episode and ending has a frequency; chapters each get their own', () => {
+    for (const c of CHAPTERS) for (const e of c.episodes) expect(e.frequency, e.key).toMatch(/^(\d{2,3}\.\d|1996)$/);
+    for (const e of ENDINGS) expect(e.frequency, e.id).toMatch(/^\d{2,3}\.\d$/);
+    const perChapter = CHAPTERS.map((c) => c.episodes.find((e) => e.frequency !== '1996')!.frequency);
+    expect(new Set(perChapter).size).toBe(CHAPTERS.length);
+  });
+
+  it('the 1996 night is a flashback, and Seoyun episodes never tune in', () => {
+    const ep = (k: string) => CHAPTERS.flatMap((c) => c.episodes).find((e) => e.key === k)!;
+    expect(ep('9-2').frequency).toBe('1996');
+    // 첫 신호, 축제에서 처음 만나는 화, 흐려지는 서윤
+    for (const k of ['1-4', '4-3', '8-2']) expect(ep(k).unstable, k).toBe(true);
+    expect(ep('1-1').unstable).toBe(false);
+  });
+});

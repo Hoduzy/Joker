@@ -5,7 +5,10 @@
   "summary": "부원 1명뿐인 폐부 직전의 방송부. 첫 방송 날 밤, 정체불명의 신호가 끼어든다.",
   "episodes": [
     {
+      "chapter": 1,
+      "episode": 1,
       "title": "꿍꿍이",
+      "frequency": 89.7,
       "lines": [
         { "bg": "classroom", "t": "4월 둘째 주. 아무 동아리에도 들지 않겠다고 다짐한 지 정확히 일주일째였다." },
         { "t": "종례가 끝나자마자 가방을 메는데, 누가 책상을 두 손으로 탁 짚었다." },
@@ -51,7 +54,10 @@
       ]
     },
     {
+      "chapter": 1,
+      "episode": 2,
       "title": "부원 1명의 방송부",
+      "frequency": 89.7,
       "lines": [
         { "bg": "broadcast", "t": "문이 닫히기 직전, 유리가 발을 문틈에 끼웠다." },
         { "s": "yuri", "e": "surprised", "t": "아야! …선배, 잠깐만요! 게시판에 붙은 공문 봤어요!", "action": "shake", "emote": "sweat" },
@@ -96,7 +102,10 @@
       ]
     },
     {
+      "chapter": 1,
+      "episode": 3,
       "title": "청취자 3명",
+      "frequency": 89.7,
       "lines": [
         { "bg": "street", "t": "밤 9시 20분. 집에 간다고 해 놓고, 나는 결국 다시 교문 앞에 서 있었다." },
         { "s": "yuri", "e": "smile", "t": "왔다! 안 올 줄 알았는데!", "action": "jump" },
@@ -137,7 +146,11 @@
       ]
     },
     {
+      "chapter": 1,
+      "episode": 4,
       "title": "들리나요?",
+      "frequency": 89.7,
+      "signal": "unstable",
       "lines": [
         { "bg": "broadcast", "t": "두 번째 노래가 끝나고 클로징 직전이었다." },
         { "s": "dahye", "e": "neutral", "t": "오늘 방송은 여기까지. 마지막 곡 듣고—" },
@@ -178,7 +191,11 @@
       ]
     },
     {
+      "chapter": 1,
+      "episode": 5,
       "title": "첫 번째 엽서",
+      "frequency": 89.7,
+      "signal": "unstable",
       "lines": [
         { "bg": "hallway", "t": "다음 날 아침. 유리에게 끌려 다시 4층으로 올라갔다. 입부 신청서를 내기 위해서였다." },
         { "s": "yuri", "e": "smile", "t": "어제 그거, 밤새 생각했어. 우리 방송, 누군가한테 진짜 닿았나 봐." },

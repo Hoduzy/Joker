@@ -5,7 +5,10 @@
   "summary": "첫 큰 목표인 학교 방송제. 청취자 1만 명을 넘겨 폐부를 면하고, 서윤이 처음으로 모습을 드러낸다.",
   "episodes": [
     {
+      "chapter": 4,
+      "episode": 1,
       "title": "무대 대신 마이크",
+      "frequency": 95.1,
       "lines": [
         { "bg": "hallway", "t": "6월. 학교 축제 겸 방송제를 2주 앞둔 날, 게시판에 축제 시간표가 붙었다." },
         { "s": "yuri", "e": "surprised", "t": "어? 어어? 방송부 시간이 없어!", "action": "jump", "emote": "exclaim" },
@@ -49,7 +52,10 @@
       ]
     },
     {
+      "chapter": 4,
+      "episode": 2,
       "title": "하늘의 결심",
+      "frequency": 95.1,
       "lines": [
         { "bg": "broadcast", "t": "방송제 일주일 전. 첫 리허설. 이번엔 커튼 없이, 축제 무대 옆 임시 부스에서 하는 연습이었다." },
         { "s": "dahye", "e": "neutral", "t": "축제 날엔 방송실 부스를 운동장 쪽 창문으로 열어 둬. 사람들이 지나가면서 볼 수 있게." },
@@ -92,7 +98,11 @@
       ]
     },
     {
+      "chapter": 4,
+      "episode": 3,
       "title": "유카타의 소녀",
+      "frequency": 95.1,
+      "signal": "unstable",
       "lines": [
         { "bg": "street", "t": "축제 당일 오후 6시. 운동장엔 노점이 줄지어 섰고, 종이 등이 줄줄이 걸렸다. 학교가 처음 보는 곳 같았다." },
         { "s": "yuri", "e": "smile", "t": "{이름}! 솜사탕! 저기 솜사탕 있어! 방송 전에 하나만!", "action": "jump" },
@@ -136,7 +146,10 @@
       ]
     },
     {
+      "chapter": 4,
+      "episode": 4,
       "title": "커튼 너머의 노래",
+      "frequency": 95.1,
       "lines": [
         { "bg": "broadcast", "t": "저녁 7시 25분. 운동장 쪽으로 창문을 활짝 연 방송 부스. 창밖에 사람들이 모여들기 시작했다." },
         { "s": "mirae", "e": "neutral", "t": "교내 앱, 지역 FM, 운동장 스피커 동시 송출 준비 완료. 송신탑 출력 120%. 오늘만." },
@@ -180,7 +193,11 @@
       ]
     },
     {
+      "chapter": 4,
+      "episode": 5,
       "title": "찍히지 않는 사람",
+      "frequency": 95.1,
+      "signal": "unstable",
       "lines": [
         { "bg": "street", "t": "축제가 끝난 밤 9시. 운동장 한쪽 벤치에 다섯 명이 모였다. 뒤풀이는 떡볶이 다섯 인분." },
         { "s": "haneul", "e": "smile", "t": "폐부 철회! 폐부 철회! 우리 이제 정식 방송부야~!", "action": "jump", "emote": "music" },
