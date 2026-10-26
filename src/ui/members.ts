@@ -41,6 +41,7 @@ export function playEvent(game: Game, memberId: string, level: number): void {
     replay,
     name: game.state.story.name,
     onChoice: (xp) => game.applyChoiceXp(xp),
+    bgm: 'romance',
     onEnd: (done) => done && !replay && game.markEventSeen(memberId, level),
   });
 }

@@ -9,6 +9,9 @@
  *   - e:  neutral / smile / angry / sad / surprised / blush (생략하면 neutral)
  *   - bg: 이 줄부터 바뀌는 배경(장면 전환). classroom / broadcast / hallway / rooftop / street
  *         이미지는 assets/bg/<배경>.png|jpg|webp — 없으면 그라데이션으로 대신 그린다
+ *   - bgm: 이 줄부터 바뀌는 배경음악 (assets/bgm/<곡>.mp3). 같은 곡이 이어지면 끊기지 않는다, "none"이면 조용히
+ *         main title daily comic calm mystery sad battle romance flashback climax ending
+ *         화의 첫 줄에는 꼭 쓴다 (안 쓰면 직전 곡이 이어진다)
  *   - speaker / face / text / name 은 s / e / t / n 과 같은 뜻으로 써도 된다
  *
  *   연출 태그 (전부 선택, 문자열 하나·공백으로 여러 개·배열 모두 가능)
@@ -54,6 +57,8 @@ const chapterFiles = import.meta.glob('./story/chapter*.json', { eager: true, im
 export const BACKGROUNDS = ['classroom', 'broadcast', 'hallway', 'rooftop', 'street'] as const;
 export type Background = (typeof BACKGROUNDS)[number];
 
+export const BGMS = ['main', 'title', 'daily', 'comic', 'calm', 'mystery', 'sad', 'battle', 'romance', 'flashback', 'climax', 'ending', 'none'] as const;
+export type Bgm = (typeof BGMS)[number];
 export const ACTIONS = ['jump', 'shake', 'nod', 'down', 'closeup', 'back', 'slide_in_left', 'slide_in_right', 'fade_in', 'fade_out', 'slide_out'] as const;
 export type Action = (typeof ACTIONS)[number];
 export const EMOTES = ['sweat', 'exclaim', 'question', 'heart', 'angry', 'music', 'dots', 'shy', 'sparkle'] as const;
@@ -75,6 +80,8 @@ export interface ScriptLine {
   e?: StandExpression;
   t?: string;
   bg?: Background;
+  /** 이 줄부터 바뀌는 배경음악 ("none"이면 조용히) */
+  bgm?: Bgm;
   choice?: ScriptChoice[];
   cg?: string;
   caption?: string;
@@ -182,6 +189,7 @@ export function checkLines(lines: unknown, where: string): ScriptLine[] {
     if (!l.action) delete l.action;
     if (!l.emote) delete l.emote;
     if (!l.screen) delete l.screen;
+    if (l.bgm !== undefined && !(BGMS as readonly string[]).includes(l.bgm)) fail(w, `bgm은 ${BGMS.join('/')} 중 하나여야 합니다 ("${l.bgm}")`);
     if (l.who !== undefined && !getMember(l.who)) fail(w, `who "${l.who}"는 부원 id여야 합니다`);
     if ((l.action || l.emote) && !l.who && !(l.s && getMember(l.s))) fail(w, 'action·emote는 부원이 말하는 줄이나 who가 있는 줄에만 씁니다');
     if (l.s !== undefined && l.s !== '' && l.s !== 'me' && !getMember(l.s)) fail(w, `알 수 없는 말하는 사람 "${l.s}"`);

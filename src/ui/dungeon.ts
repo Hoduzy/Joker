@@ -4,6 +4,7 @@ import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
 import { getMember } from '../data/members';
 import { formatNumber, formatRate } from '../utils/format';
+import { bgmWhile } from './audio';
 import { celebrate } from './celebrate';
 import type { Component } from './component';
 import { h, memberSd, onTap } from './dom';
@@ -159,6 +160,8 @@ function startBattle(game: Game, stage: number): void {
   );
   root.style.setProperty('--rival', rival.color);
   document.body.append(root);
+  // 방송부 격파: 대결 화면이 떠 있는 동안 battle, 닫히면 main
+  bgmWhile(root, 'battle');
 
   let taps = 0;
   let over = false;

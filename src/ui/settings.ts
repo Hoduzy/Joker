@@ -4,24 +4,53 @@ import { h, onTap } from './dom';
 import { openModal } from './modal';
 import { reduceMotionSetting, setReduceMotion } from './motion';
 import { ensureName } from './storyView';
-import { setSoundEnabled, sfx, soundEnabled } from './sfx';
+import { audioSettings, setAudioSettings } from './audio';
+import { sfx } from './sfx';
 import { playScript } from './vn';
 
-/** 설정: 효과음, 연출 줄이기, 연출 테스트, 이름, 데이터 초기화 */
+/** 설정: 배경음악·효과음 볼륨, 음소거, 연출 줄이기, 연출 테스트, 이름, 크레딧, 데이터 초기화 */
 export function openSettings(game: Game): void {
-  const sound = h('button', { class: 'toggle', type: 'button', role: 'switch' });
-  const renderSound = () => {
-    const on = soundEnabled();
-    sound.classList.toggle('is-on', on);
-    sound.setAttribute('aria-checked', String(on));
-    sound.textContent = on ? '켜짐' : '꺼짐';
+  // 소리: 배경음악·효과음 볼륨 따로, 음소거
+  const slider = (key: 'bgm' | 'sfx', label: string) => {
+    const input = h('input', { class: 'volume__range', type: 'range', min: 0, max: 100, step: 5, value: Math.round(audioSettings()[key] * 100), 'aria-label': label }) as HTMLInputElement;
+    const num = h('span', { class: 'volume__num' }, `${input.value}`);
+    input.addEventListener('input', () => {
+      num.textContent = input.value;
+      setAudioSettings({ [key]: Number(input.value) / 100 });
+    });
+    // 효과음은 놓을 때 소리로 확인
+    if (key === 'sfx') input.addEventListener('change', () => sfx.chime());
+    return h('span', { class: 'volume' }, input, num);
   };
-  onTap(sound, () => {
-    setSoundEnabled(!soundEnabled());
-    renderSound();
-    sfx.chime();
+  const mute = h('button', { class: 'toggle', type: 'button', role: 'switch' });
+  const renderMute = () => {
+    const on = audioSettings().muted;
+    mute.classList.toggle('is-on', on);
+    mute.setAttribute('aria-checked', String(on));
+    mute.textContent = on ? '음소거' : '꺼짐';
+  };
+  onTap(mute, () => {
+    setAudioSettings({ muted: !audioSettings().muted });
+    renderMute();
   });
-  renderSound();
+  renderMute();
+
+  const credits = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '보기');
+  onTap(credits, () =>
+    openModal({
+      title: '🎞️ 크레딧',
+      body: h(
+        'div',
+        { class: 'credits' },
+        h('strong', { class: 'credits__title' }, '해솔고 심야방송부'),
+        h('dl', {}, h('dt', {}, 'Music'), h('dd', {}, 'Suno로 제작')),
+        h('small', {}, '오늘 밤도 늦게까지 깨어 있는 여러분, 안녕히.'),
+      ),
+      confirmLabel: '닫기',
+      confirmGhost: true,
+      onConfirm: () => openSettings(game),
+    }),
+  );
 
   // 연출 줄이기: 화면·캐릭터 흔들림과 숨쉬기 움직임을 끈다
   const motion = h('button', { class: 'toggle', type: 'button', role: 'switch' });
@@ -60,7 +89,9 @@ export function openSettings(game: Game): void {
   const body = h(
     'div',
     { class: 'settings' },
-    h('div', { class: 'settings__row' }, h('span', {}, '🔊 효과음'), sound),
+    h('div', { class: 'settings__row' }, h('span', {}, '🎵 배경음악'), slider('bgm', '배경음악 볼륨')),
+    h('div', { class: 'settings__row' }, h('span', {}, '🔊 효과음'), slider('sfx', '효과음 볼륨')),
+    h('div', { class: 'settings__row' }, h('span', {}, '🔇 음소거'), mute),
     h('div', { class: 'settings__row' }, h('span', {}, '🎬 연출 줄이기'), motion),
     h('div', { class: 'settings__row' }, h('span', {}, '🎞️ 연출 테스트'), demo),
     h('div', { class: 'settings__row' }, h('span', {}, '✏️ 주인공 이름'), nameBtn),
@@ -70,6 +101,7 @@ export function openSettings(game: Game): void {
       h('span', {}, '🖼️ 캐릭터 이미지'),
       h('span', { class: 'settings__links' }, h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '미리보기'), h('a', { class: 'btn btn--ghost btn--small', href: './stands.html' }, '스탠딩')),
     ),
+    h('div', { class: 'settings__row' }, h('span', {}, '🎞️ 크레딧'), credits),
     h('div', { class: 'settings__row' }, h('span', {}, '🗑️ 저장 데이터'), reset),
   );
   openModal({ title: '⚙️ 설정', body, confirmLabel: '닫기', confirmGhost: true });

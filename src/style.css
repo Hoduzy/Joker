@@ -7762,3 +7762,167 @@ button.chapter-head:disabled {
 .reduce-motion .tcard__lamp {
   animation: none !important;
 }
+
+/* ══════════ 타이틀 화면 ══════════ */
+.title-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  place-items: center;
+  padding: 0 24px max(48px, env(safe-area-inset-bottom));
+  overflow: hidden;
+  cursor: pointer;
+  background: #07060d;
+  color: #fff;
+  transition: opacity 0.6s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.title-screen.is-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.title-screen__bg {
+  position: absolute;
+  inset: 0;
+  background: #1a1430 center / cover no-repeat;
+  filter: brightness(0.45) saturate(0.9);
+  transform: scale(1.08);
+  transition:
+    filter 1.6s ease,
+    transform 8s ease-out;
+}
+
+.title-screen.is-awake .title-screen__bg {
+  filter: brightness(0.7) saturate(1);
+  transform: scale(1);
+}
+
+.title-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 6, 13, 0.55) 0%, transparent 35%, transparent 60%, rgba(7, 6, 13, 0.85) 100%);
+  pointer-events: none;
+}
+
+.title-screen__logo,
+.title-screen__foot {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.title-screen__logo {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.title-screen__over {
+  font-size: clamp(10px, 2.6vw, 13px);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: #ffcf6b;
+  text-shadow: 0 0 12px rgba(255, 190, 80, 0.6);
+}
+
+.title-screen__name {
+  font-size: clamp(54px, 15vw, 120px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 4px 30px rgba(120, 90, 255, 0.55),
+    0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.title-screen__tag {
+  margin: 4px 0 0;
+  font-size: clamp(14px, 3.6vw, 18px);
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.08em;
+}
+
+.title-screen__foot {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(10, 8, 22, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  animation: title-blink 1.6s ease-in-out infinite;
+}
+
+.title-screen.is-awake .title-screen__foot {
+  animation: none;
+  border-color: rgba(255, 90, 100, 0.6);
+}
+
+@keyframes title-blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 크레딧 · 볼륨 슬라이더 */
+.credits {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.credits__title {
+  font-size: 20px;
+}
+
+.credits dl {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 14px;
+  margin: 0;
+}
+
+.credits dt {
+  font-weight: 800;
+  color: #ffcf6b;
+}
+
+.credits dd {
+  margin: 0;
+}
+
+.credits small {
+  opacity: 0.7;
+}
+
+.volume {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.volume__range {
+  width: clamp(110px, 32vw, 200px);
+  accent-color: #ffcf6b;
+}
+
+.volume__num {
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}

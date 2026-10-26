@@ -1,6 +1,7 @@
 import { getMember } from '../data/members';
-import type { Action, Emote, Screen, ScriptLine } from '../data/narrative';
+import type { Action, Bgm, Emote, Screen, ScriptLine } from '../data/narrative';
 import { STAND_REF_HEIGHT, standUrl, type StandExpression } from '../data/portraits';
+import { playBgm } from './audio';
 import { h, onTap } from './dom';
 import { emoteSvg } from './emotes';
 import { reducedMotion } from './motion';
@@ -23,6 +24,7 @@ for (const [file, url] of Object.entries(bgFiles).sort(([a], [b]) => (a.endsWith
   const m = /\/assets\/bg\/([^/]+)\.\w+$/.exec(file);
   if (m) BG.set(m[1], url);
 }
+export const bgUrl = (id: string) => BG.get(id);
 
 const TYPE_MS = 32;
 /** 오토 모드: 글자가 다 나온 뒤 이만큼 + 글자당 시간 기다렸다 넘긴다 */
@@ -69,7 +71,11 @@ export interface ScriptOptions {
   name?: string;
   /** 시작할 때 타이틀 카드 (에피소드·엔딩) */
   card?: TitleCard;
+  /** 첫 줄에 bgm이 없을 때 틀 곡 (개인 이벤트는 romance) */
+  bgm?: Bgm;
 }
+
+const toTrack = (b: Bgm) => (b === 'none' ? null : b);
 
 type Side = 'left' | 'right';
 
@@ -415,6 +421,7 @@ export function playScript(opts: ScriptOptions): void {
   }
 
   function renderLine(line: ScriptLine, instant: boolean) {
+    if (line.bgm) playBgm(toTrack(line.bgm));
     if (line.bg && line.bg !== bg) {
       if (instant) actors.splice(0).forEach((a) => a.el.remove());
       else clearCast();
@@ -541,6 +548,8 @@ export function playScript(opts: ScriptOptions): void {
     window.clearTimeout(autoTimer);
     window.clearTimeout(pending);
     timers.forEach((t) => window.clearTimeout(t));
+    // 메인 화면으로 돌아가면 main
+    playBgm('main');
     root.classList.add('is-closing');
     setTimeout(() => root.remove(), 250);
     opts.onEnd?.(completed);
@@ -594,6 +603,7 @@ export function playScript(opts: ScriptOptions): void {
     const stop = queue.findIndex((l, i) => i > index && (l.choice || l.cg));
     const target = (stop === -1 ? queue.length : stop) - 1;
     let lastBg = '';
+    let lastBgm: Bgm | undefined;
     window.clearTimeout(pending);
     pending = 0;
     fxUntil = 0;
@@ -601,6 +611,7 @@ export function playScript(opts: ScriptOptions): void {
       index += 1;
       const l = queue[index];
       if (l.bg) lastBg = l.bg;
+      if (l.bgm) lastBgm = l.bgm;
       // 건너뛴 줄의 유지 효과·퇴장은 결과만 반영
       for (const fx of l.screen ?? []) {
         if (fx === 'clear') Object.values(PERSIST).forEach((c) => setPersist(c!, false));
@@ -612,6 +623,7 @@ export function playScript(opts: ScriptOptions): void {
       }
       if (l.t) log.push({ name: l.s === 'me' ? me : l.s ? (getMember(l.s)?.name ?? '') : (l.n ?? ''), color: l.s ? getMember(l.s)?.color : undefined, text: fill(l.t), kind: l.s === 'me' ? 'me' : l.s || l.n ? 'line' : 'narration' });
     }
+    if (lastBgm) playBgm(toTrack(lastBgm));
     if (lastBg && lastBg !== bg) {
       clearCast();
       setBg(lastBg);
@@ -620,9 +632,13 @@ export function playScript(opts: ScriptOptions): void {
   });
 
   setBg(queue.find((l) => l.bg)?.bg ?? 'classroom', true);
-  // 타이틀 카드가 걷히기 시작하면 첫 대사
-  if (opts.card) playTitleCard(root, opts.card, advance);
-  else advance();
+  // 첫 줄에 곡이 없으면 기본 곡. 타이틀 카드 동안은 음악을 잦아들게 해 두고, 카드가 걷히며 첫 줄의 곡으로
+  const first = queue.find((l) => !l.choice);
+  if (opts.bgm && !first?.bgm) queue[0] = { ...queue[0], bgm: opts.bgm };
+  if (opts.card) {
+    playBgm(null);
+    playTitleCard(root, opts.card, advance);
+  } else advance();
 }
 
 function readAuto(): boolean {

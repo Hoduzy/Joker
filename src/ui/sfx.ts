@@ -1,58 +1,13 @@
 /**
  * 효과음. 파일 없이 Web Audio로 그 자리에서 합성한다.
  * 브라우저는 첫 터치 전에는 소리를 못 내므로, 첫 터치 때 AudioContext를 깨운다.
- * 켜기/끄기는 기기별 설정(localStorage).
+ * 볼륨·음소거는 audio.ts (배경음악과 같은 AudioContext, 효과음 볼륨은 따로).
  */
-const SOUND_KEY = 'simya-bangsongbu/sound';
+import { installAudio, sfxOutput } from './audio';
 
-let ctx: AudioContext | null = null;
-let master: GainNode | null = null;
-let enabled = readEnabled();
-
-function readEnabled(): boolean {
-  try {
-    return localStorage.getItem(SOUND_KEY) !== 'off';
-  } catch {
-    return true;
-  }
-}
-
-export function soundEnabled(): boolean {
-  return enabled;
-}
-
-export function setSoundEnabled(on: boolean): void {
-  enabled = on;
-  try {
-    localStorage.setItem(SOUND_KEY, on ? 'on' : 'off');
-  } catch {
-    // 무시
-  }
-  if (on) unlock();
-}
-
-function unlock(): void {
-  if (!enabled) return;
-  try {
-    if (!ctx) {
-      const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AC) return;
-      ctx = new AC();
-      master = ctx.createGain();
-      master.gain.value = 0.5;
-      master.connect(ctx.destination);
-    }
-    if (ctx.state === 'suspended') void ctx.resume();
-  } catch {
-    ctx = null;
-  }
-}
-
-/** 첫 터치에 소리를 깨우고, 모든 버튼에 가벼운 탭 소리를 붙인다 */
+/** 첫 터치에 소리를 깨우고(배경음악 포함), 모든 버튼에 가벼운 탭 소리를 붙인다 */
 export function installSfx(): void {
-  const wake = () => unlock();
-  window.addEventListener('pointerdown', wake, { capture: true });
-  window.addEventListener('keydown', wake, { capture: true });
+  installAudio();
   document.addEventListener(
     'click',
     (e) => {
@@ -75,7 +30,9 @@ interface Tone {
 }
 
 function tone({ freq, to, dur, type = 'sine', vol = 0.3, at = 0 }: Tone): void {
-  if (!enabled || !ctx || !master) return;
+  const out = sfxOutput();
+  if (!out) return;
+  const { ctx, bus: master } = out;
   const t0 = ctx.currentTime + at;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -91,7 +48,9 @@ function tone({ freq, to, dur, type = 'sine', vol = 0.3, at = 0 }: Tone): void {
 }
 
 function noise(dur: number, vol = 0.2, at = 0, filterFreq = 1800): void {
-  if (!enabled || !ctx || !master) return;
+  const out = sfxOutput();
+  if (!out) return;
+  const { ctx, bus: master } = out;
   const t0 = ctx.currentTime + at;
   const len = Math.max(1, Math.floor(ctx.sampleRate * dur));
   const buf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -118,8 +77,9 @@ const C5 = 523.25, E5 = 659.25, G5 = 783.99, A5 = 880, C6 = 1046.5, E6 = 1318.5,
  * dur초 동안. unstable이면 끝까지 잦아들지 않고 흔들린다. 돌려받은 함수를 부르면 바로 멈춘다.
  */
 function tuningNoise(dur: number, unstable: boolean): () => void {
-  if (!enabled || !ctx || !master) return () => {};
-  const c = ctx;
+  const out = sfxOutput();
+  if (!out) return () => {};
+  const { ctx: c, bus: master } = out;
   const t0 = c.currentTime;
   const len = Math.floor(c.sampleRate * (dur + 0.2));
   const buf = c.createBuffer(1, len, c.sampleRate);

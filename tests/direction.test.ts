@@ -63,3 +63,27 @@ describe('타이틀 카드 데이터', () => {
     expect(ep('1-1').unstable).toBe(false);
   });
 });
+
+describe('배경음악', () => {
+  const tracks = (lines: readonly ScriptLine[]) => {
+    let cur: string | undefined;
+    return flat(lines).map((l) => (cur = l.bgm ?? cur));
+  };
+
+  it('every episode and ending names its music on the first line', () => {
+    for (const { name, lines } of scripts) expect(lines[0].bgm, name).toBeTruthy();
+  });
+
+  it('signal scenes are mystery, the 1996 night is flashback, the last broadcast is climax', () => {
+    for (const { name, lines } of scripts) {
+      const now = tracks(lines);
+      flat(lines).forEach((l, i) => {
+        if (l.n === '???' || l.n === '신호') expect(now[i], `${name}: ${l.t}`).toMatch(/mystery|climax/);
+      });
+    }
+    const ep = (k: string) => CHAPTERS.flatMap((c) => c.episodes).find((e) => e.key === k)!;
+    expect(ep('9-2').lines[0].bgm).toBe('flashback');
+    expect(tracks(ep('10-3').lines).every((t) => t === 'climax')).toBe(true);
+    for (const e of ENDINGS) expect(tracks(e.lines).at(-1), e.id).toBe('ending');
+  });
+});
