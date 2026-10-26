@@ -11,7 +11,7 @@ import { getCorner } from '../data/flavor';
 import { openCardPicker } from './assign';
 import { lbPips, rarityBadge } from './cardView';
 import type { Component } from './component';
-import { h, memberSd, onTap } from './dom';
+import { h, memberSd, onTap, patchChildren } from './dom';
 
 export interface Studio extends Component {
   /** 배치된 부원 머리 위에 말풍선을 띄운다. 배치되어 있지 않으면 false */
@@ -135,7 +135,7 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): St
     el,
     say,
     render() {
-      grid.replaceChildren(...SLOTS.map(renderSlot));
+      patchChildren(grid, SLOTS.map(renderSlot));
       // 배치가 바뀌어 자리가 없어진 부원의 말풍선 정리
       for (const b of [...bubbles.children] as HTMLElement[]) {
         const memberId = b.dataset.member;

@@ -14,7 +14,7 @@ import { GRADES, PARTS, SUB_OPTIONS, getGrade, gradeRank } from '../data/equipme
 import { STAT_KEYS, STAT_LABELS } from '../data/stats';
 import { formatNumber } from '../utils/format';
 import type { Component } from './component';
-import { h, onTap } from './dom';
+import { h, onTap, patchChildren } from './dom';
 import { openCompare } from './equipCompare';
 import { equipCard, equipTile, fmtPct, gradeColor } from './equipView';
 import { openModal } from './modal';
@@ -246,7 +246,7 @@ export function createDelivery(game: Game): Component {
       for (const p of PARTS) {
         const btn = slotEls.get(p.id)!;
         const item = s.equipment[p.id];
-        btn.replaceChildren(equipTile(item, p.id, 'sm'), h('span', { class: 'gear__name' }, p.name));
+        patchChildren(btn, [equipTile(item, p.id, 'sm'), h('span', { class: 'gear__name' }, p.name)]);
         btn.classList.toggle('is-empty', !item);
       }
       const cost = game.boxLevelCost;
@@ -259,7 +259,7 @@ export function createDelivery(game: Game): Component {
         partsFill.style.width = `${Math.min(100, (s.box.parts / cost) * 100)}%`;
         levelUp.hidden = false;
       }
-      bonusLine.replaceChildren(...bonusChips(game));
+      patchChildren(bonusLine, bonusChips(game));
       renderAutoButton();
     },
     tick() {

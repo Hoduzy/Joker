@@ -22,6 +22,21 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+const lastRender = new WeakMap<Element, string>();
+
+/**
+ * parent의 자식을 children으로 바꾸되, 지난번과 똑같은 내용이면 손대지 않는다.
+ * 게임 상태가 바뀔 때마다(자동 개봉 중엔 1초에 몇 번씩) 목록을 통째로 다시 만들면
+ * 이미지가 새로 만들어지는 순간 높이가 잠깐 줄어, 스크롤 앵커링이 없는 사파리에선 스크롤이 위로 끌려간다.
+ */
+export function patchChildren(parent: Element, children: (Node | null | undefined)[]): void {
+  const nodes = children.filter((c): c is Node => !!c);
+  const sig = nodes.map((n) => (n instanceof Element ? n.outerHTML : (n.textContent ?? ''))).join('\u0000');
+  if (lastRender.get(parent) === sig && parent.childNodes.length === nodes.length) return;
+  lastRender.set(parent, sig);
+  parent.replaceChildren(...nodes);
+}
+
 /** 버튼 탭 처리. 더블탭 확대 방지는 CSS의 touch-action: manipulation이 담당한다. */
 export function onTap(el: HTMLElement, handler: () => void): void {
   el.addEventListener('click', (e) => {

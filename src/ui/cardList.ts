@@ -8,7 +8,7 @@ import { openSlotPicker } from './assign';
 import { openEnhance } from './enhance';
 import { cardFrame, lbPips, rarityBadge, slotTag } from './cardView';
 import type { Component } from './component';
-import { h, onTap } from './dom';
+import { h, onTap, patchChildren } from './dom';
 
 /** 방송실 화면 오른쪽: 보유 카드 목록. 카드를 탭하면 배치할 슬롯을 고른다. */
 export function createCardList(game: Game): Component {
@@ -70,7 +70,7 @@ export function createCardList(game: Game): Component {
         .filter((c): c is CardDef => !!c)
         .sort(compareCards);
       count.textContent = `${owned.length} / ${CARDS.length}장`;
-      list.replaceChildren(...owned.map(renderCard));
+      patchChildren(list, owned.map(renderCard));
     },
   };
 }
