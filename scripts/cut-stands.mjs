@@ -4,11 +4,11 @@
  * assets/characters/<부원>/stand_<표정>.png 로 저장한다.
  *
  * - 흰 배경·체크무늬(반투명 잔여물)는 투명하게 (lib/keyout.mjs)
- * - 구도 맞추기: 시트마다 전신/허벅지/가슴 위로 구도가 달라서, 부원마다 첫 칸 기준
+ * - 구도 맞추기: 시트마다 전신/허벅지로 구도가 달라서, 부원마다 첫 칸 기준
  *   '머리 끝(head[0])'과 '턱(head[1])' 위치를 적어 두고
  *     · 머리 높이(턱 - 머리 끝)가 HEAD_PX가 되게 확대·축소하고
  *     · 머리 끝부터 머리 높이 × BODY_HEADS(≈ 허리 아래)까지만 남긴다
- *   그러면 다섯 명 얼굴 크기가 같아지고, 그림이 짧은 시트(다혜: 가슴 위)는 그만큼 짧은 이미지가 된다.
+ *   그러면 다섯 명 얼굴 크기가 같아지고, 그림이 허리보다 짧은 시트는 그만큼 짧은 이미지가 된다.
  *   (화면에서는 아래에 붙여 띄우므로 짧은 그림은 자연스럽게 화면 아래에서 올라온다)
  * - 칸 순서는 시트마다 다르다(ORDER). 없는 표정은 alias로 다른 칸을 복사하거나, 게임에서 neutral로 대신 나온다
  *
@@ -33,7 +33,7 @@ const PAD = 4;
 const CHARS = {
   // 미래 5번째 칸은 눈 감고 웃는 얼굴이라 smile2로 두고, 화난 얼굴은 4번째(sad)와 비슷한 칸으로 대신한다
   mirae: { order: ['neutral', 'smile', 'surprised', 'sad', 'smile2', 'blush'], head: [6, 104], alias: { angry: 'sad' } },
-  dahye: { order: ['neutral', 'angry', 'surprised', 'sad', 'smile', 'blush'], head: [6, 142] },
+  dahye: { order: ['neutral', 'angry', 'surprised', 'sad', 'smile', 'blush'], head: [4, 216] },
   yuri: { order: ['neutral', 'smile', 'surprised', 'sad', 'smile2', 'blush'], head: [25, 200], alias: { angry: 'neutral' } },
   seoyun: { order: ['neutral', 'angry', 'surprised', 'sad', 'smile', 'blush'], head: [12, 205] },
   haneul: { order: ['neutral', 'smile', 'surprised', 'angry', 'smile2', 'blush'], head: [160, 322], alias: { sad: 'angry' } },
