@@ -175,7 +175,7 @@ export function createDelivery(game: Game): Component {
     }
     autoRunning = true;
     el.classList.add('is-auto');
-    const tally = { count: 0, stones: 0, parts: 0 };
+    const tally = { count: 0, stones: 0, parts: 0, picked: 0 };
     renderAuto(tally);
     while (autoRunning) {
       const item = game.openBox();
@@ -187,9 +187,19 @@ export function createDelivery(game: Game): Component {
       await animateOpen(item, true);
       busy = false;
       if (shouldAutoStop(item, game.state.equipment[itemPart(item)], game.state.box.auto)) {
-        stopAuto();
-        openCompare(game, item, resetBox);
-        break;
+        // 조건에 맞는 장비: 잠깐 멈추고 비교 창에서 고르게 한 뒤(교체/분해), 티켓이 남았으면 이어서 연다
+        autoStatus.textContent = '좋은 장비가 나왔어요! 고르면 이어서 열어요';
+        await new Promise<void>((resolve) =>
+          openCompare(game, item, () => {
+            resetBox();
+            resolve();
+          }),
+        );
+        tally.picked++;
+        renderAuto(tally);
+        if (!autoRunning) break;
+        await sleep(BALANCE.box.autoIntervalMs);
+        continue;
       }
       const r = game.salvagePending();
       tally.count++;
@@ -200,7 +210,8 @@ export function createDelivery(game: Game): Component {
       await sleep(BALANCE.box.autoIntervalMs);
     }
     stopAuto();
-    if (tally.count > 0) toast(`자동 분해 ${tally.count}개 · 전파석 +${tally.stones} · 부품 +${tally.parts}`, gemIcon());
+    if (tally.count > 0 || tally.picked > 0)
+      toast(`자동 개봉 끝 · 자동 분해 ${tally.count}개 · 전파석 +${tally.stones} · 부품 +${tally.parts}${tally.picked ? ` · 직접 고른 장비 ${tally.picked}개` : ''}`, gemIcon());
   }
 
   function stopAuto() {
@@ -209,9 +220,9 @@ export function createDelivery(game: Game): Component {
     renderAutoButton();
   }
 
-  function renderAuto(t: { count: number; stones: number; parts: number }) {
+  function renderAuto(t: { count: number; stones: number; parts: number; picked: number }) {
     renderAutoButton();
-    autoStatus.textContent = `자동 분해 ${t.count}개 · 전파석 +${t.stones} · 부품 +${t.parts}`;
+    autoStatus.textContent = `자동 분해 ${t.count}개 · 전파석 +${t.stones} · 부품 +${t.parts}${t.picked ? ` · 고른 장비 ${t.picked}개` : ''}`;
   }
 
   function renderAutoButton() {
@@ -283,7 +294,7 @@ export function createDelivery(game: Game): Component {
 function autoSummary(game: Game): string {
   const a = game.state.box.auto;
   const parts = [a.minGrade ? `${getGrade(a.minGrade)?.name} 이상` : null, a.stopOnUpgrade ? '전투력 상승' : null].filter(Boolean);
-  return parts.length ? `멈춤 조건: ${parts.join(' 또는 ')}` : '멈춤 조건 없음 (티켓을 다 쓸 때까지)';
+  return parts.length ? `티켓을 다 쓸 때까지 · ${parts.join(' 또는 ')}이면 비교 창` : '티켓을 다 쓸 때까지 · 전부 자동 분해';
 }
 
 /** 장비 효과 요약 칩 */
@@ -367,9 +378,10 @@ function openAutoSettings(game: Game, onStart: () => void) {
   const body = h(
     'div',
     { class: 'auto' },
-    h('h3', {}, '이 등급 이상이면 멈추기'),
+    h('p', { class: 'auto__note' }, '티켓을 다 쓸 때까지 계속 열어요. 아래 조건에 맞는 장비가 나오면 비교 창을 띄우고, 교체·분해를 고르면 이어서 열어요.'),
+    h('h3', {}, '이 등급 이상이면 비교 창 띄우기'),
     gradeChips,
-    h('div', { class: 'auto__row' }, h('div', {}, h('h3', {}, '전투력이 오르면 멈추기'), h('p', {}, '지금 낀 같은 부위 장비보다 전투력이 높으면 멈춰요.')), toggle),
+    h('div', { class: 'auto__row' }, h('div', {}, h('h3', {}, '전투력이 오르면 비교 창 띄우기'), h('p', {}, '지금 낀 같은 부위 장비보다 전투력이 높으면 보여 줘요.')), toggle),
     h('p', { class: 'auto__note' }, `조건에 맞지 않는 장비는 자동으로 분해돼요. 티켓 ${game.state.box.tickets}장 보유 · 언제든 중지할 수 있어요.`),
   );
   openModal({
