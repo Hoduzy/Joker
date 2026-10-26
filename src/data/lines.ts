@@ -75,7 +75,7 @@ export const LINES: Record<string, LineTable> = {
   dahye: {
     assigned: [
       { expr: 'neutral', text: '방송부장 다혜. 오늘도 사고 없이 간다.' },
-      { expr: 'smile', text: '…좋아. 이 라인업이면 해볼 만하지.' },
+      { expr: 'neutral', text: '…좋아. 이 라인업이면 해볼 만하지.' },
     ],
     unassigned: [{ expr: 'sad', text: '부장이 빠져도 방송은 계속돼야 해. …알아.' }],
     poke: [
@@ -83,7 +83,7 @@ export const LINES: Record<string, LineTable> = {
       { expr: 'blush', text: '…뭐. 할 말 있으면 빨리 해.' },
       { expr: 'surprised', text: '방금 그거, 방송 나간 거 아니지?' },
     ],
-    towerUp: [{ expr: 'smile', text: '송신탑 증설 승인. 부원들, 수고했어.' }],
+    towerUp: [{ expr: 'neutral', text: '송신탑 증설 승인. 부원들, 수고했어.' }],
     welcomeBack: [{ expr: 'neutral', text: '늦었네. 방송실은 내가 지키고 있었어.' }],
     newCard: [{ expr: 'neutral', text: '새 카드라… 부장답게 잘 나왔군.' }],
   },
