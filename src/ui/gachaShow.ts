@@ -4,10 +4,10 @@ import { getMember } from '../data/members';
 import { cardFrame } from './cardView';
 import { h, onTap } from './dom';
 import { lightPillar, sparkle } from './fx';
+import { reducedMotion } from './motion';
 import { sfx } from './sfx';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export interface ShowOptions {
   canPullAgain: () => boolean;

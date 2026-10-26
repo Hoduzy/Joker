@@ -173,4 +173,48 @@ export const sfx = {
   coin() {
     arp([E6, G6 * 1.0], 0.05, { dur: 0.12, type: 'square', vol: 0.08 });
   },
+
+  // ── 스토리 연출
+  /** 통통 (jump): 위로 미끄러지는 짧은 소리 두 번 */
+  hop() {
+    tone({ freq: 380, to: 760, dur: 0.11, type: 'sine', vol: 0.2 });
+    tone({ freq: 440, to: 880, dur: 0.1, type: 'sine', vol: 0.14, at: 0.2 });
+  },
+  /** 부르르 (shake) */
+  wobble() {
+    [0, 0.05, 0.1, 0.15].forEach((at, i) => tone({ freq: i % 2 ? 260 : 210, dur: 0.05, type: 'triangle', vol: 0.12, at }));
+  },
+  /** 화면 흔들림: 낮게 쿵 */
+  thud(big = false) {
+    tone({ freq: big ? 120 : 160, to: big ? 38 : 60, dur: big ? 0.5 : 0.25, type: 'sine', vol: big ? 0.45 : 0.3 });
+    noise(big ? 0.35 : 0.15, big ? 0.35 : 0.2, 0, 260);
+  },
+  /** 하얀 섬광 */
+  flash() {
+    noise(0.35, 0.12, 0, 5200);
+    tone({ freq: C6, to: C7, dur: 0.35, type: 'sine', vol: 0.08 });
+  },
+  /** 감정 아이콘이 톡 하고 뜰 때. 아이콘마다 조금씩 다르게 */
+  emote(kind: string) {
+    switch (kind) {
+      case 'exclaim':
+        return arp([G6, C7], 0.05, { dur: 0.09, type: 'square', vol: 0.08 });
+      case 'question':
+        return tone({ freq: 600, to: 1100, dur: 0.2, type: 'sine', vol: 0.16 });
+      case 'heart':
+        return arp([E6, A5 * 2], 0.1, { dur: 0.18, type: 'sine', vol: 0.15 });
+      case 'angry':
+        return tone({ freq: 180, to: 140, dur: 0.18, type: 'sawtooth', vol: 0.1 });
+      case 'music':
+        return arp([C6, E6, G6], 0.08, { dur: 0.12, type: 'triangle', vol: 0.13 });
+      case 'dots':
+        return arp([700, 700, 700], 0.12, { dur: 0.04, type: 'sine', vol: 0.1 });
+      case 'sweat':
+        return tone({ freq: 1200, to: 500, dur: 0.16, type: 'sine', vol: 0.13 });
+      case 'sparkle':
+        return arp([C7, G6, E6 * 2], 0.06, { dur: 0.14, type: 'sine', vol: 0.09 });
+      default:
+        return tone({ freq: 900, to: 1400, dur: 0.08, type: 'sine', vol: 0.14 });
+    }
+  },
 };

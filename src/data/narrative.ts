@@ -9,6 +9,21 @@
  *   - e:  neutral / smile / angry / sad / surprised / blush (생략하면 neutral)
  *   - bg: 이 줄부터 바뀌는 배경(장면 전환). classroom / broadcast / hallway / rooftop / street
  *         이미지는 assets/bg/<배경>.png|jpg|webp — 없으면 그라데이션으로 대신 그린다
+ *   - speaker / face / text / name 은 s / e / t / n 과 같은 뜻으로 써도 된다
+ *
+ *   연출 태그 (전부 선택, 문자열 하나·공백으로 여러 개·배열 모두 가능)
+ *   - action: 말하는 부원(또는 who)의 동작
+ *       jump(통통) shake(떨기) nod(끄덕) down(가라앉아 유지) closeup(1.3배 앞으로, 유지) back(원래대로)
+ *       slide_in_left / slide_in_right / fade_in (등장 방식)
+ *       fade_out / slide_out (이 대사를 넘기면 퇴장)
+ *   - emote: 머리 위 감정 아이콘 — sweat exclaim question heart angry music dots shy sparkle
+ *   - screen: 화면 효과
+ *       shake_small / shake_big / flash_white (한 번)
+ *       vignette / blur_bg / sepia (켜 두면 clear 할 때까지 유지)
+ *       fade_black (까맣게 암전한 뒤 이 줄을 보여 준다) · clear (유지 효과 끄기)
+ *   - who: 동작·아이콘을 받을 부원 (나레이션 줄에서 부원을 움직일 때)
+ *   예) { "speaker": "dahye", "face": "angry", "text": "…", "action": "shake", "emote": "angry", "screen": "shake_small" }
+ *
  *   선택지: { "choice": [ { "t": 보기, "xp": { 부원: 호감도 }, "then": [ 이어지는 대사들 ] } ] }
  *   CG:     { "cg": CG id, "caption": 설명 } — assets/cg/<id>.png 가 있으면 그 이미지, 없으면 빈 칸
  *           (개인 이벤트는 부원 id, 메인 스토리는 story-로 시작하는 id)
@@ -26,6 +41,7 @@ import bondRaw from './bond.json';
 import eventsRaw from './events.json';
 import { getMember, MEMBERS } from './members';
 import { STAND_EXPRESSIONS, type Expression, type StandExpression } from './portraits';
+import demoRaw from './story/demo.json';
 import endingsRaw from './story/endings.json';
 import textsRaw from './texts.json';
 
@@ -33,6 +49,13 @@ const chapterFiles = import.meta.glob('./story/chapter*.json', { eager: true, im
 
 export const BACKGROUNDS = ['classroom', 'broadcast', 'hallway', 'rooftop', 'street'] as const;
 export type Background = (typeof BACKGROUNDS)[number];
+
+export const ACTIONS = ['jump', 'shake', 'nod', 'down', 'closeup', 'back', 'slide_in_left', 'slide_in_right', 'fade_in', 'fade_out', 'slide_out'] as const;
+export type Action = (typeof ACTIONS)[number];
+export const EMOTES = ['sweat', 'exclaim', 'question', 'heart', 'angry', 'music', 'dots', 'shy', 'sparkle'] as const;
+export type Emote = (typeof EMOTES)[number];
+export const SCREENS = ['shake_small', 'shake_big', 'flash_white', 'vignette', 'blur_bg', 'sepia', 'fade_black', 'clear'] as const;
+export type Screen = (typeof SCREENS)[number];
 
 export interface ScriptChoice {
   t: string;
@@ -51,6 +74,12 @@ export interface ScriptLine {
   choice?: ScriptChoice[];
   cg?: string;
   caption?: string;
+  /** 연출: 읽을 때 문자열·배열 어느 쪽이든 배열로 바꿔 둔다 */
+  action?: Action[];
+  emote?: Emote[];
+  screen?: Screen[];
+  /** 동작·아이콘을 받을 부원 (생략하면 말하는 부원) */
+  who?: string;
 }
 
 export interface Episode {
@@ -111,10 +140,41 @@ function checkXp(xp: unknown, where: string) {
   }
 }
 
-function checkLines(lines: unknown, where: string): ScriptLine[] {
+const ALIASES: [string, keyof ScriptLine][] = [
+  ['speaker', 's'],
+  ['face', 'e'],
+  ['text', 't'],
+  ['name', 'n'],
+];
+
+/** "jump shake" · "jump,shake" · ["jump"] → ["jump", "shake"], 목록에 없는 태그는 오류 */
+function tagList<T extends string>(v: unknown, allowed: readonly T[], what: string, w: string): T[] | undefined {
+  if (v === undefined || v === '') return undefined;
+  const list = Array.isArray(v) ? v : typeof v === 'string' ? v.split(/[\s,]+/).filter(Boolean) : fail(w, `${what}는 문자열이나 배열이어야 합니다`);
+  for (const t of list) if (!(allowed as readonly unknown[]).includes(t)) fail(w, `${what} "${t}"는 없는 태그입니다 (${allowed.join('/')})`);
+  return list as T[];
+}
+
+/** 대사 목록 검사 + 정리 (별칭 바꾸기, 연출 태그를 배열로). 잘못되면 어디가 틀렸는지 알려 주는 오류 */
+export function checkLines(lines: unknown, where: string): ScriptLine[] {
   if (!Array.isArray(lines) || lines.length === 0) fail(where, 'lines가 비어 있습니다');
   lines.forEach((l: ScriptLine, i: number) => {
     const w = `${where} lines[${i}]`;
+    const raw = l as unknown as Record<string, unknown>;
+    for (const [long, short] of ALIASES) {
+      if (raw[long] === undefined) continue;
+      if (raw[short] !== undefined) fail(w, `${long}와 ${short}를 같이 쓸 수 없습니다`);
+      raw[short] = raw[long];
+      delete raw[long];
+    }
+    l.action = tagList(raw.action, ACTIONS, 'action', w);
+    l.emote = tagList(raw.emote, EMOTES, 'emote', w);
+    l.screen = tagList(raw.screen, SCREENS, 'screen', w);
+    if (!l.action) delete l.action;
+    if (!l.emote) delete l.emote;
+    if (!l.screen) delete l.screen;
+    if (l.who !== undefined && !getMember(l.who)) fail(w, `who "${l.who}"는 부원 id여야 합니다`);
+    if ((l.action || l.emote) && !l.who && !(l.s && getMember(l.s))) fail(w, 'action·emote는 부원이 말하는 줄이나 who가 있는 줄에만 씁니다');
     if (l.s !== undefined && l.s !== '' && l.s !== 'me' && !getMember(l.s)) fail(w, `알 수 없는 말하는 사람 "${l.s}"`);
     if (l.n !== undefined && (typeof l.n !== 'string' || l.s)) fail(w, 'n(이름표)은 s 없이 문자열로 씁니다');
     if (l.e !== undefined && !(STAND_EXPRESSIONS as readonly string[]).includes(l.e)) fail(w, `표정은 ${STAND_EXPRESSIONS.join('/')} 중 하나여야 합니다 ("${l.e}")`);
@@ -185,7 +245,8 @@ function load() {
     if (!b) fail('bond.json', `"${m.id}" 항목이 없습니다`);
     bond[m.id] = { favorite: b.favorite, lines: b.lines.map((l) => ({ e: (l.e ?? 'neutral') as Expression, t: l.t })) };
   }
-  return { chapters, endings, events, texts, bond };
+  const demo = { title: demoRaw.title, lines: checkLines(demoRaw.lines, 'story/demo.json') };
+  return { chapters, endings, events, texts, bond, demo };
 }
 
 export const NARRATIVE = load();
@@ -196,3 +257,5 @@ export const ENDINGS: readonly Ending[] = NARRATIVE.endings;
 
 export const getEpisode = (key: string) => EPISODES.find((e) => e.key === key);
 export const getEnding = (id: string) => ENDINGS.find((e) => e.id === id);
+/** 연출 테스트 장면 (story/demo.json) — 설정에서 볼 수 있다 */
+export const DEMO_SCENE = NARRATIVE.demo;

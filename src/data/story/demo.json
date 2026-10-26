@@ -1,0 +1,50 @@
+{
+  "title": "연출 테스트",
+  "lines": [
+    { "bg": "broadcast", "t": "연출 테스트 장면. 모든 연출 태그를 순서대로 보여 줘요. (화면을 눌러 넘기기)" },
+
+    { "t": "── 등장 · 퇴장 ──" },
+    { "speaker": "haneul", "face": "smile", "text": "action: slide_in_left — 왼쪽에서 미끄러져 들어오기!", "action": "slide_in_left" },
+    { "speaker": "mirae", "face": "neutral", "text": "action: slide_in_right. 오른쪽에서.", "action": "slide_in_right" },
+    { "speaker": "mirae", "face": "neutral", "text": "action: slide_out. 이 대사를 넘기면 내 쪽으로 나가.", "action": "slide_out" },
+    { "speaker": "haneul", "face": "neutral", "text": "action: fade_out — 이번엔 내가 스르륵 사라질게.", "action": "fade_out" },
+    { "speaker": "yuri", "face": "smile", "text": "action: fade_in. 스르륵 나타나기~", "action": "fade_in" },
+
+    { "t": "── 동작 ──" },
+    { "speaker": "yuri", "face": "smile2", "text": "action: jump! 통통!", "action": "jump" },
+    { "speaker": "yuri", "face": "surprised", "text": "action: shake — 아니 아니 아니!", "action": "shake" },
+    { "speaker": "yuri", "face": "neutral", "text": "action: nod. 응, 응.", "action": "nod" },
+    { "speaker": "yuri", "face": "sad", "text": "action: down… 가라앉아서 그대로 있어.", "action": "down" },
+    { "speaker": "yuri", "face": "neutral", "text": "action: back. 원래대로!", "action": "back" },
+    { "speaker": "yuri", "face": "blush", "text": "action: closeup — 중요한 말을 할 때는, 이렇게 가까이.", "action": "closeup" },
+    { "speaker": "yuri", "face": "smile", "text": "action: back. 다시 제자리.", "action": "back" },
+
+    { "t": "── 감정 아이콘 (emote) ──" },
+    { "speaker": "dahye", "face": "neutral", "text": "emote: sweat.", "emote": "sweat" },
+    { "speaker": "dahye", "face": "surprised", "text": "emote: exclaim!", "emote": "exclaim" },
+    { "speaker": "dahye", "face": "neutral", "text": "emote: question?", "emote": "question" },
+    { "speaker": "yuri", "face": "smile", "text": "emote: heart~", "emote": "heart" },
+    { "speaker": "dahye", "face": "angry", "text": "emote: angry.", "emote": "angry" },
+    { "speaker": "yuri", "face": "smile2", "text": "emote: music♪", "emote": "music" },
+    { "speaker": "dahye", "face": "neutral", "text": "emote: dots…", "emote": "dots" },
+    { "speaker": "yuri", "face": "blush", "text": "emote: shy. 볼 빗금.", "emote": "shy" },
+    { "speaker": "dahye", "face": "smile", "text": "emote: sparkle.", "emote": "sparkle" },
+    { "speaker": "yuri", "face": "surprised", "text": "여러 개를 한 번에: action jump + emote exclaim + sweat.", "action": "jump", "emote": ["exclaim", "sweat"] },
+
+    { "t": "── 화면 효과 (screen) ──" },
+    { "t": "screen: shake_small — 화면이 살짝 흔들려요.", "screen": "shake_small" },
+    { "t": "screen: shake_big — 크게 흔들려요!", "screen": "shake_big" },
+    { "t": "screen: flash_white — 하얀 섬광.", "screen": "flash_white" },
+    { "speaker": "dahye", "face": "neutral", "text": "screen: vignette. 가장자리가 어두워진다. clear 할 때까지 유지.", "screen": "vignette" },
+    { "speaker": "dahye", "face": "neutral", "text": "screen: blur_bg. 배경만 흐리게.", "screen": "blur_bg" },
+    { "speaker": "dahye", "face": "neutral", "text": "screen: sepia. 회상 장면 색감.", "screen": "sepia" },
+    { "speaker": "dahye", "face": "smile", "text": "screen: clear. 유지 효과를 전부 끄기.", "screen": "clear" },
+    { "bg": "rooftop", "t": "screen: fade_black — 암전한 뒤 장면 전환.", "screen": "fade_black" },
+
+    { "t": "── 나레이션 줄에서 부원 움직이기 (who) ──" },
+    { "speaker": "haneul", "face": "smile", "text": "옥상이다~!", "action": "jump", "emote": "music" },
+    { "who": "haneul", "t": "who: haneul + action nod — 하늘이 고개를 끄덕였다.", "action": "nod" },
+    { "speaker": "seoyun", "face": "neutral", "text": "……서윤은, 이렇게 조용히 나타나요.", "action": "fade_in", "screen": "vignette" },
+    { "speaker": "seoyun", "face": "smile", "text": "끝. 설정에서 ‘연출 줄이기’를 켜면 흔들림이 꺼져요.", "screen": "clear" }
+  ]
+}

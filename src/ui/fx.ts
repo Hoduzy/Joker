@@ -1,6 +1,5 @@
 import { h } from './dom';
-
-const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+import { reducedMotion as reduced } from './motion';
 
 /** 화면 좌표(또는 요소 위)에 떠오르는 숫자 */
 export function popNumber(target: HTMLElement | { x: number; y: number }, text: string, cls = ''): void {
