@@ -4708,9 +4708,11 @@ a.btn {
   left: 50%;
   height: min(90%, 900px);
   aspect-ratio: 0.62;
+  z-index: 1;
   transform: translateX(calc(-50% + var(--x, 0%)));
   transition:
     transform 0.45s ease,
+    left 0.45s ease,
     opacity 0.4s ease,
     filter 0.3s ease;
 }
@@ -4737,8 +4739,9 @@ a.btn {
   transform: translate(calc(-50% + var(--x, 0%)), 3%);
 }
 
-/* 말하지 않는 캐릭터는 살짝 어둡게, 조금 작게 */
+/* 말하지 않는 캐릭터는 살짝 어둡게, 조금 작게, 말하는 캐릭터 뒤로 */
 .vn__actor.is-dim {
+  z-index: 0;
   filter: brightness(0.62) saturate(0.85);
   transform: translateX(calc(-50% + var(--x, 0%))) scale(0.97);
   transform-origin: 50% 100%;
@@ -5052,14 +5055,29 @@ a.btn {
   .vn__actor {
     height: min(70%, 640px);
   }
-  .vn__actor[data-side='left'] {
+  .vn__actor[data-side='left']:not(.is-solo) {
     --x: -38%;
   }
-  .vn__actor[data-side='right'] {
+  .vn__actor[data-side='right']:not(.is-solo) {
     --x: 38%;
   }
   .vn__log-item {
     grid-template-columns: 64px 1fr;
+  }
+}
+
+/* 세로 화면: 화면이 좁아서 2명이면 화면 30%·70% 자리에 (가운데 기준으로 밀면 바깥으로 잘린다) */
+@media (orientation: portrait) {
+  .vn__actor {
+    height: min(74%, 900px);
+  }
+  .vn__actor[data-side='left']:not(.is-solo) {
+    left: 30%;
+    --x: 0%;
+  }
+  .vn__actor[data-side='right']:not(.is-solo) {
+    left: 70%;
+    --x: 0%;
   }
 }
 
@@ -6443,17 +6461,10 @@ body {
     line-height: 1.6;
   }
 
+  /* 폰 세로: 얼굴이 버튼 줄 아래, 허리가 대사창 뒤로 가게 */
   .vn__actor {
-    height: 74%;
-    bottom: 110px;
-  }
-
-  .vn__actor[data-side='left'] {
-    --x: -26%;
-  }
-
-  .vn__actor[data-side='right'] {
-    --x: 26%;
+    height: 68%;
+    bottom: 96px;
   }
 
   .vn__choices {
