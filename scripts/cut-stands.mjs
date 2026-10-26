@@ -32,11 +32,11 @@ const PAD = 4;
 /** 칸 순서(왼쪽부터), 첫 칸 기준 머리 끝·턱의 y(원본 px), 대체 표정 */
 const CHARS = {
   // 미래 5번째 칸은 눈 감고 웃는 얼굴이라 smile2로 두고, 화난 얼굴은 4번째(sad)와 비슷한 칸으로 대신한다
-  mirae: { order: ['neutral', 'smile', 'surprised', 'sad', 'smile2', 'blush'], head: [8, 136], alias: { angry: 'sad' } },
+  mirae: { order: ['neutral', 'smile', 'surprised', 'sad', 'smile2', 'blush'], head: [4, 142], alias: { angry: 'sad' } },
   dahye: { order: ['neutral', 'angry', 'surprised', 'sad', 'smile', 'blush'], head: [4, 216] },
   yuri: { order: ['neutral', 'smile', 'surprised', 'sad', 'smile2', 'blush'], head: [25, 200], alias: { angry: 'neutral' } },
   seoyun: { order: ['neutral', 'angry', 'surprised', 'sad', 'smile', 'blush'], head: [12, 205] },
-  haneul: { order: ['neutral', 'smile', 'surprised', 'angry', 'smile2', 'blush'], head: [160, 322], alias: { sad: 'angry' } },
+  haneul: { order: ['neutral', 'smile', 'surprised', 'angry', 'smile2', 'blush'], head: [15, 173], alias: { sad: 'angry' } },
 };
 
 async function cutSheet(id, cfg) {
