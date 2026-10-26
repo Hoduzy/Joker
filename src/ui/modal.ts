@@ -48,4 +48,14 @@ export function openModal(config: ModalConfig): void {
     ),
   );
   document.body.append(root);
+  // 내용이 길어 스크롤되면 아래쪽을 흐리게 (끝까지 내리면 지운다)
+  const body = root.querySelector('.modal__body') as HTMLElement;
+  const fade = () => {
+    const scrollable = body.scrollHeight > body.clientHeight + 2;
+    body.classList.toggle('is-scrollable', scrollable);
+    body.classList.toggle('is-end', scrollable && body.scrollTop + body.clientHeight >= body.scrollHeight - 4);
+  };
+  body.addEventListener('scroll', fade, { passive: true });
+  new ResizeObserver(fade).observe(body);
+  requestAnimationFrame(fade);
 }
