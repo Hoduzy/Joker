@@ -39,7 +39,12 @@ export function openSettings(game: Game): void {
     { class: 'settings' },
     h('div', { class: 'settings__row' }, h('span', {}, '🔊 효과음'), sound),
     h('div', { class: 'settings__row' }, h('span', {}, '✏️ 주인공 이름'), nameBtn),
-    h('div', { class: 'settings__row' }, h('span', {}, '🖼️ 캐릭터 이미지'), h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '미리보기')),
+    h(
+      'div',
+      { class: 'settings__row' },
+      h('span', {}, '🖼️ 캐릭터 이미지'),
+      h('span', { class: 'settings__links' }, h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '미리보기'), h('a', { class: 'btn btn--ghost btn--small', href: './stands.html' }, '스탠딩')),
+    ),
     h('div', { class: 'settings__row' }, h('span', {}, '🗑️ 저장 데이터'), reset),
   );
   openModal({ title: '⚙️ 설정', body, confirmLabel: '닫기', confirmGhost: true });

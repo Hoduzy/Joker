@@ -6951,3 +6951,8 @@ button.chapter-head:disabled {
   cursor: default;
   opacity: 1;
 }
+
+.settings__links {
+  display: flex;
+  gap: 6px;
+}

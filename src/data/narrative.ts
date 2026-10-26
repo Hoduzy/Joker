@@ -25,7 +25,7 @@
 import bondRaw from './bond.json';
 import eventsRaw from './events.json';
 import { getMember, MEMBERS } from './members';
-import { EXPRESSIONS, type Expression } from './portraits';
+import { STAND_EXPRESSIONS, type Expression, type StandExpression } from './portraits';
 import endingsRaw from './story/endings.json';
 import textsRaw from './texts.json';
 
@@ -44,7 +44,8 @@ export interface ScriptLine {
   s?: string;
   /** 부원이 아닌 말하는 사람의 이름 */
   n?: string;
-  e?: Expression;
+  /** 표정. 스탠딩에 그 표정이 없으면 neutral로 나온다 */
+  e?: StandExpression;
   t?: string;
   bg?: Background;
   choice?: ScriptChoice[];
@@ -116,7 +117,7 @@ function checkLines(lines: unknown, where: string): ScriptLine[] {
     const w = `${where} lines[${i}]`;
     if (l.s !== undefined && l.s !== '' && l.s !== 'me' && !getMember(l.s)) fail(w, `알 수 없는 말하는 사람 "${l.s}"`);
     if (l.n !== undefined && (typeof l.n !== 'string' || l.s)) fail(w, 'n(이름표)은 s 없이 문자열로 씁니다');
-    if (l.e !== undefined && !(EXPRESSIONS as readonly string[]).includes(l.e)) fail(w, `표정은 ${EXPRESSIONS.join('/')} 중 하나여야 합니다 ("${l.e}")`);
+    if (l.e !== undefined && !(STAND_EXPRESSIONS as readonly string[]).includes(l.e)) fail(w, `표정은 ${STAND_EXPRESSIONS.join('/')} 중 하나여야 합니다 ("${l.e}")`);
     if (l.bg !== undefined && !(BACKGROUNDS as readonly string[]).includes(l.bg)) fail(w, `배경은 ${BACKGROUNDS.join('/')} 중 하나여야 합니다 ("${l.bg}")`);
     if (l.cg !== undefined && !getMember(l.cg) && !/^story-[\w-]+$/.test(l.cg)) fail(w, `cg는 부원 id 또는 story-로 시작하는 id여야 합니다 ("${l.cg}")`);
     if (l.choice) {

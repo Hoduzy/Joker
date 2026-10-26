@@ -5,6 +5,13 @@
 export const EXPRESSIONS = ['neutral', 'smile', 'angry', 'sad', 'surprised', 'blush'] as const;
 export type Expression = (typeof EXPRESSIONS)[number];
 
+/** 스탠딩에만 있는 표정 (눈 감고 크게 웃는 얼굴). 얼굴 타일에서는 smile로 보인다 */
+export const STAND_EXPRESSIONS = [...EXPRESSIONS, 'smile2'] as const;
+export type StandExpression = (typeof STAND_EXPRESSIONS)[number];
+
+/** 스탠딩 이미지의 기준 높이(px): scripts/cut-stands.mjs가 머리 크기를 맞춘 '머리 끝~허리 아래' 높이 */
+export const STAND_REF_HEIGHT = 640;
+
 export const EXPRESSION_LABELS: Record<Expression, string> = {
   neutral: '기본',
   smile: '웃음',
@@ -19,7 +26,7 @@ export interface PortraitSet {
   sd?: string;
   faces: Partial<Record<Expression, string>>;
   /** 스토리용 스탠딩: stand_<표정>.png */
-  stands: Partial<Record<Expression, string>>;
+  stands: Partial<Record<StandExpression, string>>;
 }
 
 const files = import.meta.glob('/assets/characters/*/*.png', {
@@ -37,7 +44,7 @@ for (const [file, url] of Object.entries(files)) {
   const stand = /^stand_(\w+)$/.exec(name)?.[1];
   if (name === 'full' || name === 'sd') set[name] = url;
   else if ((EXPRESSIONS as readonly string[]).includes(name)) set.faces[name as Expression] = url;
-  else if (stand && (EXPRESSIONS as readonly string[]).includes(stand)) set.stands[stand as Expression] = url;
+  else if (stand && (STAND_EXPRESSIONS as readonly string[]).includes(stand)) set.stands[stand as StandExpression] = url;
   portraits.set(id, set);
 }
 
@@ -46,21 +53,23 @@ export function getPortraits(id: string): PortraitSet | undefined {
 }
 
 /** 표정 이미지. 해당 표정이 없으면 기본 표정, 의상 폴더에 없으면 fallback(부원) 폴더에서 찾는다. */
-export function faceUrl(id: string, expr: Expression = 'neutral', fallback?: string): string | undefined {
+export function faceUrl(id: string, expr: StandExpression = 'neutral', fallback?: string): string | undefined {
   const set = portraits.get(id);
-  const url = set?.faces[expr] ?? set?.faces.neutral;
+  const e: Expression = expr === 'smile2' ? 'smile' : expr;
+  const url = set?.faces[e] ?? set?.faces.neutral;
   return url ?? (fallback && fallback !== id ? faceUrl(fallback, expr) : undefined);
 }
 
 /**
- * 스토리 스탠딩 이미지. 그 표정 → 기본 → 웃음 → 아무 스탠딩 → 전신(full.png) 순서로 찾는다.
- * cropped: 스탠딩(허벅지쯤까지 잘린 그림)이면 true, 전신 대체면 false
+ * 스토리 스탠딩 이미지. 그 표정이 없으면 기본(neutral), 스탠딩이 아예 없으면 전신(full.png)으로 대신한다.
+ * cropped: 스탠딩(머리 끝~허리 아래로 맞춘 그림)이면 true, 전신 대체면 false
  */
-export function standUrl(id: string, expr: Expression = 'neutral'): { url?: string; cropped: boolean } {
+export function standUrl(id: string, expr: StandExpression = 'neutral'): { url?: string; cropped: boolean; fallback: boolean } {
   const set = portraits.get(id);
   const stands = set?.stands ?? {};
-  const url = stands[expr] ?? stands.neutral ?? stands.smile ?? Object.values(stands)[0];
-  return url ? { url, cropped: true } : { url: set?.full, cropped: false };
+  const url = stands[expr] ?? stands.neutral;
+  if (url) return { url, cropped: true, fallback: !stands[expr] };
+  return { url: set?.full, cropped: false, fallback: true };
 }
 
 export function sdUrl(id: string, fallback?: string): string | undefined {

@@ -1,6 +1,6 @@
 import { getMember } from '../data/members';
 import type { ScriptLine } from '../data/narrative';
-import { standUrl, type Expression } from '../data/portraits';
+import { STAND_REF_HEIGHT, standUrl, type StandExpression } from '../data/portraits';
 import { h, onTap } from './dom';
 import { sfx } from './sfx';
 
@@ -46,7 +46,7 @@ type Side = 'left' | 'right';
 interface Actor {
   id: string;
   el: HTMLElement;
-  expr: Expression;
+  expr: StandExpression;
   side: Side;
   /** 마지막으로 말한 순서 (자리가 꽉 차면 오래 말 안 한 쪽이 나간다) */
   spoke: number;
@@ -124,9 +124,15 @@ export function playScript(opts: ScriptOptions): void {
   }
 
   // ── 캐릭터
-  function standImg(id: string, expr: Expression): HTMLImageElement {
+  function standImg(id: string, expr: StandExpression): HTMLImageElement {
     const { url, cropped } = standUrl(id, expr);
     const img = h('img', { class: `vn__stand${cropped ? '' : ' is-full'}`, src: url ?? '', alt: '', draggable: 'false' });
+    // 스탠딩은 머리 크기를 맞춰 잘라 두었으므로, 원본 높이에 비례해서 띄운다 (짧은 그림은 그만큼 낮게, 화면 아래에 붙어서)
+    if (cropped) {
+      const fit = () => (img.style.height = `${(img.naturalHeight / STAND_REF_HEIGHT) * 100}%`);
+      if (img.complete && img.naturalHeight) fit();
+      else img.addEventListener('load', fit, { once: true });
+    }
     return img;
   }
 
@@ -148,7 +154,7 @@ export function playScript(opts: ScriptOptions): void {
   }
 
   /** 말하는 부원을 무대에 세우고(없으면 등장) 표정을 맞춘다 */
-  function showActor(id: string, expr: Expression): Actor {
+  function showActor(id: string, expr: StandExpression): Actor {
     let a = actors.find((x) => x.id === id);
     if (!a) {
       if (actors.length >= 2) exitActor([...actors].sort((x, y) => x.spoke - y.spoke)[0]);

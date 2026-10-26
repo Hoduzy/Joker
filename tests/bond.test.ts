@@ -14,7 +14,7 @@ import { SLOTS } from '../src/data/slots';
 import { MEMBERS } from '../src/data/members';
 import { BACKGROUNDS, CHAPTERS, ENDINGS, EPISODES, NARRATIVE, getEpisode } from '../src/data/narrative';
 import { episodeAvailable, nextEpisode, pickEnding, withName } from '../src/core/story';
-import { standUrl } from '../src/data/portraits';
+import { EXPRESSIONS, standUrl } from '../src/data/portraits';
 
 describe('narrative data', () => {
   it('has 10 chapters of 5 episodes, endings, 5 events, 10 texts and 10 bond lines per member', () => {
@@ -101,8 +101,11 @@ describe('story backgrounds', () => {
     for (const m of MEMBERS) for (const ev of NARRATIVE.events[m.id]) expect(BACKGROUNDS).toContain(ev.lines[0].bg);
   });
 
-  it('has a stand image for every member', () => {
-    for (const m of MEMBERS) expect(standUrl(m.id, 'sad')).toMatchObject({ cropped: true });
+  it('has all six stand expressions for every member, and falls back to neutral', () => {
+    for (const m of MEMBERS) for (const e of EXPRESSIONS) expect(standUrl(m.id, e), `${m.id} ${e}`).toMatchObject({ cropped: true, fallback: false });
+    // 다혜는 smile2가 없어서 neutral로
+    expect(standUrl('dahye', 'smile2')).toEqual({ ...standUrl('dahye', 'neutral'), fallback: true });
+    expect(standUrl('yuri', 'smile2').fallback).toBe(false);
   });
 });
 

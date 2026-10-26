@@ -56,7 +56,7 @@ function render() {
       'header',
       { class: 'top' },
       h('div', {}, h('h1', {}, '캐릭터 이미지 미리보기'), h('p', {}, `assets/characters · ${ids.length}명 · 이미지를 탭하면 원본 크기로 열려요`)),
-      h('a', { class: 'back', href: './' }, '← 게임으로'),
+      h('span', {}, h('a', { class: 'back', href: './stands.html' }, '스탠딩'), ' ', h('a', { class: 'back', href: './' }, '← 게임으로')),
     ),
     toolbar,
     ...sections,
