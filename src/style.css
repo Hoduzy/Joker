@@ -4710,11 +4710,16 @@ a.btn {
   aspect-ratio: 0.62;
   z-index: 1;
   transform: translateX(calc(-50% + var(--x, 0%)));
+  transform-origin: 50% 100%;
+  /* 밝기·크기·위치가 같은 시간, 같은 곡선으로 움직여야 자연스럽다 */
+  filter: brightness(1) saturate(1);
   transition:
-    transform 0.45s ease,
-    left 0.45s ease,
-    opacity 0.4s ease,
-    filter 0.3s ease;
+    transform 0.5s var(--vn-ease),
+    left 0.5s var(--vn-ease),
+    opacity 0.45s ease,
+    filter 0.5s var(--vn-ease);
+  will-change: transform, filter, opacity;
+  --vn-ease: cubic-bezier(0.25, 0.8, 0.35, 1);
 }
 
 .vn__actor[data-side='left'] {
@@ -4742,9 +4747,8 @@ a.btn {
 /* 말하지 않는 캐릭터는 살짝 어둡게, 조금 작게, 말하는 캐릭터 뒤로 */
 .vn__actor.is-dim {
   z-index: 0;
-  filter: brightness(0.62) saturate(0.85);
-  transform: translateX(calc(-50% + var(--x, 0%))) scale(0.97);
-  transform-origin: 50% 100%;
+  filter: brightness(0.6) saturate(0.85);
+  transform: translateX(calc(-50% + var(--x, 0%))) scale(0.975);
 }
 
 .vn__stand {
@@ -4756,7 +4760,7 @@ a.btn {
   max-width: none;
   transform: translateX(-50%);
   filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.25));
-  transition: opacity 0.35s ease;
+  transition: opacity 0.3s ease;
 }
 
 /* 스탠딩이 없어 전신(full.png)을 쓸 때: 무릎 아래를 화면 밖으로 */

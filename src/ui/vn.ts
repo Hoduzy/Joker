@@ -136,6 +136,35 @@ export function playScript(opts: ScriptOptions): void {
     return img;
   }
 
+  /** 이미지가 그려질 준비가 되면 (실패해도) then */
+  function whenReady(img: HTMLImageElement, then: () => void) {
+    let done = false;
+    const go = () => {
+      if (done) return;
+      done = true;
+      then();
+    };
+    if (img.complete && img.naturalHeight) img.decode().then(go, go);
+    else {
+      img.addEventListener('load', () => img.decode().then(go, go), { once: true });
+      img.addEventListener('error', go, { once: true });
+    }
+    setTimeout(go, 600);
+  }
+
+  // 이 대본에 나오는 스탠딩을 미리 받아 둔다: 등장·표정 바꿀 때 빈 화면이나 늦게 바뀌는 일이 없게
+  const preloaded: HTMLImageElement[] = [];
+  for (const line of opts.lines) {
+    if (!line.s || line.s === 'me') continue;
+    const { url } = standUrl(line.s, line.e ?? 'neutral');
+    if (url && !preloaded.some((p) => p.src.endsWith(url))) {
+      const img = new Image();
+      img.src = url;
+      img.decode().catch(() => {});
+      preloaded.push(img);
+    }
+  }
+
   function layout() {
     for (const a of actors) {
       a.el.classList.toggle('is-solo', actors.length === 1);
@@ -165,19 +194,29 @@ export function playScript(opts: ScriptOptions): void {
       cast.append(el);
       a = { id, el, expr, side, spoke: 0 };
       actors.push(a);
-      requestAnimationFrame(() => requestAnimationFrame(() => a!.el.classList.remove('is-entering')));
+      // 그 대사의 표정으로 그려질 준비가 된 다음에 올라오며 나타난다
+      whenReady(el.querySelector('img')!, () => requestAnimationFrame(() => el.classList.remove('is-entering')));
     } else if (a.expr !== expr) {
-      // 표정 바꾸기: 새 이미지를 위에 올려 서서히 나타나게
       const prev = a.el.querySelector('img:last-child');
       const nextImg = standImg(id, expr);
-      if (prev && (prev as HTMLImageElement).src === nextImg.src) {
-        a.expr = expr;
-      } else {
-        nextImg.classList.add('is-fading');
-        a.el.append(nextImg);
-        requestAnimationFrame(() => requestAnimationFrame(() => nextImg.classList.remove('is-fading')));
-        setTimeout(() => [...a!.el.querySelectorAll('img')].slice(0, -1).forEach((i) => i.remove()), 400);
-        a.expr = expr;
+      a.expr = expr;
+      if (!prev || (prev as HTMLImageElement).src !== nextImg.src) {
+        if (a.el.classList.contains('is-dim')) {
+          // 어두운 채로 말을 시작하면: 밝아지기 전에 표정부터 바꿔 둔다 (밝아지는 동안 표정이 바뀌지 않게)
+          a.el.replaceChildren(nextImg);
+        } else {
+          // 계속 말하는 중이면 새 표정을 위에 올려 서서히
+          nextImg.classList.add('is-fading');
+          a.el.append(nextImg);
+          const el = a.el;
+          whenReady(nextImg, () =>
+            requestAnimationFrame(() => {
+              nextImg.classList.remove('is-fading');
+              // 새 표정이 다 나타난 뒤 아래 이미지를 치운다
+              setTimeout(() => [...el.querySelectorAll('img')].filter((i) => i !== el.lastElementChild).forEach((i) => i.remove()), 350);
+            }),
+          );
+        }
       }
     }
     layout();
