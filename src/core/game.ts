@@ -270,6 +270,8 @@ export class Game {
   /** 개발자 옵션: 날짜와 상관없이 이벤트 시작 (끄면 원래 날짜대로) */
   setEventForce(on: boolean): void {
     this.state.events.force = on;
+    // 관리자 패널 '강제 종료'를 풀고 연다
+    if (on) this.state.cheat.eventOff = false;
     const ev = activeEvent(this.state, Date.now());
     if (ev) eventProgress(this.state, ev.id).idleAt = Date.now();
     this.commit();
@@ -819,6 +821,42 @@ export class Game {
 
   setAutoSettings(settings: AutoSettings): void {
     this.state.box.auto = { ...settings };
+    this.commit();
+  }
+
+  // ───────────── 관리자 치트 (테스트용) ─────────────
+
+  /**
+   * 치트로 상태를 바꾼다: 세이브에 '치트 사용' 표시를 남기고(되돌리지 않음) 저장·다시 그리기.
+   * fn 안에서 state를 직접 고친다
+   */
+  cheat(fn: (state: GameState) => void, now = Date.now()): void {
+    const c = this.state.cheat;
+    if (!c.used) {
+      c.used = true;
+      c.firstUsedAt = now;
+    }
+    c.count += 1;
+    fn(this.state);
+    this.commit();
+  }
+
+  /**
+   * 시간 건너뛰기: 저장된 시각들을 ms만큼 과거로 돌려, 그만큼 자리를 비웠던 것처럼 정산한다
+   * (오프라인 보상·티켓 충전·이벤트 방치 드롭)
+   */
+  skipTime(ms: number): void {
+    this.cheat((s) => {
+      s.lastTick -= ms;
+      s.box.ticketClock -= ms;
+      for (const p of Object.values(s.events.progress)) p.idleAt -= ms;
+    });
+    this.advance();
+  }
+
+  /** 불러온 세이브로 바꾸고 저장 (관리자 패널 '불러오기') */
+  replaceState(state: GameState): void {
+    this.state = state;
     this.commit();
   }
 

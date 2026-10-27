@@ -68,7 +68,8 @@ export function unlockedLines(memberId: string, level: number) {
 /** 레벨에 도달했지만 아직 안 본 개인 이벤트 레벨들 */
 export function pendingEvents(state: GameState, memberId: string): number[] {
   if (!ownsMember(state, memberId)) return [];
-  const level = memberBondLevel(state, memberId);
+  // 관리자 치트 '모든 스토리 해금'이면 레벨과 상관없이
+  const level = state.cheat?.storyUnlocked ? Infinity : memberBondLevel(state, memberId);
   const seen = state.bond[memberId]?.seenEvents ?? [];
   return (NARRATIVE.events[memberId] ?? []).filter((e) => e.level <= level && !seen.includes(e.level)).map((e) => e.level);
 }

@@ -66,6 +66,7 @@ export function useCardTalk(state: GameState, cardId: string, day: string): bool
 
 /** 전용 스토리 화가 열렸는지: 카드를 보유하고, 호감도가 그 화의 레벨 이상 */
 export function cardEpisodeOpen(state: GameState, cardId: string, ep: CardEpisode): boolean {
+  if (state.cheat?.storyUnlocked) return true;
   return !!state.cards[cardId] && cardBondLevel(state, cardId) >= ep.level;
 }
 

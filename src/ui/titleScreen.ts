@@ -4,6 +4,8 @@ import { cardArtUrl } from '../data/portraits';
 import { playBgm, unlockAudio } from './audio';
 import { h } from './dom';
 import { bgUrl } from './vn';
+import { promptAdminPassword } from './admin';
+import { logoTapCounter } from '../core/admin';
 
 /**
  * 타이틀 화면. 아이패드 사파리는 첫 터치 전엔 소리를 못 내므로 두 단계로:
@@ -34,8 +36,9 @@ export function showTitleScreen(game?: Game): void {
   document.body.append(el);
 
   let awake = false;
-  el.addEventListener('click', (e) => {
-    e.stopPropagation();
+  let out = false;
+  const advance = () => {
+    if (out || !el.isConnected) return;
     if (!awake) {
       awake = true;
       unlockAudio();
@@ -44,8 +47,37 @@ export function showTitleScreen(game?: Game): void {
       prompt.textContent = '▶ 방송 시작';
       return;
     }
+    out = true;
     playBgm('main');
     el.classList.add('is-out');
     setTimeout(() => el.remove(), 700);
+  };
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    advance();
   });
+
+  // 관리자 모드: 로고를 연속으로 탭하면 비밀번호 입력.
+  // 로고 한 번 탭은 평소처럼 진행하되, 잠깐 기다렸다가 (그 사이 또 탭하면 연속 탭으로 보고 진행하지 않는다)
+  if (game) {
+    const logo = el.querySelector('.title-screen__logo') as HTMLElement;
+    const tap = logoTapCounter(() => {
+      clearTimeout(pending);
+      promptAdminPassword(game);
+    });
+    let pending = 0;
+    let streak = 0;
+    let lastTap = 0;
+    logo.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const now = performance.now();
+      streak = now - lastTap > 1200 ? 1 : streak + 1;
+      lastTap = now;
+      tap();
+      clearTimeout(pending);
+      // 첫 탭(소리 깨우기)은 바로, 그 뒤 한 번 탭은 잠깐 기다렸다 진행
+      if (!awake && streak === 1) return advance();
+      if (streak === 1) pending = window.setTimeout(advance, 450);
+    });
+  }
 }

@@ -205,7 +205,7 @@ export function createMembers(game: Game): Component {
 
     // 개인 이벤트
     const events = NARRATIVE.events[m.id].map((ev) => {
-      const open = lv >= ev.level;
+      const open = lv >= ev.level || game.state.cheat.storyUnlocked;
       const seen = b.seenEvents.includes(ev.level);
       const row = h(
         'button',

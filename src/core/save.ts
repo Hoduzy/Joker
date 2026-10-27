@@ -9,6 +9,7 @@ import { SLOT_IDS } from '../data/slots';
 import {
   createBond,
   createBox,
+  createCheat,
   createEventProgress,
   createInitialState,
   type EventProgress,
@@ -95,6 +96,7 @@ export function migrate(data: unknown, now: number): GameState {
   if (version < 8) d = { ...d, story: undefined };
   // v8 → v9: 시즌 이벤트 진행 기록(events)·로비 캐릭터(lobbyCard) 추가 — 기본값은 normalize에서 채운다
   // v9 → v10: 카드 호감도(cardBond) 추가 — normalize에서 채운다
+  // v10 → v11: 관리자 치트 기록(cheat) 추가 — normalize에서 채운다
   return normalize(d, now);
 }
 
@@ -318,6 +320,7 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     events: normalizeEvents(d.events, now),
     lobbyCard: typeof d.lobbyCard === 'string' && ownedCards[d.lobbyCard] ? d.lobbyCard : null,
     cardBond: normalizeCardBond(d.cardBond, ownedCards),
+    cheat: normalizeCheat(d.cheat),
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }
@@ -357,6 +360,18 @@ function normalizeEvents(raw: unknown, now: number): GameState['events'] {
     };
   }
   return { force: r.force === true, progress };
+}
+
+function normalizeCheat(raw: unknown): GameState['cheat'] {
+  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  const c = createCheat();
+  c.used = r.used === true;
+  c.firstUsedAt = c.used ? Math.max(0, Number(r.firstUsedAt) || 0) : 0;
+  c.count = c.used ? Math.max(0, Math.floor(Number(r.count) || 0)) : 0;
+  c.storyUnlocked = r.storyUnlocked === true;
+  c.nextRarity = r.nextRarity === 'R' || r.nextRarity === 'SR' || r.nextRarity === 'SSR' || r.nextRarity === 'U' ? r.nextRarity : null;
+  c.eventOff = r.eventOff === true;
+  return c;
 }
 
 function normalizeCardBond(raw: unknown, owned: Record<string, unknown>): GameState['cardBond'] {

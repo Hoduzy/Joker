@@ -1,6 +1,6 @@
 import { BALANCE } from '../data/balance';
 import { getBanner, STANDARD_BANNER, type BannerDef } from '../data/banners';
-import { cardsOfRarity, getCard, type CardDef, type Rarity } from '../data/cards';
+import { CARDS, cardsOfRarity, getCard, type CardDef, type Rarity } from '../data/cards';
 import type { GameState } from './state';
 
 /** 0 이상 1 미만의 난수를 돌려주는 함수. 테스트에서는 시드 고정 난수를 넣는다. */
@@ -55,7 +55,8 @@ export function pickCard(rarity: Rarity, rng: Rng, banner?: BannerDef, forcePick
   if (pickups.length && (forcePickup || rng() < PICKUP_SHARE)) {
     return { card: pickups[Math.floor(rng() * pickups.length)], pickup: true };
   }
-  const pool = cardsOfRarity(rarity);
+  // U는 상시 카드가 없다 (관리자 치트로 등급을 고정했을 때만 여기로 온다) → 모든 U 카드
+  const pool = rarity === 'U' ? CARDS.filter((c) => c.rarity === 'U') : cardsOfRarity(rarity);
   if (pool.length === 0) throw new Error(`${rarity} 카드가 하나도 없습니다 (cards.json)`);
   return { card: pool[Math.floor(rng() * pool.length)], pickup: false };
 }
@@ -77,7 +78,8 @@ export function pull(state: GameState, count: number, rng: Rng = Math.random, no
   for (let i = 0; i < count; i++) {
     let rarity: Rarity;
     const byPity = isPityPull(pityOf(state, bannerId));
-    if (byPity) rarity = 'SSR';
+    if (state.cheat?.nextRarity) rarity = state.cheat.nextRarity;
+    else if (byPity) rarity = 'SSR';
     else {
       rarity = rollRarity(rng);
       if (count >= 10 && i === count - 1 && !hasSrPlus && rarity === 'R') rarity = 'SR';

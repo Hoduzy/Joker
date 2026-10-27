@@ -12,6 +12,8 @@ import { createEventProgress, type EventProgress, type GameState } from './state
 
 /** 지금 진행 중인 이벤트. 개발자 옵션 '이벤트 강제 시작'이면 날짜와 상관없이 아직 안 끝난(없으면 마지막) 이벤트 */
 export function activeEvent(state: GameState, now: number): EventDef | undefined {
+  // 관리자 치트 '이벤트 강제 종료'
+  if (state.cheat?.eventOff) return undefined;
   const live = EVENTS.find((e) => now >= e.start && now <= e.end);
   if (live) return live;
   if (!state.events.force) return undefined;
@@ -205,8 +207,8 @@ export function eventPull(state: GameState, count: 1 | 10, rng: Rng, now: number
   let srPlus = false;
   for (let i = 0; i < count; i++) {
     const byPity = p.pity + 1 >= ev.gacha.pity;
-    let rarity: Rarity = byPity ? 'U' : rollEventRarity(ev, rng);
-    if (count === 10 && i === count - 1 && !srPlus && rarity === 'R') rarity = 'SR';
+    let rarity: Rarity = state.cheat?.nextRarity ?? (byPity ? 'U' : rollEventRarity(ev, rng));
+    if (count === 10 && i === count - 1 && !srPlus && rarity === 'R' && !state.cheat?.nextRarity) rarity = 'SR';
     if (rarity !== 'R') srPlus = true;
     p.pity = rarity === 'U' ? 0 : p.pity + 1;
     p.pulls += 1;
@@ -253,7 +255,7 @@ export function convertEndedEvents(state: GameState, now: number): Conversion[] 
   const live = activeEvent(state, now);
   for (const [id, p] of Object.entries(state.events.progress)) {
     const ev = getEvent(id);
-    if (!ev || p.converted || now <= ev.end || live?.id === id) continue;
+    if (!ev || p.converted || (now <= ev.end && !state.cheat?.eventOff) || live?.id === id) continue;
     p.converted = true;
     if (p.candy <= 0) continue;
     const stones = p.candy * ev.currency.stonesPerUnit;

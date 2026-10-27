@@ -74,7 +74,7 @@ export function playEpisode(game: Game, key: string): void {
  */
 export function eventEpisodeOpen(game: Game, ev: EventDef, ep: EventEpisode): boolean {
   const seen = game.state.story.seen;
-  if (seen.includes(ep.key)) return true;
+  if (seen.includes(ep.key) || game.state.cheat.storyUnlocked) return true;
   if (game.event()?.id !== ev.id) return false;
   return ep.no === 1 || seen.includes(`ev:${ev.id}:${ep.no - 1}`);
 }

@@ -6,8 +6,9 @@ import type { GameState } from './state';
 /** 엔딩을 본 기록 키 */
 export const endingKey = (id: string) => `ending:${id}`;
 
-export function chapterOpen(state: Pick<GameState, 'totalListeners'>, chapter: Chapter): boolean {
-  return state.totalListeners >= chapter.unlock;
+export function chapterOpen(state: Pick<GameState, 'totalListeners'> & { cheat?: GameState['cheat'] }, chapter: Chapter): boolean {
+  // 관리자 치트 '모든 스토리 해금'
+  return state.totalListeners >= chapter.unlock || !!state.cheat?.storyUnlocked;
 }
 
 /** 다음에 볼 화 (다 봤으면 undefined) */
@@ -17,7 +18,7 @@ export function nextEpisode(state: GameState): Episode | undefined {
 
 /** 지금 볼 수 있는 화인지: 이미 봤거나, 다음 화이고 그 챕터가 열려 있으면 */
 export function episodeAvailable(state: GameState, ep: Episode): boolean {
-  if (state.story.seen.includes(ep.key)) return true;
+  if (state.story.seen.includes(ep.key) || state.cheat?.storyUnlocked) return true;
   const next = nextEpisode(state);
   const chapter = CHAPTERS.find((c) => c.id === ep.chapter);
   return next?.key === ep.key && !!chapter && chapterOpen(state, chapter);

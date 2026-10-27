@@ -3,10 +3,10 @@ import { cornerForDay, dayKey } from '../data/flavor';
 import { PARTS } from '../data/equipment';
 import type { AutoSettings, EquipItem } from './equipment';
 import { MEMBERS } from '../data/members';
-import { starterCardOf } from '../data/cards';
+import { starterCardOf, type Rarity } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -65,6 +65,8 @@ export interface GameState {
   lobbyCard: string | null;
   /** 카드 호감도 (전용 스토리가 있는 카드만): 카드 id → 기록 */
   cardBond: Record<string, CardBondState>;
+  /** 관리자 치트 (테스트용) */
+  cheat: CheatState;
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
 }
@@ -87,6 +89,25 @@ export interface EventProgress {
   ghost: { day: string; candyWins: number; wins: number };
   /** 끝난 뒤 남은 재화를 전파석으로 바꿨는지 */
   converted: boolean;
+}
+
+export interface CheatState {
+  /** 치트를 한 번이라도 쓴 세이브 (랭킹 등에서 구분용, 되돌리지 않는다) */
+  used: boolean;
+  /** 처음 쓴 시각 (epoch ms, 안 썼으면 0) */
+  firstUsedAt: number;
+  /** 치트를 쓴 횟수 */
+  count: number;
+  /** 모든 메인 챕터·개인 이벤트·이벤트/전용 스토리 열기 */
+  storyUnlocked: boolean;
+  /** 다음 뽑기 등급 고정 (끌 때까지 유지) */
+  nextRarity: Rarity | null;
+  /** 이벤트 강제 종료 (기간이어도 닫고, 남은 재화를 환산) */
+  eventOff: boolean;
+}
+
+export function createCheat(): CheatState {
+  return { used: false, firstUsedAt: 0, count: 0, storyUnlocked: false, nextRarity: null, eventOff: false };
 }
 
 export interface CardBondState {
@@ -240,6 +261,7 @@ export function createInitialState(now: number): GameState {
     events: { force: false, progress: {} },
     lobbyCard: null,
     cardBond: {},
+    cheat: createCheat(),
     lastTick: now,
   };
 }
