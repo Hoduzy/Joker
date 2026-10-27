@@ -12,6 +12,7 @@ import { cardFrame, lbPips, rarityBadge, slotName } from './cardView';
 import type { Component } from './component';
 import { h, onTap } from './dom';
 import { openModal } from './modal';
+import { cardBondPanel } from './cardStory';
 
 const RARITY_ORDER = { R: 0, SR: 1, SSR: 2, U: 3 } as const;
 
@@ -113,6 +114,7 @@ export function openCardDetail(game: Game, card: CardDef): void {
         return b;
       })(),
     ),
+    cardBondPanel(game, card, () => document.getElementById('modal')?.remove()),
     h('div', { class: 'detail__row' }, h('span', {}, '담당'), h('span', { class: 'tag tag--slot is-active' }, `${slotName(card.slot)} +${Math.round(BALANCE.slotBonus * 100)}%`)),
     h(
       'div',

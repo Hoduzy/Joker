@@ -6,7 +6,7 @@ import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -63,6 +63,8 @@ export interface GameState {
   events: { force: boolean; progress: Record<string, EventProgress> };
   /** 로비 캐릭터로 고른 카드 (그 부원은 이 카드의 의상으로 나온다) */
   lobbyCard: string | null;
+  /** 카드 호감도 (전용 스토리가 있는 카드만): 카드 id → 기록 */
+  cardBond: Record<string, CardBondState>;
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
 }
@@ -85,6 +87,13 @@ export interface EventProgress {
   ghost: { day: string; candyWins: number; wins: number };
   /** 끝난 뒤 남은 재화를 전파석으로 바꿨는지 */
   converted: boolean;
+}
+
+export interface CardBondState {
+  xp: number;
+  /** 교감하기 횟수를 센 날짜 */
+  day: string;
+  talks: number;
 }
 
 export interface BondState {
@@ -230,6 +239,7 @@ export function createInitialState(now: number): GameState {
     missions: { day: '', ids: [], progress: {}, claimed: [], bonusClaimed: false },
     events: { force: false, progress: {} },
     lobbyCard: null,
+    cardBond: {},
     lastTick: now,
   };
 }

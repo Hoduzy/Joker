@@ -35,6 +35,7 @@ import { getMember } from '../data/members';
 import { createEventBanner, openEventHub, showConversion } from './event';
 import { currencyIcon } from './currency';
 import { setStoryOutfits } from './vn';
+import { episodesAtLevel } from '../core/cardBond';
 
 type ScreenId = 'studio' | 'members' | 'dungeon' | 'gacha' | 'collection';
 const TAB_KEY = 'simya-bangsongbu/tab';
@@ -220,6 +221,16 @@ export function mountApp(root: HTMLElement, game: Game): void {
         if (!m) break;
         sfx.chime();
         toast(`🎃 이벤트 미션 달성! ${m.label} — 보상을 받으세요`);
+        break;
+      }
+      case 'card-bond': {
+        const card = getCard(event.cardId);
+        if (!card) break;
+        const opened = episodesAtLevel(event.cardId, event.level);
+        sfx.levelUp();
+        toast(
+          `💜 「${card.title} ${getMember(card.member)?.name ?? ''}」 카드 호감도 Lv.${event.level}!${opened.length ? ` 전용 스토리 ${opened.map((e) => `${e.no}화`).join('·')}가 열렸어요 — 도감 › 카드` : ''}`,
+        );
         break;
       }
       case 'event-ended':

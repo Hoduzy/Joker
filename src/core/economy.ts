@@ -7,6 +7,7 @@ import { bondStatMult, memberBondLevel } from './bond';
 import { slotUnlocked } from './unlocks';
 import { equipBonuses, type EquipBonuses } from './equipment';
 import { eventListenerMultiplier } from './events';
+import { cardBondLevel, cardBondStatMult } from './cardBond';
 import type { GameState } from './state';
 
 /** 카드 성장 상태: 돌파 단계와 강화 레벨 */
@@ -15,6 +16,8 @@ export interface CardProgress {
   level: number;
   /** 그 부원의 호감도 레벨 (생략하면 1) */
   bond?: number;
+  /** 이 카드의 카드 호감도 레벨 (전용 스토리가 있는 카드, 생략하면 1) */
+  cardBond?: number;
 }
 
 export const BASE_PROGRESS: CardProgress = { limitBreak: 0, level: 1 };
@@ -23,7 +26,8 @@ export function progressOf(state: GameState, cardId: string): CardProgress {
   const owned = state.cards[cardId];
   const card = getCard(cardId);
   const bond = card ? memberBondLevel(state, card.member) : 1;
-  return owned ? { limitBreak: owned.limitBreak, level: owned.level, bond } : { ...BASE_PROGRESS, bond };
+  const cb = cardBondLevel(state, cardId);
+  return owned ? { limitBreak: owned.limitBreak, level: owned.level, bond, cardBond: cb } : { ...BASE_PROGRESS, bond };
 }
 
 /** 강화에 드는 튜닝 키트 수 */
@@ -53,7 +57,8 @@ export function cardStats(card: CardDef, progress: CardProgress = BASE_PROGRESS)
   const mult =
     (1 + BALANCE.limitBreak.statBonusPerLevel * progress.limitBreak) *
     (1 + BALANCE.enhance.statPerLevel * (progress.level - 1)) *
-    bondStatMult(progress.bond ?? 1);
+    bondStatMult(progress.bond ?? 1) *
+    cardBondStatMult(progress.cardBond ?? 1);
   const out = {} as Stats;
   for (const key of STAT_KEYS) out[key] = Math.round(card.stats[key] * mult);
   return out;

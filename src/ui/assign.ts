@@ -1,3 +1,6 @@
+import { hasCardStory } from '../data/cardStories';
+import { cardBondLevel } from '../core/cardBond';
+import { openCardStories } from './cardStory';
 import { limitBreakOf, listenersPerSecond, previewRateWith, progressOf, slotPower } from '../core/economy';
 import { equipBonuses } from '../core/equipment';
 import type { Game } from '../core/game';
@@ -89,6 +92,17 @@ export function openSlotPicker(game: Game, card: CardDef): void {
       ),
     ),
   };
+  // 전용 스토리가 있는 카드 (U 등급)
+  const story = {
+    selected: false,
+    onSelect: () => openCardStories(game, card.id),
+    content: h(
+      'div',
+      { class: 'pick' },
+      h('div', { class: 'pick__role' }, '스토리'),
+      h('div', { class: 'pick__info' }, h('div', { class: 'pick__name' }, `📖 전용 스토리 · 카드 호감도 Lv.${cardBondLevel(state, card.id)}`), h('div', { class: 'pick__meta' }, '호감도가 오르면 다음 화가 열려요')),
+    ),
+  };
   openSheet({
     title: `${member.name} · ${card.title}`,
     subtitle: `${card.rarity} · 돌파 ${lb}단계 · 담당 슬롯에 배치하면 파워 +30%`,
@@ -116,6 +130,6 @@ export function openSlotPicker(game: Game, card: CardDef): void {
           here ? diffBadge(0, 0, '배치 중') : diffBadge(previewRateWith(state, slot.id, card.id), baseRate),
         ),
       };
-    }), lobby],
+    }), lobby, ...(hasCardStory(card.id) ? [story] : [])],
   });
 }

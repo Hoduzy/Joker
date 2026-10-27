@@ -94,6 +94,7 @@ export function migrate(data: unknown, now: number): GameState {
   // v7 → v8: 메인 스토리를 새로 썼으므로(챕터 → 화) 본 기록을 비운다
   if (version < 8) d = { ...d, story: undefined };
   // v8 → v9: 시즌 이벤트 진행 기록(events)·로비 캐릭터(lobbyCard) 추가 — 기본값은 normalize에서 채운다
+  // v9 → v10: 카드 호감도(cardBond) 추가 — normalize에서 채운다
   return normalize(d, now);
 }
 
@@ -316,6 +317,7 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     missions: normalizeMissions(d.missions),
     events: normalizeEvents(d.events, now),
     lobbyCard: typeof d.lobbyCard === 'string' && ownedCards[d.lobbyCard] ? d.lobbyCard : null,
+    cardBond: normalizeCardBond(d.cardBond, ownedCards),
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }
@@ -357,10 +359,20 @@ function normalizeEvents(raw: unknown, now: number): GameState['events'] {
   return { force: r.force === true, progress };
 }
 
+function normalizeCardBond(raw: unknown, owned: Record<string, unknown>): GameState['cardBond'] {
+  const out: GameState['cardBond'] = {};
+  if (typeof raw !== 'object' || raw === null) return out;
+  for (const [id, v] of Object.entries(raw as Record<string, any>)) {
+    if (!owned[id] || typeof v !== 'object' || v === null) continue;
+    out[id] = { xp: Math.max(0, Number(v.xp) || 0), day: typeof v.day === 'string' ? v.day : '', talks: Math.max(0, Math.floor(Number(v.talks) || 0)) };
+  }
+  return out;
+}
+
 function normalizeStory(raw: unknown): GameState['story'] {
   const r = (raw ?? {}) as { seen?: unknown; name?: unknown };
-  // 메인 화 "1-3", 엔딩 "ending:dahye", 이벤트 스토리 "ev:halloween-2026:1"
-  const seen = Array.isArray(r.seen) ? r.seen.filter((k): k is string => typeof k === 'string' && /^(\d+-\d+|ending:\w+|ev:[\w-]+:\d+)$/.test(k)) : [];
+  // 메인 화 "1-3", 엔딩 "ending:dahye", 이벤트 스토리 "ev:halloween-2026:1", 카드 전용 스토리 "card:seoyun-halloween-u:1"
+  const seen = Array.isArray(r.seen) ? r.seen.filter((k): k is string => typeof k === 'string' && /^(\d+-\d+|ending:\w+|(ev|card):[\w-]+:\d+)$/.test(k)) : [];
   const name = typeof r.name === 'string' ? r.name.trim().slice(0, 8) : '';
   return { seen: [...new Set(seen)], name };
 }

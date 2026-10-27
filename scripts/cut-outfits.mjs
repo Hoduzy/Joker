@@ -35,6 +35,11 @@ const SEASONS = {
       ['mirae_halloween_sd.png', 'assets/characters/mirae/halloween/sd.png', { key: { whiteMin: 256 } }],
       ['candy_u.jpg', 'assets/ui/candy_u.png', { height: 160 }],
     ],
+    // 전용 스토리 CG: 투명 배경 전신 그림을 할로윈 밤 배경(보라·주황 빛) 위에 세로 2:3으로 얹는다
+    cgs: [
+      ['seoyun_halloween_cg.png', 'assets/cg/card-seoyun-halloween.png', { glow: '#ff9a3c' }],
+      ['mirae_halloween_cg.png', 'assets/cg/card-mirae-halloween.png', { glow: '#c9b8ff' }],
+    ],
     sheets: [
       {
         key: 'seoyun/halloween',
@@ -148,6 +153,37 @@ async function cleanCopy(src, out, opts = {}) {
   console.log(`  ${path.relative(ROOT, out)} ${r.width}×${r.height}`);
 }
 
+/** 전신 그림 → 할로윈 밤 배경 위 CG (1200×1800). 가장자리 반투명 잔여물은 지우고 흰색은 건드리지 않는다 */
+async function makeCg(src, out, { glow }) {
+  const W = 1200, H = 1800;
+  const img = await load(src);
+  keyOut(img.data, img.w, img.h, { whiteMin: 256 });
+  const box = alphaBox(img.data, img.w, img.h, 0, img.w);
+  const fig = await sharp(img.data, raw(img))
+    .extract({ left: box.left, top: box.top, width: box.right - box.left + 1, height: box.bottom - box.top + 1 })
+    .resize({ width: W - 120, height: H - 90, fit: 'inside', kernel: 'lanczos3' })
+    .png()
+    .toBuffer();
+  const fm = await sharp(fig).metadata();
+  const bg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a0f33"/><stop offset="0.6" stop-color="#2c1650"/><stop offset="1" stop-color="#120a1f"/></linearGradient>
+      <radialGradient id="moon" cx="0.5" cy="0.32" r="0.55"><stop offset="0" stop-color="${glow}" stop-opacity="0.42"/><stop offset="1" stop-color="${glow}" stop-opacity="0"/></radialGradient>
+      <radialGradient id="warm" cx="0.15" cy="0.95" r="0.6"><stop offset="0" stop-color="#ff7a00" stop-opacity="0.35"/><stop offset="1" stop-color="#ff7a00" stop-opacity="0"/></radialGradient>
+      <radialGradient id="cool" cx="0.9" cy="0.9" r="0.6"><stop offset="0" stop-color="#9b4dff" stop-opacity="0.35"/><stop offset="1" stop-color="#9b4dff" stop-opacity="0"/></radialGradient>
+    </defs>
+    <rect width="${W}" height="${H}" fill="url(#sky)"/><rect width="${W}" height="${H}" fill="url(#moon)"/>
+    <rect width="${W}" height="${H}" fill="url(#warm)"/><rect width="${W}" height="${H}" fill="url(#cool)"/>
+    ${Array.from({ length: 60 }, (_, i) => `<circle cx="${(i * 197) % W}" cy="${(i * 113) % (H * 0.6)}" r="${1 + (i % 3)}" fill="#fff" opacity="${0.15 + (i % 5) * 0.08}"/>`).join('')}
+  </svg>`;
+  await fs.mkdir(path.dirname(out), { recursive: true });
+  await sharp(Buffer.from(bg))
+    .composite([{ input: fig, left: Math.round((W - fm.width) / 2), top: H - fm.height - 30 }])
+    .jpeg({ quality: 90 })
+    .toFile(out.replace(/\.png$/, '.jpg'));
+  console.log(`  ${path.relative(ROOT, out.replace(/\.png$/, '.jpg'))} ${W}×${H}`);
+}
+
 async function cutSheet(dir, sheet, meta) {
   const img = await load(path.join(dir, sheet.file));
   keyOut(img.data, img.w, img.h, sheet.keying ?? {});
@@ -202,6 +238,7 @@ for (const [name, season] of Object.entries(SEASONS)) {
   console.log(name);
   const dir = path.join(ROOT, season.src);
   for (const [src, out, opts] of season.files) await cleanCopy(path.join(dir, src), path.join(ROOT, out), opts);
+  for (const [src, out, opts] of season.cgs ?? []) await makeCg(path.join(dir, src), path.join(ROOT, out), opts);
   for (const sheet of season.sheets) await cutSheet(dir, sheet, meta);
 }
 await fs.writeFile(metaFile, `${JSON.stringify(meta, null, 2)}\n`);

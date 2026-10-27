@@ -44,6 +44,8 @@ import {
   type Conversion,
 } from './events';
 import type { EventDef, EventMissionKind, EventRewards } from '../data/events';
+import { getCardStory, hasCardStory } from '../data/cardStories';
+import { addCardBond, useCardTalk } from './cardBond';
 
 export type GameEvent =
   /** 배치·레벨·카드 등 화면 구조가 바뀌는 변화 */
@@ -75,7 +77,9 @@ export type GameEvent =
   /** 이벤트 미션 하나 달성 ("daily:box20" 처럼 범위:id) */
   | { type: 'event-mission'; id: string }
   /** 이벤트가 끝나 남은 재화를 전파석으로 바꿈 */
-  | { type: 'event-ended'; conversions: Conversion[] };
+  | { type: 'event-ended'; conversions: Conversion[] }
+  /** 카드 호감도 레벨업 (전용 스토리 새 화가 열렸을 수 있다) */
+  | { type: 'card-bond'; cardId: string; level: number };
 
 export type EnhanceResult = 'success' | 'fail';
 
@@ -283,6 +287,7 @@ export class Game {
     const results = eventPull(this.state, count, rng, Date.now());
     if (!results) return null;
     this.trackEv('eventPull', count);
+    this.duplicateCardBond(results);
     const u = results.filter((r) => r.card.rarity === 'U').length;
     if (u) this.trackEv('uCard', u);
     this.commit();
@@ -293,7 +298,10 @@ export class Game {
   buyEventItem(itemId: string, cardId?: string): ReturnType<typeof buyShopItem> {
     const r = buyShopItem(this.state, itemId, Date.now(), cardId);
     if (!r) return null;
-    if (r.card) this.trackEv('uCard', 1);
+    if (r.card) {
+      this.trackEv('uCard', 1);
+      this.duplicateCardBond([r.card]);
+    }
     this.commit();
     return r;
   }
@@ -345,8 +353,41 @@ export class Game {
   }
 
   /** 방송에 배치된 카드의 부원에게, 배치해 둔 시간만큼 호감도 */
+  // ───────────── 카드 호감도 (전용 스토리) ─────────────
+
+  /** 카드 호감도를 더하고, 레벨이 오르면 알린다 */
+  addCardBond(cardId: string, xp: number, now = Date.now()): void {
+    const level = addCardBond(this.state, cardId, xp, dayKey(new Date(now)));
+    if (level) this.emit({ type: 'card-bond', cardId, level });
+  }
+
+  /** 같은 카드를 또 얻으면 그 카드 호감도 */
+  private duplicateCardBond(results: { card: { id: string }; isNew: boolean }[]): void {
+    for (const r of results) if (!r.isNew) this.addCardBond(r.card.id, BALANCE.cardBond.duplicateXp);
+  }
+
+  /** 카드 상세 '교감하기': 하루 정해진 횟수까지 호감도 + 한마디 (못 하면 null) */
+  talkCard(cardId: string, now = Date.now()): { e: Expression; t: string } | null {
+    const story = getCardStory(cardId);
+    if (!story || !useCardTalk(this.state, cardId, dayKey(new Date(now)))) return null;
+    this.addCardBond(cardId, BALANCE.cardBond.talkXp, now);
+    this.commit();
+    return pick(story.talks) ?? { e: 'smile', t: '……' };
+  }
+
+  /** 전용 스토리 선택지: 그 부원 몫의 호감도를 이 카드 호감도로 */
+  applyCardChoiceXp(cardId: string, xp: Record<string, number> | undefined): void {
+    if (!xp) return;
+    const member = getCard(cardId)?.member;
+    for (const [m, n] of Object.entries(xp)) if (m === member) this.addCardBond(cardId, n);
+    this.commit();
+  }
+
   private addPlacementBond(elapsedMs: number): void {
     if (elapsedMs <= 0) return;
+    // 전용 스토리가 있는 카드는 그 카드 호감도도 (배치한 시간만큼)
+    const cardXp = (elapsedMs / 60000) * BALANCE.cardBond.placementXpPerMin;
+    for (const id of new Set(Object.values(this.state.assignments))) if (id && hasCardStory(id)) this.addCardBond(id, cardXp);
     const xp = (elapsedMs / 60000) * BALANCE.bond.placementXpPerMin;
     const members = new Set(Object.values(this.state.assignments).map((id) => (id ? getCard(id)?.member : undefined)));
     for (const m of members) if (m) this.addBond(m, xp);
@@ -608,6 +649,7 @@ export class Game {
     this.state.stones -= cost;
     const results = rollPulls(this.state, count, rng, Date.now(), bannerId);
     this.track('pull', count);
+    this.duplicateCardBond(results);
     this.commit();
     return results;
   }

@@ -829,3 +829,58 @@ body.theme-halloween .panel {
 .pull__flash.is-u {
   background: radial-gradient(circle at 50% 50%, #fff 0%, rgba(255, 200, 120, 0.9) 28%, rgba(170, 80, 255, 0.5) 58%, transparent 80%);
 }
+
+/* ══════════ 카드 호감도·전용 스토리 (카드 상세) ══════════ */
+.cbond {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(100deg, rgba(255, 122, 0, 0.14), rgba(150, 60, 255, 0.18));
+  border: 1px solid rgba(200, 130, 255, 0.35);
+}
+.cbond__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+}
+.cbond__head small {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cbond__seen {
+  margin-left: auto;
+}
+.cbond__fill {
+  background: linear-gradient(90deg, #ff8ac2, #b44dff);
+}
+.cbond__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.cbond__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cbond__story {
+  position: relative;
+}
+.cbond__story .badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}
+.cstory__note {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cstory__level {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e9c8ff;
+}
