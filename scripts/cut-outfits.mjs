@@ -54,11 +54,12 @@ const SEASONS = {
         file: 'mirae_halloween_faces.png',
         grid: [3, 2],
         order: ['neutral', 'smile', 'angry', 'sad', 'surprised', 'blush'],
-        // 후드 끝 → 턱 176px. 무릎 위까지 그린 시트라 얼굴이 이전보다 커서 배율을 낮춘다 (눈 사이·눈~턱 거리로 맞춤)
-        chinFromTop: 176,
-        scale: 1.4,
-        bottom: 'content',
-        faceX: 164,
+        // 후드 끝 → 턱 135px. 신발까지 그린 전신이라 무릎 위(후드 끝에서 430px)까지만,
+        // 눈 사이·눈~턱 거리를 기본 스탠딩에 맞춰 ×1.85
+        chinFromTop: 135,
+        scale: 1.85,
+        bottom: 430,
+        faceX: 178,
         // 원본이 이미 투명 배경 → 흰 유령 망토는 건드리지 않고 반투명 잔여물만 지운다
         keying: { whiteMin: 256 },
       },
