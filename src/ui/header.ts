@@ -8,6 +8,7 @@ import type { Component } from './component';
 import { h, onTap } from './dom';
 import { popNumber } from './fx';
 import { sfx } from './sfx';
+import { currencyIcon } from './currency';
 
 const BOOST_LABEL = { legend: '📮 레전드 사연', accident: '📡 방송사고' } as const;
 
@@ -15,6 +16,8 @@ export interface HeaderActions {
   phone(): void;
   missions(): void;
   settings(): void;
+  /** 이벤트 화면 (상단 사탕을 눌렀을 때) */
+  event(): void;
 }
 
 export function createHeader(game: Game, actions: HeaderActions): Component {
@@ -37,6 +40,13 @@ export function createHeader(game: Game, actions: HeaderActions): Component {
   const count = h('span', { class: 'hud__count' }, '0');
   const rate = h('span', { class: 'hud__rate' }, '');
   const stones = h('span', { class: 'hud__count hud__count--stones' }, '0');
+  // 시즌 이벤트 한정 재화 (이벤트 중에만 보인다. 누르면 이벤트 화면)
+  const candy = h('span', { class: 'hud__count hud__count--candy' }, '0');
+  const candyLabel = h('span', { class: 'hud__label' });
+  const candyIcon = h('span', { class: 'hud__gem' });
+  const candyStat = h('button', { class: 'hud__stat hud__stat--candy', type: 'button', hidden: true }, candyLabel, h('span', { class: 'hud__gem' }, candyIcon, candy));
+  onTap(candyStat, () => actions.event());
+  let candyEv = '';
   const lamp = h('span', { class: 'onair' }, 'ON AIR');
   const boosts = h('div', { class: 'hud__boosts' });
 
@@ -94,6 +104,7 @@ export function createHeader(game: Game, actions: HeaderActions): Component {
         { class: 'hud__stats' },
         h('div', { class: 'hud__stat' }, h('span', { class: 'hud__label' }, '청취자'), count, rate),
         h('div', { class: 'hud__stat' }, h('span', { class: 'hud__label' }, '전파석'), h('span', { class: 'hud__gem' }, h('span', { class: 'gem', 'aria-hidden': 'true' }), stones)),
+        candyStat,
       ),
     ),
     goal,
@@ -121,6 +132,18 @@ export function createHeader(game: Game, actions: HeaderActions): Component {
       }
       rate.textContent = `+${formatRate(game.rate)} /초`;
       stones.textContent = formatNumber(s.stones);
+      const ev = game.event();
+      if (candyStat.hidden !== !ev) candyStat.hidden = !ev;
+      if (ev) {
+        if (candyEv !== ev.id) {
+          candyEv = ev.id;
+          candyLabel.textContent = ev.currency.name;
+          candyIcon.replaceChildren(currencyIcon(ev));
+          candyStat.setAttribute('aria-label', `${ev.currency.name} · 이벤트 열기`);
+        }
+        const text = formatNumber(s.events.progress[ev.id]?.candy ?? 0);
+        if (candy.textContent !== text) candy.textContent = text;
+      }
       const cost = game.towerCost;
       const can = s.listeners >= cost;
       towerSub.textContent = `${can ? '레벨업!' : '레벨업'} · ${formatNumber(cost)}`;

@@ -27,6 +27,23 @@ import { calcOfflineReward, type OfflineResult } from './offline';
 import { newMilestones, towerUpReward } from './rewards';
 import { loadGame, resetSave, saveGame } from './save';
 import { createInitialState, todayCorner, type GameState } from './state';
+import {
+  activeEvent,
+  buyShopItem,
+  claimEventMission,
+  convertEndedEvents,
+  eventClaimable,
+  eventProgress,
+  eventPull,
+  ghostHp,
+  rollBoxCandy,
+  rollIdleCandy,
+  setEventTotal,
+  trackEvent,
+  winGhost,
+  type Conversion,
+} from './events';
+import type { EventDef, EventMissionKind, EventRewards } from '../data/events';
 
 export type GameEvent =
   /** 배치·레벨·카드 등 화면 구조가 바뀌는 변화 */
@@ -52,7 +69,13 @@ export type GameEvent =
   /** 누적 청취자로 새 자리·기능이 열림 */
   | { type: 'unlock'; items: UnlockDef[] }
   /** 누적 청취자로 메인 스토리 챕터가 열림 */
-  | { type: 'chapter'; id: number };
+  | { type: 'chapter'; id: number }
+  /** 시즌 이벤트 재화를 얻음 (방치·꺼 둔 동안·할로윈 택배) */
+  | { type: 'event-candy'; amount: number; source: 'idle' | 'offline' | 'box' }
+  /** 이벤트 미션 하나 달성 ("daily:box20" 처럼 범위:id) */
+  | { type: 'event-mission'; id: string }
+  /** 이벤트가 끝나 남은 재화를 전파석으로 바꿈 */
+  | { type: 'event-ended'; conversions: Conversion[] };
 
 export type EnhanceResult = 'success' | 'fail';
 
@@ -82,6 +105,8 @@ export class Game {
   private lastSave = 0;
   /** 진행 중인 청취자 배수. 짧은 연출용이라 저장하지 않는다 */
   boosts: Boost[] = [];
+  /** 방금 연 택배가 할로윈 택배였다면 들어 있던 사탕 수 (연출용) */
+  lastBoxCandy = 0;
 
   constructor(now = Date.now()) {
     this.state = loadGame(now);
@@ -186,6 +211,7 @@ export class Game {
     this.state.lastTick = now;
     const ticketsBefore = this.state.box.tickets;
     regenTickets(this.state, now);
+    this.advanceEvent(now, result.elapsedMs, offline);
     const gotStones = this.checkMilestones();
     if (this.state.box.tickets !== ticketsBefore && !offline) this.emit({ type: 'changed' });
 
@@ -195,6 +221,115 @@ export class Game {
     } else if (gotStones || now - this.lastSave >= BALANCE.autosaveIntervalMs) {
       this.save(now);
     }
+  }
+
+  /**
+   * 시즌 이벤트 정산: 접속 미션, 방송 유지 시간, 방치 드롭(5분마다 확률), 끝난 이벤트의 재화 환산
+   */
+  private advanceEvent(now: number, elapsedMs: number, offline: boolean): void {
+    const ev = activeEvent(this.state, now);
+    if (ev) {
+      const p = eventProgress(this.state, ev.id, now);
+      const today = dayKey(new Date(now));
+      if (p.daily.day !== today || !(p.daily.progress.login >= 1)) this.trackEv('login', 1, now);
+      // 방송 1시간 유지: 누군가 배치되어 방송이 나가는 동안의 시간 (분)
+      if (elapsedMs > 0 && Object.values(this.state.assignments).some(Boolean)) this.trackEv('onairMinutes', elapsedMs / 60000, now);
+      const got = rollIdleCandy(this.state, now, Math.random);
+      if (got > 0) this.emit({ type: 'event-candy', amount: got, source: offline ? 'offline' : 'idle' });
+    }
+    const conversions = convertEndedEvents(this.state, now);
+    if (conversions.length) {
+      this.emit({ type: 'event-ended', conversions });
+      this.commit();
+    }
+  }
+
+  private trackEv(kind: EventMissionKind, amount = 1, now = Date.now()): void {
+    for (const id of trackEvent(this.state, kind, amount, now)) this.emit({ type: 'event-mission', id });
+  }
+
+  // ───────────── 시즌 이벤트 ─────────────
+
+  /** 지금 진행 중인 이벤트 (개발자 옵션으로 강제 시작한 것 포함) */
+  event(now = Date.now()): EventDef | undefined {
+    return activeEvent(this.state, now);
+  }
+
+  eventProgress(id: string) {
+    return eventProgress(this.state, id);
+  }
+
+  get eventClaimable(): number {
+    return eventClaimable(this.state, Date.now());
+  }
+
+  /** 개발자 옵션: 날짜와 상관없이 이벤트 시작 (끄면 원래 날짜대로) */
+  setEventForce(on: boolean): void {
+    this.state.events.force = on;
+    const ev = activeEvent(this.state, Date.now());
+    if (ev) eventProgress(this.state, ev.id).idleAt = Date.now();
+    this.commit();
+  }
+
+  claimEventMission(scope: 'daily' | 'total', id: string): EventRewards | null {
+    const r = claimEventMission(this.state, scope, id, Date.now());
+    if (r) this.commit();
+    return r;
+  }
+
+  /** 이벤트 한정 모집 (U 사탕). 모자라거나 기간이 아니면 null */
+  eventPull(count: 1 | 10, rng: Rng = Math.random): PullResult[] | null {
+    this.advance();
+    const results = eventPull(this.state, count, rng, Date.now());
+    if (!results) return null;
+    this.trackEv('eventPull', count);
+    const u = results.filter((r) => r.card.rarity === 'U').length;
+    if (u) this.trackEv('uCard', u);
+    this.commit();
+    return results;
+  }
+
+  /** 교환소. 카드면 cardId로 고른 U 카드 */
+  buyEventItem(itemId: string, cardId?: string): ReturnType<typeof buyShopItem> {
+    const r = buyShopItem(this.state, itemId, Date.now(), cardId);
+    if (!r) return null;
+    if (r.card) this.trackEv('uCard', 1);
+    this.commit();
+    return r;
+  }
+
+  /** 이벤트 격파 상대 체력 */
+  ghostHp(): number {
+    const ev = this.event();
+    return ev ? ghostHp(this.state, ev, this.attackPower) : 0;
+  }
+
+  /** 이벤트 격파 승리 */
+  winGhost(): { candy: number; left: number } | null {
+    const r = winGhost(this.state, Date.now());
+    if (!r) return null;
+    this.trackEv('ghostWin');
+    this.trackEv('battleWin');
+    this.commit();
+    return r;
+  }
+
+  /**
+   * 이 부원이 지금 입고 나올 의상 (스토리·대사·로비): 로비 캐릭터로 고른 카드 → 배치한 카드 순.
+   * 의상이 없는 카드면 undefined (기본 모습)
+   */
+  outfitOf(memberId: string): string | undefined {
+    const lobby = this.state.lobbyCard ? getCard(this.state.lobbyCard) : undefined;
+    if (lobby?.member === memberId) return lobby.outfit;
+    const id = Object.values(this.state.assignments).find((c) => c && getCard(c)?.member === memberId);
+    return id ? getCard(id)?.outfit : undefined;
+  }
+
+  /** 로비 캐릭터로 고르기 (null이면 해제). 그 부원은 이 카드의 의상으로 나온다 */
+  setLobbyCard(cardId: string | null): void {
+    if (cardId && !this.state.cards[cardId]) return;
+    this.state.lobbyCard = cardId;
+    this.commit();
   }
 
   private addListeners(amount: number): void {
@@ -296,9 +431,15 @@ export class Game {
     this.commit();
   }
 
-  /** 메인 스토리 화·엔딩을 끝까지 봤다 (key: "1-3" 또는 endingKey(id)) */
+  /** 스토리 화·엔딩을 끝까지 봤다 (key: "1-3", endingKey(id), 이벤트 스토리 "ev:<이벤트>:<화>") */
   markStorySeen(key: string): void {
     if (!this.state.story.seen.includes(key)) this.state.story.seen.push(key);
+    // 이벤트 스토리: 그 이벤트에서 본 화 수로 누적 미션
+    const ev = /^ev:([\w-]+):\d+$/.exec(key)?.[1];
+    if (ev) {
+      const seen = this.state.story.seen.filter((k) => k.startsWith(`ev:${ev}:`)).length;
+      for (const id of setEventTotal(this.state, 'story', seen, Date.now())) this.emit({ type: 'event-mission', id });
+    }
     this.commit();
   }
 
@@ -533,6 +674,7 @@ export class Game {
     this.state.box.parts += reward.parts;
     this.state.kits += reward.kits;
     this.state.dungeon.stage += 1;
+    this.trackEv('battleWin');
     this.commit();
     return reward;
   }
@@ -550,6 +692,11 @@ export class Game {
     box.opened += 1;
     box.pending = rollEquip(box.level, rng, this.state.nextUid++);
     this.track('openBox');
+    this.trackEv('openBox');
+    // 이벤트 기간엔 낮은 확률로 '할로윈 택배' (사탕이 같이 들어 있다)
+    const candy = rollBoxCandy(this.state, Date.now(), rng);
+    this.lastBoxCandy = candy;
+    if (candy > 0) this.emit({ type: 'event-candy', amount: candy, source: 'box' });
     this.commit();
     return box.pending;
   }

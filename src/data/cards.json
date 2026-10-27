@@ -22,5 +22,27 @@
   { "id": "dahye-redcoat-ssr", "member": "dahye", "outfit": "dahye-redcoat", "limited": "winter-festival", "rarity": "SSR", "title": "방송제의 붉은 지휘자", "slot": "dj",       "stats": { "voice": 297, "tech": 194, "writing": 171, "charm": 228 }, "quote": "오늘 무대, 큐는 내가 준다." },
   { "id": "mirae-lab-ssr",     "member": "mirae", "outfit": "mirae-lab",     "limited": "winter-festival", "rarity": "SSR", "title": "심야 연구실",          "slot": "engineer", "stats": { "voice": 92, "tech": 358, "writing": 133, "charm": 143 }, "quote": "고글 쓰면… 집중 모드야. 말 걸지 마." },
   { "id": "dahye-winter-sr",   "member": "dahye", "outfit": "dahye-winter",  "limited": "winter-festival", "rarity": "SR",  "title": "겨울밤 귀갓길",        "slot": "writer",   "stats": { "voice": 79, "tech": 73, "writing": 97, "charm": 67 }, "quote": "…추우니까 빨리 들어가. 방송 듣고 자." },
-  { "id": "mirae-work-sr",     "member": "mirae", "outfit": "mirae-work",    "limited": "winter-festival", "rarity": "SR",  "title": "현장 출동 엔지니어",   "slot": "engineer", "stats": { "voice": 32, "tech": 121, "writing": 37, "charm": 47 }, "quote": "케이블 다 깔았어. …칭찬해도 돼." }
+  { "id": "mirae-work-sr",     "member": "mirae", "outfit": "mirae-work",    "limited": "winter-festival", "rarity": "SR",  "title": "현장 출동 엔지니어",   "slot": "engineer", "stats": { "voice": 32, "tech": 121, "writing": 37, "charm": 47 }, "quote": "케이블 다 깔았어. …칭찬해도 돼." },
+  {
+    "id": "seoyun-halloween-u",
+    "member": "seoyun",
+    "outfit": "seoyun/halloween",
+    "limited": "halloween-2026",
+    "rarity": "U",
+    "title": "한밤의 마녀",
+    "slot": "dj",
+    "stats": { "voice": 1010, "tech": 300, "writing": 760, "charm": 520 },
+    "quote": "사탕을 주지 않으면… 사연을 보낼 거예요."
+  },
+  {
+    "id": "mirae-halloween-u",
+    "member": "mirae",
+    "outfit": "mirae/halloween",
+    "limited": "halloween-2026",
+    "rarity": "U",
+    "title": "꼬마 유령",
+    "slot": "engineer",
+    "stats": { "voice": 300, "tech": 1050, "writing": 380, "charm": 640 },
+    "quote": "유령 분장 아니야. 방송 장비 덮개 재활용한 거야."
+  }
 ]

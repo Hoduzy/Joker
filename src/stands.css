@@ -187,6 +187,25 @@ body[data-bg='green'] .lineup {
   margin: auto;
 }
 
+.outfit-art {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.outfit-art figure {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+.outfit-art .thumb {
+  width: 220px;
+  height: 320px;
+}
+.outfit-art figcaption {
+  font-size: 13px;
+}
+
 @media (max-width: 599px) {
   .thumb {
     width: 96px;

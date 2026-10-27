@@ -32,23 +32,28 @@ import { openPhone } from './phone';
 import { openSettings } from './settings';
 import { installSfx, sfx } from './sfx';
 import { getMember } from '../data/members';
+import { createEventBanner, openEventHub, showConversion } from './event';
+import { currencyIcon } from './currency';
+import { setStoryOutfits } from './vn';
 
 type ScreenId = 'studio' | 'members' | 'dungeon' | 'gacha' | 'collection';
 const TAB_KEY = 'simya-bangsongbu/tab';
-const RARITY_RANK = { R: 0, SR: 1, SSR: 2 } as const;
+const RARITY_RANK = { R: 0, SR: 1, SSR: 2, U: 3 } as const;
 
 /** 화면 전체를 조립하고 게임 이벤트와 연결한다. */
 export function mountApp(root: HTMLElement, game: Game): void {
-  const dialogue = createDialogue((memberId) => {
-    const cardId = Object.values(game.state.assignments).find((id) => id && getCard(id)?.member === memberId);
-    return cardId ? getCard(cardId)?.outfit : undefined;
-  });
+  // 부원이 입고 나올 의상: 로비 캐릭터로 고른 카드 → 배치한 카드 (대사창·스토리 모두)
+  const outfitOf = (memberId: string) => game.outfitOf(memberId);
+  const dialogue = createDialogue(outfitOf);
+  setStoryOutfits(outfitOf);
   installSfx();
   const header = createHeader(game, {
     phone: () => openPhone(game),
     missions: () => (game.isUnlocked('missions') ? openMissions(game) : lockNotice('missions')),
     settings: () => openSettings(game),
+    event: () => openEventHub(game, 'gacha', (results) => sayAboutNewCard(results)),
   });
+  const eventBanner = createEventBanner(game, (results) => sayAboutNewCard(results));
   const members = createMembers(game);
   const studio = createStudio(game, (id) => dialogue.say(id, 'poke'));
   const cardList = createCardList(game);
@@ -60,12 +65,13 @@ export function mountApp(root: HTMLElement, game: Game): void {
   const dungeon = createDungeon(game);
   const dungeonGate = createLockGate(game, 'dungeon', dungeon, '⚡', '이웃 학교 방송부들이 우리를 눈여겨보기 시작했어요. 청취자를 빼앗아 오는 대결이 열려요.');
   const gachaGate = createLockGate(game, 'gacha', gacha, '✉️', '방송이 조금 알려지면 입부 신청서가 날아오기 시작해요. 첫 목표를 달성해 보세요!');
-  const components: Component[] = [header, delivery, studio, cardList, gachaGate, collection, chat, dungeonGate, members];
+  const components: Component[] = [header, eventBanner, delivery, studio, cardList, gachaGate, collection, chat, dungeonGate, members];
 
   const screens: Record<ScreenId, HTMLElement> = {
     studio: h(
       'main',
       { class: 'screen studio-screen', 'data-screen': 'studio' },
+      eventBanner.el,
       delivery.el,
       chat.el,
       h(
@@ -192,6 +198,33 @@ export function mountApp(root: HTMLElement, game: Game): void {
         break;
       case 'corner':
         toast('📻 날짜가 바뀌어 오늘의 코너가 바뀌었어요');
+        break;
+      case 'event-candy': {
+        const ev = game.event();
+        if (!ev) break;
+        // 방치 드롭은 조용히 (화면을 보고 있을 때만 작게), 할로윈 택배는 눈에 띄게
+        if (event.source === 'box') {
+          sfx.coin();
+          toast(`🎃 할로윈 택배! ${ev.currency.name} +${event.amount}`, currencyIcon(ev));
+        } else if (event.source === 'offline') {
+          setTimeout(() => toast(`자리를 비운 사이 ${ev.currency.name} +${event.amount}`, currencyIcon(ev)), 1500);
+        } else if (document.visibilityState === 'visible') {
+          toast(`🦇 ${ev.currency.name} +${event.amount}`, currencyIcon(ev));
+        }
+        break;
+      }
+      case 'event-mission': {
+        const ev = game.event();
+        const [scope, id] = event.id.split(':') as ['daily' | 'total', string];
+        const m = ev?.missions[scope]?.find((x) => x.id === id);
+        if (!m) break;
+        sfx.chime();
+        toast(`🎃 이벤트 미션 달성! ${m.label} — 보상을 받으세요`);
+        break;
+      }
+      case 'event-ended':
+        // 전파석 환산 안내 (다른 창이 닫힌 뒤에)
+        setTimeout(() => showConversion(event.conversions), 1200);
         break;
       case 'box-level':
         toast(

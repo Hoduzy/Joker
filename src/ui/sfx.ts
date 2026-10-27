@@ -167,6 +167,22 @@ export const sfx = {
     [C6, E6, G6].forEach((f) => tone({ freq: f, dur: 1.4, type: 'triangle', vol: 0.15, at: 0.5 }));
     arp([C7, G6, C7, E6, C7], 0.08, { dur: 0.12, type: 'sine', vol: 0.12, at: 0.6 });
   },
+  /**
+   * U 등급 등장: 낮게 깔리는 오르간 같은 단조 화음 → 호박등이 하나씩 켜지는 '퐁' → 반짝이는 장조로 풀린다.
+   * (할로윈처럼 으스스하다가 밝아지게)
+   */
+  uReveal() {
+    tone({ freq: 55, to: 41, dur: 1.6, type: 'sawtooth', vol: 0.3 });
+    [220, 261.63, 311.13].forEach((f) => tone({ freq: f, dur: 1.1, type: 'triangle', vol: 0.12 }));
+    noise(0.9, 0.18, 0.1, 400);
+    // 호박등 셋: 낮은 음부터
+    [392, 466.16, 587.33].forEach((f, i) => tone({ freq: f, to: f * 1.5, dur: 0.18, type: 'sine', vol: 0.2, at: 0.7 + i * 0.22 }));
+    // 카드 등장
+    tone({ freq: 98, to: 49, dur: 0.8, type: 'square', vol: 0.18, at: 1.45 });
+    arp([C5, E5, G5, C6, E6, G6, C7], 0.05, { dur: 0.6, type: 'square', vol: 0.14, at: 1.5 });
+    [C6, E6, G6, C7].forEach((f) => tone({ freq: f, dur: 1.6, type: 'triangle', vol: 0.12, at: 1.85 }));
+    arp([C7, G6, E6, G6, C7], 0.09, { dur: 0.14, type: 'sine', vol: 0.1, at: 2 });
+  },
   enhanceSuccess() {
     arp([C5, G5, C6, E6], 0.06, { dur: 0.25, type: 'triangle', vol: 0.22 });
     tone({ freq: C7, dur: 0.4, type: 'sine', vol: 0.1, at: 0.25 });

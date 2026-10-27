@@ -10,6 +10,8 @@ import type { Component } from './component';
 import { h, memberSd, onTap } from './dom';
 import { popNumber } from './fx';
 import { sfx } from './sfx';
+import type { EventRival } from '../data/events';
+import { currencyChip } from './currency';
 
 function avatar(rival: RivalDef, size: 'sm' | 'lg' = 'sm'): HTMLElement {
   const el = h('div', { class: `rival rival--${size}` }, rival.emoji);
@@ -111,10 +113,10 @@ export function createDungeon(game: Game): Component {
  * 대결 연출: 4초 줄다리기. 양쪽 방송부가 청취자를 끌어당긴다.
  * 결과는 battleScore(공격력, 탭 수) >= 라이벌 청취자. 화면을 탭하면 응원(당기기)
  */
-function startBattle(game: Game, stage: number): void {
+function startBattle(game: Game, stage: number, ghost?: EventRival): void {
   if (document.querySelector('.battle')) return;
-  const rival = rivalFor(stage);
-  const hp = rivalHp(stage);
+  const rival: RivalDef = ghost ?? rivalFor(stage);
+  const hp = ghost ? game.ghostHp() : rivalHp(stage);
   const showMs = BALANCE.dungeon.showMs;
   const atk = game.attackPower;
 
@@ -150,7 +152,9 @@ function startBattle(game: Game, stage: number): void {
     h(
       'div',
       { class: 'battle__top' },
-      h('div', { class: 'battle__title' }, h('span', { class: 'stage-badge' }, `STAGE ${stage}`), isBossStage(stage) ? h('span', { class: 'boss-badge' }, 'BOSS') : null, ` ${rival.name}`),
+      ghost
+        ? h('div', { class: 'battle__title' }, h('span', { class: 'stage-badge stage-badge--event' }, 'EVENT'), ` ${rival.name}`)
+        : h('div', { class: 'battle__title' }, h('span', { class: 'stage-badge' }, `STAGE ${stage}`), isBossStage(stage) ? h('span', { class: 'boss-badge' }, 'BOSS') : null, ` ${rival.name}`),
       h('div', { class: 'battle__time' }, h('div', { class: 'battle__time-bar' }, timeFill)),
     ),
     h('div', { class: 'battle__taunt' }, `“${rival.taunt}”`),
@@ -159,6 +163,7 @@ function startBattle(game: Game, stage: number): void {
     result,
   );
   root.style.setProperty('--rival', rival.color);
+  if (ghost) root.classList.add('battle--event');
   document.body.append(root);
   // 방송부 격파: 대결 화면이 떠 있는 동안 battle, 닫히면 main
   bgmWhile(root, 'battle');
@@ -220,7 +225,26 @@ function startBattle(game: Game, stage: number): void {
     root.classList.add(win ? 'is-win' : 'is-lose');
     const closeBtn = h('button', { class: 'btn btn--ghost', type: 'button' }, '닫기');
     onTap(closeBtn, () => root.remove());
-    if (win) {
+    if (win && ghost) {
+      sfx.victory();
+      const got = game.winGhost();
+      const again = h('button', { class: 'btn btn--primary', type: 'button' }, '한 번 더');
+      onTap(again, () => {
+        root.remove();
+        startBattle(game, stage, ghost);
+      });
+      const ev = game.event();
+      result.replaceChildren(
+        h('div', { class: 'battle__verdict' }, '격파!'),
+        h('p', {}, `“${rival.defeat}”`),
+        got && got.candy > 0 && ev
+          ? h('div', { class: 'battle__reward' }, currencyChip(ev, got.candy))
+          : h('p', { class: 'battle__advice' }, '오늘 받을 수 있는 사탕은 다 받았어요. 내일 또 와요!'),
+        ...(got && got.candy > 0 ? [h('p', { class: 'battle__advice' }, `오늘 사탕 보상 ${got.left}번 남음`)] : []),
+        h('div', { class: 'battle__actions' }, closeBtn, again),
+      );
+      celebrate(`${rival.emoji} ${rival.name} 격파!`, ev ? ev.name : '');
+    } else if (win) {
       sfx.victory();
       const reward = game.winStage(stage);
       result.replaceChildren(
@@ -237,7 +261,7 @@ function startBattle(game: Game, stage: number): void {
       const retry = h('button', { class: 'btn btn--primary', type: 'button' }, '다시 도전');
       onTap(retry, () => {
         root.remove();
-        startBattle(game, stage);
+        startBattle(game, stage, ghost);
       });
       result.replaceChildren(
         h('div', { class: 'battle__verdict is-lose' }, '아쉽다…'),
@@ -257,6 +281,13 @@ function startBattle(game: Game, stage: number): void {
     });
     return next;
   }
+}
+
+/** 이벤트 전용 격파 상대와 대결 (스테이지와 상관없이, 하루 정해진 횟수까지 사탕) */
+export function startEventBattle(game: Game): void {
+  const ev = game.event();
+  if (!ev || game.attackPower <= 0) return;
+  startBattle(game, 0, ev.drops.rival);
 }
 
 function rewardChips(r: StageReward): string {

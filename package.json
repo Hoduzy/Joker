@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "cut-sheets": "node scripts/cut-sheets.mjs",
     "stands": "node scripts/stands.mjs",
-    "cut-stands": "node scripts/cut-stands.mjs"
+    "cut-stands": "node scripts/cut-stands.mjs",
+    "cut-outfits": "node scripts/cut-outfits.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

@@ -86,6 +86,20 @@ export function openSettings(game: Game): void {
     playScript({ title: DEMO_SCENE.title, lines: DEMO_SCENE.lines, replay: true, name: game.state.story.name });
   });
 
+  // 개발자 옵션: 날짜와 상관없이 시즌 이벤트를 연다 (끄면 원래 기간대로)
+  const force = h('button', { class: 'toggle', type: 'button', role: 'switch' });
+  const renderForce = () => {
+    const on = game.state.events.force;
+    force.classList.toggle('is-on', on);
+    force.setAttribute('aria-checked', String(on));
+    force.textContent = on ? '켜짐' : '꺼짐';
+  };
+  onTap(force, () => {
+    game.setEventForce(!game.state.events.force);
+    renderForce();
+  });
+  renderForce();
+
   const reset = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '데이터 초기화');
   onTap(reset, () =>
     openModal({
@@ -117,6 +131,7 @@ export function openSettings(game: Game): void {
       h('span', { class: 'settings__links' }, h('a', { class: 'btn btn--ghost btn--small', href: './preview.html' }, '미리보기'), h('a', { class: 'btn btn--ghost btn--small', href: './stands.html' }, '스탠딩')),
     ),
     h('div', { class: 'settings__row' }, h('span', {}, '🎞️ 크레딧'), credits),
+    h('div', { class: 'settings__row settings__row--dev' }, h('span', {}, '🛠️ 이벤트 강제 시작', h('small', {}, '개발자 옵션 · 기간과 상관없이 이벤트를 열어요')), force),
     h('div', { class: 'settings__row' }, h('span', {}, '🗑️ 저장 데이터'), reset),
   );
   openModal({ title: '⚙️ 설정', body, confirmLabel: '닫기', confirmGhost: true });

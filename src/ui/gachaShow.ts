@@ -16,6 +16,7 @@ export interface ShowOptions {
 
 /**
  * 뽑기 연출: 엽서가 날아와 쌓이고, 한 장씩 뒤집힌다. SSR이 뒤집히면 화면이 반짝인다.
+ * U가 나오면 화면이 어두워지고 호박등이 켜진 뒤 카드가 나타난다.
  * 엽서를 탭하면 바로 뒤집히고, '모두 넘기기'로 건너뛸 수 있다.
  * 반환값: '한 번 더'를 눌렀으면 true
  */
@@ -62,21 +63,43 @@ export function playPullAnimation(results: PullResult[], opts: ShowOptions): Pro
       return { el, result: r, flipped: false };
     });
 
-    const flip = (c: (typeof cards)[number]) => {
-      if (c.flipped) return;
+    // U 등급: 화면이 어두워지고 호박등이 하나씩 켜진 뒤 카드가 나타난다
+    const lanterns = h('div', { class: 'pull__lanterns', 'aria-hidden': 'true' }, h('i', {}, '🎃'), h('i', {}, '🎃'), h('i', {}, '🎃'));
+    const flip = (c: (typeof cards)[number]): Promise<void> => {
+      if (c.flipped) return Promise.resolve();
       c.flipped = true;
+      if (c.result.card.rarity === 'U' && !skipping && !fast) {
+        root.classList.add('is-u-dark');
+        root.append(lanterns);
+        sfx.uReveal();
+        return sleep(1500).then(() => {
+          root.classList.remove('is-u-dark');
+          lanterns.remove();
+          reveal(c);
+        });
+      }
+      reveal(c);
+      return Promise.resolve();
+    };
+    const reveal = (c: (typeof cards)[number]) => {
       c.el.classList.add('is-flipped');
       c.el.setAttribute('aria-label', `${getMember(c.result.card.member)?.name} ${c.result.card.title} (${c.result.card.rarity})`);
       const rarity = c.result.card.rarity;
-      if (!skipping) sfx.grade(rarity === 'SSR' ? 5 : rarity === 'SR' ? 3 : 1);
-      if (rarity === 'SSR') {
+      if (!skipping && rarity !== 'U') sfx.grade(rarity === 'SSR' ? 5 : rarity === 'SR' ? 3 : 1);
+      if (rarity === 'U') {
+        flash.classList.remove('is-on');
+        void flash.offsetWidth;
+        flash.classList.add('is-on', 'is-u');
+        sparkle(c.el);
+        lightPillar('#ff9a3c', true);
+      } else if (rarity === 'SSR') {
         flash.classList.remove('is-on');
         void flash.offsetWidth;
         flash.classList.add('is-on');
         sparkle(c.el);
         if (!skipping) lightPillar('#ffd76b', true);
       }
-      if (cards.every((x) => x.flipped)) finish();
+      if (cards.every((x) => x.el.classList.contains('is-flipped'))) finish();
     };
     cards.forEach((c) => onTap(c.el, () => flip(c)));
 
@@ -86,7 +109,8 @@ export function playPullAnimation(results: PullResult[], opts: ShowOptions): Pro
       const rest = cards.filter((c) => !c.flipped).map((c) => c.result.card.rarity);
       cards.forEach(flip);
       // 한꺼번에 넘기면 가장 높은 등급 소리 한 번만
-      if (rest.includes('SSR')) {
+      if (rest.includes('U')) sfx.uReveal();
+      else if (rest.includes('SSR')) {
         sfx.grade(5);
         lightPillar('#ffd76b', true);
       } else if (rest.length) sfx.grade(rest.includes('SR') ? 3 : 1);
@@ -122,11 +146,11 @@ export function playPullAnimation(results: PullResult[], opts: ShowOptions): Pro
         if (skipping || finished) break;
         if (c.flipped) continue;
         // 높은 등급일수록 뒤집기 전에 뜸을 들인다
-        const wait = c.result.card.rarity === 'SSR' ? 700 : c.result.card.rarity === 'SR' ? 380 : 220;
+        const wait = c.result.card.rarity === 'U' ? 500 : c.result.card.rarity === 'SSR' ? 700 : c.result.card.rarity === 'SR' ? 380 : 220;
         if (c.result.card.rarity !== 'R') c.el.classList.add('is-charging');
         await sleep(fast ? 0 : wait);
         if (skipping) break;
-        flip(c);
+        await flip(c);
       }
     })();
   });

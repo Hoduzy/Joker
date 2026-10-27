@@ -20,7 +20,7 @@ describe('gacha rates', () => {
   it('matches R 79% / SR 18% / SSR 3% over many single pulls (pity excluded)', () => {
     const s = createInitialState(0);
     const rng = seeded(42);
-    const counts = { R: 0, SR: 0, SSR: 0 };
+    const counts = { R: 0, SR: 0, SSR: 0, U: 0 };
     const N = 200_000;
     for (let i = 0; i < N; i++) {
       s.gacha.pity = 0; // 천장 영향 제거
@@ -29,6 +29,8 @@ describe('gacha rates', () => {
     expect(counts.R / N).toBeCloseTo(0.79, 2);
     expect(counts.SR / N).toBeCloseTo(0.18, 2);
     expect(counts.SSR / N).toBeCloseTo(0.03, 2);
+    // U는 상시 모집에서 절대 나오지 않는다
+    expect(counts.U).toBe(0);
   });
 
   it('rate table sums to 100%', () => {

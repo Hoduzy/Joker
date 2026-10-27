@@ -37,7 +37,8 @@ export const BALANCE = {
   gacha: {
     singleCost: 160,
     tenCost: 1600,
-    rates: { R: 0.79, SR: 0.18, SSR: 0.03 } satisfies Record<Rarity, number>,
+    /** 상시 모집에서 U는 절대 나오지 않는다 (이벤트 한정 모집·교환소 전용) */
+    rates: { R: 0.79, SR: 0.18, SSR: 0.03, U: 0 } satisfies Record<Rarity, number>,
     /** 이 횟수 안에 SSR이 안 나오면 이번 뽑기가 SSR 확정 */
     pity: 80,
   },
@@ -48,7 +49,7 @@ export const BALANCE = {
     /** 돌파 1단계당 능력치 +6% */
     statBonusPerLevel: 0.06,
     /** 최대 돌파 카드를 또 뽑으면 전파석으로 돌려준다 */
-    overflowRefund: { R: 20, SR: 60, SSR: 300 } satisfies Record<Rarity, number>,
+    overflowRefund: { R: 20, SR: 60, SSR: 300, U: 800 } satisfies Record<Rarity, number>,
   },
 
   /** 협찬 택배 */
@@ -146,7 +147,7 @@ export const BALANCE = {
     /** 레벨 1당 능력치 +2% */
     statPerLevel: 0.02,
     /** 레벨 n → n+1 비용 = base[등급] × growth^(n-1) */
-    costBase: { R: 50, SR: 90, SSR: 150 } satisfies Record<Rarity, number>,
+    costBase: { R: 50, SR: 90, SSR: 150, U: 220 } satisfies Record<Rarity, number>,
     costGrowth: 1.22,
     /** 튜닝 키트: 1 + (레벨-1)/10 개 */
     kitsPerTenLevels: 1,

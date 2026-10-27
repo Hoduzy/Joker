@@ -6,7 +6,7 @@ import { MEMBERS } from '../data/members';
 import { starterCardOf } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -59,8 +59,32 @@ export interface GameState {
   story: { seen: string[]; name: string };
   /** 일일 미션 */
   missions: MissionState;
+  /** 시즌 이벤트: 이벤트별 진행 기록, 개발자 옵션 '이벤트 강제 시작' */
+  events: { force: boolean; progress: Record<string, EventProgress> };
+  /** 로비 캐릭터로 고른 카드 (그 부원은 이 카드의 의상으로 나온다) */
+  lobbyCard: string | null;
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
+}
+
+/** 이벤트 하나의 진행 기록 (천장·미션·교환 횟수는 그 이벤트 안에서만) */
+export interface EventProgress {
+  /** 한정 재화 (U 사탕) */
+  candy: number;
+  /** 한정 모집 천장 카운트 */
+  pity: number;
+  /** 한정 모집 횟수 */
+  pulls: number;
+  daily: { day: string; progress: Record<string, number>; claimed: string[] };
+  total: { progress: Record<string, number>; claimed: string[] };
+  /** 교환소 아이템별 교환 횟수 */
+  shop: Record<string, number>;
+  /** 방치 드롭을 마지막으로 굴린 시각 */
+  idleAt: number;
+  /** 이벤트 격파 상대: 오늘 사탕 받은 승리 수, 전체 승리 수 */
+  ghost: { day: string; candyWins: number; wins: number };
+  /** 끝난 뒤 남은 재화를 전파석으로 바꿨는지 */
+  converted: boolean;
 }
 
 export interface BondState {
@@ -102,6 +126,20 @@ export interface MissionState {
   progress: Record<string, number>;
   claimed: string[];
   bonusClaimed: boolean;
+}
+
+export function createEventProgress(now: number): EventProgress {
+  return {
+    candy: 0,
+    pity: 0,
+    pulls: 0,
+    daily: { day: '', progress: {}, claimed: [] },
+    total: { progress: {}, claimed: [] },
+    shop: {},
+    idleAt: now,
+    ghost: { day: '', candyWins: 0, wins: 0 },
+    converted: false,
+  };
 }
 
 export function createBond(): Record<string, BondState> {
@@ -190,6 +228,8 @@ export function createInitialState(now: number): GameState {
     phone: createPhone(),
     story: { seen: [], name: '' },
     missions: { day: '', ids: [], progress: {}, claimed: [], bonusClaimed: false },
+    events: { force: false, progress: {} },
+    lobbyCard: null,
     lastTick: now,
   };
 }

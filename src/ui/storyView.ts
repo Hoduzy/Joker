@@ -1,6 +1,8 @@
 import type { Game } from '../core/game';
 import { chapterOpen, endingKey, episodeAvailable, nextEpisode, pickEnding, storyFinished } from '../core/story';
 import { getMember } from '../data/members';
+import { getCard } from '../data/cards';
+import { EVENTS, getEventEpisode, type EventDef, type EventEpisode } from '../data/events';
 import { CHAPTERS, ENDINGS, EPISODES, getEnding, getEpisode, type Episode } from '../data/narrative';
 import { formatNumber } from '../utils/format';
 import { h, onTap } from './dom';
@@ -65,6 +67,73 @@ export function playEpisode(game: Game, key: string): void {
       },
     });
   });
+}
+
+/**
+ * 이벤트 스토리 화: 이벤트 중에는 앞 화를 보면 다음 화가 열리고, 끝난 뒤에는 본 화만 다시 볼 수 있다
+ */
+export function eventEpisodeOpen(game: Game, ev: EventDef, ep: EventEpisode): boolean {
+  const seen = game.state.story.seen;
+  if (seen.includes(ep.key)) return true;
+  if (game.event()?.id !== ev.id) return false;
+  return ep.no === 1 || seen.includes(`ev:${ev.id}:${ep.no - 1}`);
+}
+
+/** 이벤트 스토리 재생. 이벤트 U 카드의 부원은 그 의상(할로윈 등)으로 나온다 */
+export function playEventEpisode(game: Game, key: string): void {
+  const found = getEventEpisode(key);
+  if (!found || !eventEpisodeOpen(game, found.event, found.episode)) return;
+  const { event, episode } = found;
+  const outfits: Record<string, string> = {};
+  for (const id of event.cards) {
+    const c = getCard(id);
+    if (c?.outfit) outfits[c.member] = c.outfit;
+  }
+  ensureName(game, () => {
+    const replay = game.state.story.seen.includes(key);
+    playScript({
+      title: `${event.name} · ${episode.no}화 ${episode.title}`,
+      lines: episode.lines,
+      replay,
+      outfits,
+      card: { overline: `EVENT · EPISODE ${episode.no}`, title: episode.title, frequency: episode.frequency, unstable: episode.unstable, short: replay },
+      name: game.state.story.name,
+      onEnd: (done) => done && !replay && game.markStorySeen(key),
+    });
+  });
+}
+
+/** 메인 스토리 목록 아래: 진행 중이거나 본 적 있는 이벤트 스토리 */
+function eventStoryBlocks(game: Game): HTMLElement[] {
+  const live = game.event();
+  return EVENTS.filter((ev) => ev.story.length && (live?.id === ev.id || ev.story.some((ep) => game.state.story.seen.includes(ep.key)))).map((ev) =>
+    h(
+      'section',
+      { class: 'chapter-block chapter-block--event' },
+      h(
+        'div',
+        { class: 'chapter-head' },
+        h('span', { class: 'chapter__no' }, 'EVENT'),
+        h('div', { class: 'chapter__text' }, h('strong', {}, ev.name), h('small', {}, live?.id === ev.id ? '이벤트 기간 한정 · 본 화는 끝난 뒤에도 다시 볼 수 있어요' : '지난 이벤트 · 다시보기')),
+        h('span', { class: 'chapter__state' }, `${ev.story.filter((ep) => game.state.story.seen.includes(ep.key)).length} / ${ev.story.length}`),
+      ),
+      h('div', { class: 'episodes' }, ...ev.story.map((ep) => eventEpisodeRow(game, ev, ep))),
+    ),
+  );
+}
+
+export function eventEpisodeRow(game: Game, ev: EventDef, ep: EventEpisode): HTMLElement {
+  const seen = game.state.story.seen.includes(ep.key);
+  const open = eventEpisodeOpen(game, ev, ep);
+  const row = h(
+    'button',
+    { class: `episode${seen ? '' : open ? ' is-new' : ' is-locked'}`, type: 'button', disabled: !open },
+    h('span', { class: 'episode__no' }, `${ep.no}화`),
+    h('strong', {}, open ? ep.title : '???'),
+    h('span', { class: 'chapter__state' }, seen ? '다시보기 ↺' : open ? 'NEW ▶' : game.event()?.id === ev.id ? '🔒 앞 화를 먼저' : '🔒 이벤트 종료'),
+  );
+  if (open) onTap(row, () => playEventEpisode(game, ep.key));
+  return row;
 }
 
 export function playEnding(game: Game, id: string): void {
@@ -171,6 +240,7 @@ export function renderStoryList(game: Game, rerender: () => void = () => {}): HT
       ),
     );
   }
+  items.push(...eventStoryBlocks(game));
   return h('div', { class: 'chapters' }, ...items);
 }
 

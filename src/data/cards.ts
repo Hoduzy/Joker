@@ -4,14 +4,15 @@
  * 카드 추가 방법
  *   1. cards.json에 항목을 하나 추가한다 (id는 겹치지 않게).
  *      - member: members.ts의 부원 id
- *      - rarity: "R" | "SR" | "SSR"
+ *      - rarity: "R" | "SR" | "SSR" | "U" (U는 최상위. 이벤트 한정 모집·교환소에서만 나온다)
  *      - slot:   담당 슬롯 보너스 "dj" | "engineer" | "writer" | "guest"
  *      - stats:  voice / tech / writing / charm
  *   2. (선택) 카드 일러스트를 assets/cards/<카드 id>.png 로 넣는다.
  *      없으면 assets/characters/<부원>/full.png 에 등급 테두리를 씌워 대신 쓴다.
  *   3. (선택) "outfit": 의상 폴더 id (assets/characters/<의상>/). 이 카드를 배치하면
  *      카드 그림·방송 슬롯 SD·대화창 표정이 그 의상으로 바뀐다.
- *   4. (선택) "limited": 한정 모집 id (banners.json). 그 모집에서만 나오고 상시 모집에는 없다.
+ *   4. (선택) "limited": 한정 모집 id (banners.json) 또는 이벤트 id (events.json). 거기서만 나오고 상시 모집에는 없다.
+ *   (의상 폴더는 부원 폴더 안에 둬도 된다: assets/characters/seoyun/halloween/ → "outfit": "seoyun/halloween")
  * 형식이 틀리면 게임 시작 시 어떤 카드가 왜 틀렸는지 에러로 알려 준다.
  */
 import raw from './cards.json';
@@ -19,8 +20,11 @@ import { getMember } from './members';
 import { SLOT_IDS, type SlotId } from './slots';
 import { STAT_KEYS, type Stats } from './stats';
 
-export type Rarity = 'R' | 'SR' | 'SSR';
-export const RARITIES: readonly Rarity[] = ['SSR', 'SR', 'R'];
+export type Rarity = 'R' | 'SR' | 'SSR' | 'U';
+/** 높은 등급부터 (정렬 순서) */
+export const RARITIES: readonly Rarity[] = ['U', 'SSR', 'SR', 'R'];
+/** 낮은 등급 0부터 */
+export const RARITY_RANK: Record<Rarity, number> = { R: 0, SR: 1, SSR: 2, U: 3 };
 
 export interface CardDef {
   id: string;
@@ -51,7 +55,8 @@ function validate(data: unknown): CardDef[] {
     if (seen.has(c.id)) fail('id가 중복됩니다');
     seen.add(c.id);
     if (!getMember(c.member)) fail(`알 수 없는 부원 "${c.member}"`);
-    if (!['R', 'SR', 'SSR'].includes(c.rarity)) fail(`rarity는 R/SR/SSR 중 하나여야 합니다 ("${c.rarity}")`);
+    if (!['R', 'SR', 'SSR', 'U'].includes(c.rarity)) fail(`rarity는 R/SR/SSR/U 중 하나여야 합니다 ("${c.rarity}")`);
+    if (c.rarity === 'U' && typeof c.limited !== 'string') fail('U 카드는 이벤트 한정이라 limited(이벤트 id)가 필요합니다');
     if (!SLOT_IDS.includes(c.slot)) fail(`slot은 ${SLOT_IDS.join('/')} 중 하나여야 합니다 ("${c.slot}")`);
     for (const key of STAT_KEYS) {
       if (typeof c.stats?.[key] !== 'number' || c.stats[key] < 0) fail(`stats.${key}가 올바른 숫자가 아닙니다`);
@@ -88,7 +93,7 @@ export function portraitKey(card: Pick<CardDef, 'member' | 'outfit'>): string {
   return card.outfit ?? card.member;
 }
 
-/** 정렬용: SSR → SR → R, 같은 등급이면 cards.json 순서 */
+/** 정렬용: U → SSR → SR → R, 같은 등급이면 cards.json 순서 */
 export function compareCards(a: CardDef, b: CardDef): number {
   return RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity) || CARDS.indexOf(a) - CARDS.indexOf(b);
 }

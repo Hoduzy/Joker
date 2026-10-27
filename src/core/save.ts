@@ -9,7 +9,9 @@ import { SLOT_IDS } from '../data/slots';
 import {
   createBond,
   createBox,
+  createEventProgress,
   createInitialState,
+  type EventProgress,
   createPhone,
   type BondState,
   type MissionState,
@@ -91,6 +93,7 @@ export function migrate(data: unknown, now: number): GameState {
   // v6 → v7: 튜닝 키트·호감도·문자·스토리·일일 미션 추가 — 기본값은 normalize에서 채운다
   // v7 → v8: 메인 스토리를 새로 썼으므로(챕터 → 화) 본 기록을 비운다
   if (version < 8) d = { ...d, story: undefined };
+  // v8 → v9: 시즌 이벤트 진행 기록(events)·로비 캐릭터(lobbyCard) 추가 — 기본값은 normalize에서 채운다
   return normalize(d, now);
 }
 
@@ -311,13 +314,53 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     phone: normalizePhone(d.phone),
     story: normalizeStory(d.story),
     missions: normalizeMissions(d.missions),
+    events: normalizeEvents(d.events, now),
+    lobbyCard: typeof d.lobbyCard === 'string' && ownedCards[d.lobbyCard] ? d.lobbyCard : null,
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }
 
+function strList(v: unknown): string[] {
+  return Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string'))] : [];
+}
+
+function numMap(v: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (typeof v === 'object' && v !== null) for (const [k, n] of Object.entries(v)) if (typeof n === 'number' && Number.isFinite(n)) out[k] = Math.max(0, n);
+  return out;
+}
+
+/** 시즌 이벤트 진행 기록: 모르는 이벤트도 지우지 않는다 (나중 시즌 데이터를 먼저 받은 세이브 등) */
+function normalizeEvents(raw: unknown, now: number): GameState['events'] {
+  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as { force?: unknown; progress?: unknown };
+  const progress: Record<string, EventProgress> = {};
+  const src = (typeof r.progress === 'object' && r.progress !== null ? r.progress : {}) as Record<string, Record<string, any>>;
+  for (const [id, p] of Object.entries(src)) {
+    if (typeof p !== 'object' || p === null) continue;
+    const base = createEventProgress(now);
+    progress[id] = {
+      candy: Math.max(0, Math.floor(num(p.candy, 0))),
+      pity: Math.max(0, Math.floor(num(p.pity, 0))),
+      pulls: Math.max(0, Math.floor(num(p.pulls, 0))),
+      daily: { day: typeof p.daily?.day === 'string' ? p.daily.day : '', progress: numMap(p.daily?.progress), claimed: strList(p.daily?.claimed) },
+      total: { progress: numMap(p.total?.progress), claimed: strList(p.total?.claimed) },
+      shop: numMap(p.shop),
+      idleAt: Math.min(num(p.idleAt, base.idleAt), now),
+      ghost: {
+        day: typeof p.ghost?.day === 'string' ? p.ghost.day : '',
+        candyWins: Math.max(0, Math.floor(num(p.ghost?.candyWins, 0))),
+        wins: Math.max(0, Math.floor(num(p.ghost?.wins, 0))),
+      },
+      converted: p.converted === true,
+    };
+  }
+  return { force: r.force === true, progress };
+}
+
 function normalizeStory(raw: unknown): GameState['story'] {
   const r = (raw ?? {}) as { seen?: unknown; name?: unknown };
-  const seen = Array.isArray(r.seen) ? r.seen.filter((k): k is string => typeof k === 'string' && /^(\d+-\d+|ending:\w+)$/.test(k)) : [];
+  // 메인 화 "1-3", 엔딩 "ending:dahye", 이벤트 스토리 "ev:halloween-2026:1"
+  const seen = Array.isArray(r.seen) ? r.seen.filter((k): k is string => typeof k === 'string' && /^(\d+-\d+|ending:\w+|ev:[\w-]+:\d+)$/.test(k)) : [];
   const name = typeof r.name === 'string' ? r.name.trim().slice(0, 8) : '';
   return { seen: [...new Set(seen)], name };
 }

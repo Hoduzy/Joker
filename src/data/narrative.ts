@@ -39,13 +39,13 @@
  *                - chapter·episode는 파일·순서와 같아야 한다 (틀리면 오류)
  * story/endings.json    부원 → { title, frequency, lines } + "true" → { title, frequency, minLevel, lines }
  *              마지막 화를 본 뒤, 다섯 명 모두 호감도 minLevel 이상이면 진엔딩, 아니면 호감도가 가장 높은 부원의 엔딩
- * events.json  부원 → [{ level, title, lines }] — 호감도 레벨 2/4/6/8/10 단둘이 이벤트
+ * bondEvents.json  부원 → [{ level, title, lines }] — 호감도 레벨 2/4/6/8/10 단둘이 이벤트 (시즌 이벤트는 events.json)
  * texts.json   부원 → [{ minLevel, msgs: [받는 문자], choices: [{ t: 답장, xp, reply: [그 답장에 대한 문자] }] }]
  *              순서대로 하나씩 온다. minLevel 호감도가 되어야 다음 문자가 온다
  * bond.json    부원 → { favorite: 좋아하는 선물 id, lines: [{ e, t }] } — lines[n-1]이 호감도 레벨 n에서 열린다
  */
 import bondRaw from './bond.json';
-import eventsRaw from './events.json';
+import eventsRaw from './bondEvents.json';
 import { getMember, MEMBERS } from './members';
 import { STAND_EXPRESSIONS, type Expression, type StandExpression } from './portraits';
 import demoRaw from './story/demo.json';
@@ -267,7 +267,7 @@ function load() {
     events[m.id] = ((eventsRaw as Record<string, PersonalEvent[]>)[m.id] ?? []).map((e, i) => ({
       level: e.level,
       title: e.title,
-      lines: checkLines(e.lines, `events.json ${m.id}[${i}]`),
+      lines: checkLines(e.lines, `bondEvents.json ${m.id}[${i}]`),
     }));
     texts[m.id] = ((textsRaw as Record<string, TextConvo[]>)[m.id] ?? []).map((t, i) => {
       const w = `texts.json ${m.id}[${i}]`;

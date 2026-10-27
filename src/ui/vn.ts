@@ -1,7 +1,7 @@
 import { getMember } from '../data/members';
 import type { Action, Bgm, Emote, Screen, ScriptLine } from '../data/narrative';
 import { QUESTION_LIFT, VOICE_PAUSE_MS, voiceFor } from '../data/voices';
-import { STAND_REF_HEIGHT, standUrl, type StandExpression } from '../data/portraits';
+import { STAND_HEAD_TOP, STAND_REF_HEIGHT, standUrl, type StandExpression } from '../data/portraits';
 import { playBgm } from './audio';
 import { h, onTap } from './dom';
 import { emoteSvg } from './emotes';
@@ -79,6 +79,14 @@ export interface ScriptOptions {
   card?: TitleCard;
   /** 첫 줄에 bgm이 없을 때 틀 곡 (개인 이벤트는 romance) */
   bgm?: Bgm;
+  /** 부원 id → 의상 id (예: seoyun → "seoyun/halloween"). 없으면 setStoryOutfits로 정한 기본값 */
+  outfits?: Record<string, string>;
+}
+
+/** 스토리에서 부원이 입고 나올 의상 (배치한 카드·로비 캐릭터). app이 정해 준다 */
+let defaultOutfit: (memberId: string) => string | undefined = () => undefined;
+export function setStoryOutfits(fn: (memberId: string) => string | undefined): void {
+  defaultOutfit = fn;
 }
 
 const toTrack = (b: Bgm) => (b === 'none' ? null : b);
@@ -144,6 +152,12 @@ export function playScript(opts: ScriptOptions): void {
     timers.add(id);
   };
   const busy = (ms: number) => (fxUntil = Math.max(fxUntil, performance.now() + ms));
+  /** 이 부원의 스탠딩 (의상이 있으면 그 의상, 그 의상에 스탠딩이 없으면 기본) */
+  const stand = (id: string, expr: StandExpression) => {
+    const outfit = opts.outfits?.[id] ?? defaultOutfit(id);
+    const r = outfit ? standUrl(outfit, expr) : undefined;
+    return r?.url && r.cropped ? r : standUrl(id, expr);
+  };
 
   const bgLayer = h('div', { class: 'vn__bgs' });
   const cast = h('div', { class: 'vn__cast' });
@@ -192,11 +206,19 @@ export function playScript(opts: ScriptOptions): void {
 
   // ── 캐릭터
   function standImg(id: string, expr: StandExpression): HTMLImageElement {
-    const { url, cropped } = standUrl(id, expr);
+    const { url, cropped, headTop } = stand(id, expr);
     const img = h('img', { class: `vn__stand${cropped ? '' : ' is-full'}`, src: url ?? '', alt: '', draggable: 'false' });
     // 스탠딩은 머리 크기를 맞춰 잘라 두었으므로, 원본 높이에 비례해서 띄운다 (짧은 그림은 그만큼 낮게, 화면 아래에 붙어서)
     if (cropped) {
-      const fit = () => (img.style.height = `${(img.naturalHeight / STAND_REF_HEIGHT) * 100}%`);
+      const fit = () => {
+        const n = img.naturalHeight;
+        img.style.height = `${(n / STAND_REF_HEIGHT) * 100}%`;
+        if (headTop === undefined) return;
+        // 모자·후드 때문에 머리 위로 긴 그림(시즌 의상): 머리 끝이 다른 스탠딩과 같은 높이에 오게 올리고,
+        // 넘치는 아랫부분(무릎 쪽)은 화면 아래·대사창 뒤로 내린다
+        img.style.bottom = `${((STAND_REF_HEIGHT - STAND_HEAD_TOP + headTop - n) / STAND_REF_HEIGHT) * 100}%`;
+        img.dataset.head = String((STAND_REF_HEIGHT - STAND_HEAD_TOP) / STAND_REF_HEIGHT);
+      };
       if (img.complete && img.naturalHeight) fit();
       else img.addEventListener('load', fit, { once: true });
     }
@@ -223,7 +245,7 @@ export function playScript(opts: ScriptOptions): void {
   const preloaded: HTMLImageElement[] = [];
   for (const line of opts.lines) {
     if (!line.s || line.s === 'me') continue;
-    const { url } = standUrl(line.s, line.e ?? 'neutral');
+    const { url } = stand(line.s, line.e ?? 'neutral');
     if (url && !preloaded.some((p) => p.src.endsWith(url))) {
       const img = new Image();
       img.src = url;
@@ -365,7 +387,7 @@ export function playScript(opts: ScriptOptions): void {
   function showEmotes(a: Actor, list: Emote[]) {
     // 머리 꼭대기: 스탠딩은 머리 끝이 이미지 맨 위라, 이미지 높이(상자 대비 %)로 위치를 잡는다
     const img = a.breath.querySelector('img');
-    const ratio = img?.style.height ? parseFloat(img.style.height) / 100 : 0.98;
+    const ratio = img?.dataset.head ? Number(img.dataset.head) : img?.style.height ? parseFloat(img.style.height) / 100 : 0.98;
     list.forEach((kind, i) => {
       const el = h('div', { class: `vn__emote vn__emote--${kind}${i % 2 ? ' is-alt' : ''}` });
       el.innerHTML = emoteSvg(kind);

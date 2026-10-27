@@ -13,7 +13,7 @@ import type { Component } from './component';
 import { h, onTap } from './dom';
 import { openModal } from './modal';
 
-const RARITY_ORDER = { R: 0, SR: 1, SSR: 2 } as const;
+const RARITY_ORDER = { R: 0, SR: 1, SSR: 2, U: 3 } as const;
 
 /** 도감: 모든 카드를 부원별로 보여 준다. 안 뽑은 카드는 실루엣. */
 export function createCollection(game: Game): Component {

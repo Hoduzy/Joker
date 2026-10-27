@@ -1,7 +1,10 @@
 /**
- * scripts/cut-sheets.mjs가 만든 캐릭터 이미지(assets/characters/<id>/*.png)를 모은다.
- * 새 캐릭터 폴더를 추가하면 자동으로 잡힌다. URL만 가져오므로 실제 다운로드는 화면에 쓸 때 일어난다.
+ * scripts/cut-sheets.mjs·cut-outfits.mjs가 만든 캐릭터 이미지를 모은다.
+ *   assets/characters/<id>/*.png            부원·의상 (예: dahye, dahye-winter)
+ *   assets/characters/<부원>/<의상>/*.png    시즌 의상 (예: seoyun/halloween → id "seoyun/halloween")
+ * 새 폴더를 추가하면 자동으로 잡힌다. URL만 가져오므로 실제 다운로드는 화면에 쓸 때 일어난다.
  */
+import standMeta from './standMeta.json';
 export const EXPRESSIONS = ['neutral', 'smile', 'angry', 'sad', 'surprised', 'blush'] as const;
 export type Expression = (typeof EXPRESSIONS)[number];
 
@@ -29,7 +32,7 @@ export interface PortraitSet {
   stands: Partial<Record<StandExpression, string>>;
 }
 
-const files = import.meta.glob('/assets/characters/*/*.png', {
+const files = import.meta.glob(['/assets/characters/*/*.png', '/assets/characters/*/*/*.png'], {
   eager: true,
   query: '?url',
   import: 'default',
@@ -37,7 +40,7 @@ const files = import.meta.glob('/assets/characters/*/*.png', {
 
 const portraits = new Map<string, PortraitSet>();
 for (const [file, url] of Object.entries(files)) {
-  const match = /\/assets\/characters\/([^/]+)\/([^/]+)\.png$/.exec(file);
+  const match = /\/assets\/characters\/([^/]+(?:\/[^/]+)?)\/([^/]+)\.png$/.exec(file);
   if (!match) continue;
   const [, id, name] = match;
   const set = portraits.get(id) ?? { faces: {}, stands: {} };
@@ -64,13 +67,16 @@ export function faceUrl(id: string, expr: StandExpression = 'neutral', fallback?
  * 스토리 스탠딩 이미지. 그 표정이 없으면 기본(neutral), 스탠딩이 아예 없으면 전신(full.png)으로 대신한다.
  * cropped: 스탠딩(머리 끝~허리 아래로 맞춘 그림)이면 true, 전신 대체면 false
  */
-export function standUrl(id: string, expr: StandExpression = 'neutral'): { url?: string; cropped: boolean; fallback: boolean } {
+export function standUrl(id: string, expr: StandExpression = 'neutral'): { url?: string; cropped: boolean; fallback: boolean; headTop?: number } {
   const set = portraits.get(id);
   const stands = set?.stands ?? {};
   const url = stands[expr] ?? stands.neutral;
-  if (url) return { url, cropped: true, fallback: !stands[expr] };
+  if (url) return { url, cropped: true, fallback: !stands[expr], headTop: (standMeta as Record<string, { headTop: number }>)[id]?.headTop };
   return { url: set?.full, cropped: false, fallback: true };
 }
+
+/** 스탠딩 이미지에서 머리 끝 위치(px). 모자·후드 때문에 그림이 머리 위로 긴 의상만 있다 (standMeta.json) */
+export const STAND_HEAD_TOP = 8;
 
 export function sdUrl(id: string, fallback?: string): string | undefined {
   return portraits.get(id)?.sd ?? (fallback ? portraits.get(fallback)?.sd : undefined);

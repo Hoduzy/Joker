@@ -72,10 +72,27 @@ export function openSlotPicker(game: Game, card: CardDef): void {
   const member = getMember(card.member)!;
   const lb = limitBreakOf(state, card.id);
   const baseRate = listenersPerSecond(state);
+  // 로비 캐릭터: 타이틀 화면에 이 카드 그림, 스토리·대사에서 이 카드의 의상
+  const isLobby = state.lobbyCard === card.id;
+  const lobby = {
+    selected: isLobby,
+    onSelect: () => game.setLobbyCard(isLobby ? null : card.id),
+    content: h(
+      'div',
+      { class: 'pick' },
+      h('div', { class: 'pick__role' }, '로비'),
+      h(
+        'div',
+        { class: 'pick__info' },
+        h('div', { class: 'pick__name' }, isLobby ? '로비 캐릭터 (해제하기)' : '로비 캐릭터로'),
+        h('div', { class: 'pick__meta' }, card.outfit ? '타이틀 화면에 나오고, 스토리에서도 이 의상으로 나와요' : '타이틀 화면에 이 카드가 나와요'),
+      ),
+    ),
+  };
   openSheet({
     title: `${member.name} · ${card.title}`,
     subtitle: `${card.rarity} · 돌파 ${lb}단계 · 담당 슬롯에 배치하면 파워 +30%`,
-    options: SLOTS.map((slot) => {
+    options: [...SLOTS.map((slot) => {
       const occupant = state.assignments[slot.id] ? getCard(state.assignments[slot.id]!) : undefined;
       const here = occupant?.id === card.id;
       return {
@@ -99,6 +116,6 @@ export function openSlotPicker(game: Game, card: CardDef): void {
           here ? diffBadge(0, 0, '배치 중') : diffBadge(previewRateWith(state, slot.id, card.id), baseRate),
         ),
       };
-    }),
+    }), lobby],
   });
 }

@@ -6,6 +6,7 @@ import { getCorner } from '../data/flavor';
 import { bondStatMult, memberBondLevel } from './bond';
 import { slotUnlocked } from './unlocks';
 import { equipBonuses, type EquipBonuses } from './equipment';
+import { eventListenerMultiplier } from './events';
 import type { GameState } from './state';
 
 /** 카드 성장 상태: 돌파 단계와 강화 레벨 */
@@ -110,10 +111,10 @@ export function towerUpgradeCost(level: number): number {
   return Math.ceil(BALANCE.tower.baseCost * Math.pow(BALANCE.tower.costGrowth, level - 1));
 }
 
-/** 초당 청취자 증가량 */
+/** 초당 청취자 증가량 (진행 중인 시즌 이벤트의 U 카드를 배치하면 보너스) */
 export function listenersPerSecond(state: GameState): number {
   const listenersPct = equipBonuses(state).listenersPct;
-  return totalPower(state) * BALANCE.listenersPerPower * towerMultiplier(state.towerLevel) * (1 + listenersPct / 100);
+  return totalPower(state) * BALANCE.listenersPerPower * towerMultiplier(state.towerLevel) * (1 + listenersPct / 100) * eventListenerMultiplier(state, state.lastTick);
 }
 
 /**

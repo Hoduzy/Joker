@@ -18,7 +18,7 @@ export interface CardFrameOptions {
 
 /**
  * 카드 그림. 전용 일러스트가 없으면 부원 전신 이미지 위쪽을 잘라 쓰고,
- * 등급별 테두리(R 은색 · SR 금색 · SSR 무지개)를 씌운다.
+ * 등급별 테두리(R 은색 · SR 금색 · SSR 무지개 · U 주황·보라 홀로그램)를 씌운다.
  */
 export function cardFrame(card: CardDef, opts: CardFrameOptions = {}): HTMLElement {
   const { size = 'md', owned = true, limitBreak, level } = opts;
@@ -41,7 +41,7 @@ export function cardFrame(card: CardDef, opts: CardFrameOptions = {}): HTMLEleme
         'div',
         { class: 'cardf__caption' },
         h('div', { class: 'cardf__title' }, owned ? card.title : '???'),
-        h('div', { class: 'cardf__name' }, owned ? (member?.name ?? '') : ''),
+        h('div', { class: 'cardf__name' }, owned ? (member?.name ?? '') : '', owned && card.rarity === 'U' ? rarityBadge('U') : null),
         owned && limitBreak !== undefined ? lbPips(limitBreak) : null,
       ),
     );

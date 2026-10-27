@@ -4,9 +4,10 @@
  * 1. 반투명(알파 < alphaSolid) 픽셀은 어디 있든 지운다
  * 2. 테두리와 이어진 '거의 흰색' 픽셀을 지운다 → 테두리와 안 이어진 흰 셔츠·하이라이트는 남는다
  * 3. 남은 조각 중 전체 대비 speckRatio보다 작은 부스러기를 지운다
- * 4. 바깥 1px은 반투명으로 (흰 테두리 줄이기)
+ * 4. (defringe) 배경과 맞닿은 밝은 픽셀을 몇 겹 깎는다 — whiteMin을 높게 잡아 남은 흰 헤일로 제거
+ * 5. 바깥 1px은 반투명으로 (흰 테두리 줄이기)
  */
-export function keyOut(data, w, h, { whiteMin = 238, whiteSpread = 16, alphaSolid = 140, speckRatio = 0.002, edgeAlpha = 170 } = {}) {
+export function keyOut(data, w, h, { whiteMin = 238, whiteSpread = 16, alphaSolid = 140, speckRatio = 0.002, edgeAlpha = 170, defringe = 0, fringeMin = 215 } = {}) {
   const n = w * h;
   const isBg = (i) => {
     const o = i * 4;
@@ -61,6 +62,21 @@ export function keyOut(data, w, h, { whiteMin = 238, whiteSpread = 16, alphaSoli
     total += size;
   }
   for (let i = 0; i < n; i++) if (!bg[i] && sizes[label[i]] < total * speckRatio) bg[i] = 1;
+
+  // 흰 테두리(헤일로) 벗기기: 배경과 맞닿은 밝은 픽셀을 defringe 겹만큼 깎는다 (그림의 어두운 외곽선에서 멈춘다)
+  for (let pass = 0; pass < defringe; pass++) {
+    const peel = [];
+    for (let i = 0; i < n; i++) {
+      if (bg[i]) continue;
+      const x = i % w;
+      const edge = (x > 0 && bg[i - 1]) || (x < w - 1 && bg[i + 1]) || (i >= w && bg[i - w]) || (i < n - w && bg[i + w]);
+      if (!edge) continue;
+      const o = i * 4;
+      const mn = Math.min(data[o], data[o + 1], data[o + 2]), mx = Math.max(data[o], data[o + 1], data[o + 2]);
+      if (mn >= fringeMin && mx - mn <= 28) peel.push(i);
+    }
+    for (const i of peel) bg[i] = 1;
+  }
 
   for (let i = 0; i < n; i++) {
     const o = i * 4;

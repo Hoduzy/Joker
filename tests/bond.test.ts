@@ -327,7 +327,7 @@ describe('starting club and rarity order', () => {
     const maxed = { limitBreak: maxLb, level: maxCardLevel(maxLb), bond: BALANCE.bond.maxLevel };
     const fresh = { limitBreak: 0, level: 1, bond: 1 };
     const own = (c: (typeof CARDS)[number], p: CardProgress) => slotPower(c, p, SLOTS.find((s) => s.id === c.slot)!);
-    const order = ['R', 'SR', 'SSR'] as const;
+    const order = ['R', 'SR', 'SSR', 'U'] as const;
     for (let i = 0; i < order.length - 1; i++) {
       const lowMax = Math.max(...CARDS.filter((c) => c.rarity === order[i]).map((c) => own(c, maxed)));
       const highMin = Math.min(...CARDS.filter((c) => c.rarity === order[i + 1]).map((c) => own(c, fresh)));
