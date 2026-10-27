@@ -214,9 +214,9 @@ export const BALANCE = {
    * 이 카드를 방송에 배치한 시간 + 하루 몇 번 '교감하기' + 같은 카드를 또 얻으면(돌파) + 전용 스토리 선택지
    */
   cardBond: {
-    maxLevel: 5,
+    maxLevel: 7,
     /** 레벨 n에 필요한 누적 호감도 (index 0 = 레벨 1) */
-    xpTable: [0, 60, 150, 280, 450],
+    xpTable: [0, 60, 150, 280, 450, 680, 960],
     /** 이 카드를 배치해 둔 1분당 (오프라인 포함) */
     placementXpPerMin: 0.2,
     talkXp: 15,

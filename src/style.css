@@ -4691,6 +4691,13 @@ a.btn {
   background-position: 0 56%, 0 0;
   background-repeat: no-repeat;
 }
+/* 원룸 (밤, 스탠드 불빛) — assets/bg/room.jpg를 넣으면 그 그림으로 */
+.vn__bg--room:not(.has-image) {
+  background-image:
+    radial-gradient(ellipse at 22% 38%, rgba(255, 196, 120, 0.55), transparent 42%),
+    radial-gradient(ellipse at 80% 20%, rgba(120, 110, 200, 0.25), transparent 50%),
+    linear-gradient(180deg, #2a2236 0%, #3b2f40 58%, #4a3a36 59%, #2b221f 100%);
+}
 .vn__bg--street:not(.has-image) {
   background-image: linear-gradient(180deg, #8fd3ff 0%, #c6ecff 50%, #b9c9a4 51%, #8a9a74 100%);
 }

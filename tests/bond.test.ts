@@ -96,7 +96,8 @@ describe('save migration v7 → v8', () => {
 
 describe('story backgrounds', () => {
   it('starts every chapter and event with a background from assets/bg', () => {
-    expect([...BACKGROUNDS]).toEqual(['classroom', 'broadcast', 'hallway', 'rooftop', 'street']);
+    expect([...BACKGROUNDS]).toEqual(['classroom', 'broadcast', 'hallway', 'rooftop', 'street', 'room']);
+    // room은 아직 그림이 없어 그라데이션으로 (assets/bg/room.jpg를 넣으면 그 그림)
     for (const ep of EPISODES) expect(BACKGROUNDS, ep.key).toContain(ep.lines[0].bg);
     for (const m of MEMBERS) for (const ev of NARRATIVE.events[m.id]) expect(BACKGROUNDS).toContain(ev.lines[0].bg);
   });

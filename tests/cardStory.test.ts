@@ -25,12 +25,12 @@ function owning(...ids: string[]) {
 }
 
 describe('card_stories.json', () => {
-  it('has 3 episodes for each U card, unlocked at Lv.1/3/5, 25~40 lines each', () => {
+  it('has 5 episodes for each U card, unlocked at Lv.1/3/5/6/7, 25~40 lines each', () => {
     expect(CARD_STORY_IDS.sort()).toEqual([MIRAE, SEOYUN]);
     for (const id of CARD_STORY_IDS) {
       const s = getCardStory(id)!;
       expect(getCard(id)?.rarity).toBe('U');
-      expect(s.episodes.map((e) => e.level)).toEqual([1, 3, 5]);
+      expect(s.episodes.map((e) => e.level)).toEqual([1, 3, 5, 6, 7]);
       for (const ep of s.episodes) {
         const n = lineCount(ep.lines);
         expect(n, `${id} ${ep.no}화 ${n}줄`).toBeGreaterThanOrEqual(25);
@@ -69,11 +69,13 @@ describe('card bond', () => {
   it('unlocks episodes 1 → 2 → 3 with bond level', () => {
     const s = owning(SEOYUN);
     const eps = getCardStory(SEOYUN)!.episodes;
-    expect(eps.map((e) => cardEpisodeOpen(s, SEOYUN, e))).toEqual([true, false, false]);
+    expect(eps.map((e) => cardEpisodeOpen(s, SEOYUN, e))).toEqual([true, false, false, false, false]);
     addCardBond(s, SEOYUN, BALANCE.cardBond.xpTable[2], DAY);
-    expect(eps.map((e) => cardEpisodeOpen(s, SEOYUN, e))).toEqual([true, true, false]);
+    expect(eps.map((e) => cardEpisodeOpen(s, SEOYUN, e))).toEqual([true, true, false, false, false]);
+    addCardBond(s, SEOYUN, BALANCE.cardBond.xpTable[5] - BALANCE.cardBond.xpTable[2], DAY);
+    expect(eps.map((e) => cardEpisodeOpen(s, SEOYUN, e))).toEqual([true, true, true, true, false]);
     addCardBond(s, SEOYUN, 10000, DAY);
-    expect(eps.map((e) => cardEpisodeOpen(s, SEOYUN, e))).toEqual([true, true, true]);
+    expect(eps.map((e) => cardEpisodeOpen(s, SEOYUN, e))).toEqual([true, true, true, true, true]);
     // 보유하지 않으면 1화도 잠김
     expect(cardEpisodeOpen(createInitialState(0), SEOYUN, eps[0])).toBe(false);
   });

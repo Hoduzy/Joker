@@ -54,7 +54,7 @@ import textsRaw from './texts.json';
 
 const chapterFiles = import.meta.glob('./story/chapter*.json', { eager: true, import: 'default' }) as Record<string, unknown>;
 
-export const BACKGROUNDS = ['classroom', 'broadcast', 'hallway', 'rooftop', 'street'] as const;
+export const BACKGROUNDS = ['classroom', 'broadcast', 'hallway', 'rooftop', 'street', 'room'] as const;
 export type Background = (typeof BACKGROUNDS)[number];
 
 export const BGMS = ['main', 'title', 'daily', 'comic', 'calm', 'mystery', 'sad', 'battle', 'romance', 'flashback', 'climax', 'ending', 'none'] as const;
