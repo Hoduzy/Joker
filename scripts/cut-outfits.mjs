@@ -41,26 +41,26 @@ const SEASONS = {
         file: 'seoyun_halloween_faces.png',
         grid: [3, 2],
         order: ['neutral', 'smile', 'angry', 'sad', 'surprised', 'blush'],
-        // 모자 끝 → 턱 204px, 눈~턱 거리로 잰 머리 높이 ≈ 140px → ×1.43
-        chinFromTop: 204,
+        // 모자 끝 → 턱 219px. 눈 사이 거리·눈~턱 거리가 이전 시트와 같아 배율도 그대로 ×1.43
+        chinFromTop: 219,
         scale: 1.43,
         bottom: 'content',
-        faceX: 165,
-        // 흰 스타킹·머리카락이 배경과 거의 같은 색이라, 배경(250~255)만 지우고 남는 흰 테두리는 2겹 깎는다
-        keying: { whiteMin: 250, whiteSpread: 6, defringe: 2 },
+        faceX: 162,
+        // 원본이 이미 투명 배경 → 흰색(스타킹·머리카락)은 건드리지 않고 반투명 잔여물만 지운다
+        keying: { whiteMin: 256 },
       },
       {
         key: 'mirae/halloween',
         file: 'mirae_halloween_faces.png',
         grid: [3, 2],
         order: ['neutral', 'smile', 'angry', 'sad', 'surprised', 'blush'],
-        // 후드 끝 → 턱 133px, 머리 높이 ≈ 120px → ×1.67. 신발까지 나와 있어 무릎 위(후드 끝에서 430px)까지만
-        chinFromTop: 133,
-        scale: 1.67,
-        bottom: 430,
-        faceX: 175,
-        // 흰 유령 망토를 지우지 않게 배경만 지우고, 남는 흰 테두리는 2겹 깎는다
-        keying: { whiteMin: 250, whiteSpread: 6, defringe: 2 },
+        // 후드 끝 → 턱 176px. 무릎 위까지 그린 시트라 얼굴이 이전보다 커서 배율을 낮춘다 (눈 사이·눈~턱 거리로 맞춤)
+        chinFromTop: 176,
+        scale: 1.4,
+        bottom: 'content',
+        faceX: 164,
+        // 원본이 이미 투명 배경 → 흰 유령 망토는 건드리지 않고 반투명 잔여물만 지운다
+        keying: { whiteMin: 256 },
       },
     ],
   },
