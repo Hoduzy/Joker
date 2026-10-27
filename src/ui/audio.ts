@@ -30,18 +30,20 @@ export interface AudioSettings {
   bgm: number;
   sfx: number;
   muted: boolean;
+  /** 대사 말소리 (효과음 볼륨을 따른다) */
+  voice: boolean;
 }
 
 let settings: AudioSettings = readSettings();
 
 function readSettings(): AudioSettings {
-  const base: AudioSettings = { bgm: 0.7, sfx: 0.8, muted: false };
+  const base: AudioSettings = { bgm: 0.7, sfx: 0.8, muted: false, voice: true };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw) as Partial<AudioSettings>;
       const vol = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : d);
-      return { bgm: vol(s.bgm, base.bgm), sfx: vol(s.sfx, base.sfx), muted: s.muted === true };
+      return { bgm: vol(s.bgm, base.bgm), sfx: vol(s.sfx, base.sfx), muted: s.muted === true, voice: s.voice !== false };
     }
     // 예전 '효과음 끄기' 설정은 음소거로 옮긴다
     if (localStorage.getItem(OLD_SOUND_KEY) === 'off') return { ...base, muted: true };

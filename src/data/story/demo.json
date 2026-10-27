@@ -3,6 +3,20 @@
   "lines": [
     { "bg": "broadcast", "t": "연출 테스트 장면. 모든 연출 태그를 순서대로 보여 줘요. (화면을 눌러 넘기기)" },
 
+    { "t": "── 말소리 (voices.json) — 다섯 명이 한 줄씩 ──" },
+    { "speaker": "dahye", "face": "neutral", "text": "방송부장 다혜. 낮고 짧게, 딱딱 끊어서 말해. 늦지 마." },
+    { "speaker": "mirae", "face": "neutral", "text": "미래. 사각파에 비트크러시. 높낮이 변화 거의 없음. 이상 끝." },
+    { "speaker": "yuri", "face": "smile", "text": "유리야! 삼각파로 통통 튀는 목소리~ 오늘도 같이 가자!" },
+    { "speaker": "haneul", "face": "smile", "text": "하늘이야~! 제일 높고 반짝반짝한 목소리! 노래하는 것 같지?" },
+    { "speaker": "seoyun", "face": "neutral", "text": "……서윤이에요. 조금 느리게, 멀리서 울리듯이. 들리나요?" },
+    { "n": "???", "t": "……이 방송이, 들리나요? (이름표가 ???·신호면 서윤 목소리)" },
+    { "t": "── 같은 부원, 표정별 말소리 ──" },
+    { "speaker": "yuri", "face": "neutral", "text": "보통 표정의 유리 목소리야. 이거랑 비교해 봐." },
+    { "speaker": "yuri", "face": "angry", "text": "화나면 음이 낮아지고 빨라져! 진짜 화났다고!" },
+    { "speaker": "yuri", "face": "surprised", "text": "놀라면 음이 높아져! 어? 진짜? 정말로?" },
+    { "speaker": "yuri", "face": "sad", "text": "슬프면… 낮고, 느리게… 말하게 돼." },
+    { "speaker": "yuri", "face": "blush", "text": "부끄러우면 작고 빠르게… 그, 그만 봐." },
+
     { "t": "── 등장 · 퇴장 ──" },
     { "speaker": "haneul", "face": "smile", "text": "action: slide_in_left — 왼쪽에서 미끄러져 들어오기!", "action": "slide_in_left" },
     { "speaker": "mirae", "face": "neutral", "text": "action: slide_in_right. 오른쪽에서.", "action": "slide_in_right" },

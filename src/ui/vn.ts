@@ -1,9 +1,11 @@
 import { getMember } from '../data/members';
 import type { Action, Bgm, Emote, Screen, ScriptLine } from '../data/narrative';
+import { QUESTION_LIFT, VOICE_PAUSE_MS, voiceFor } from '../data/voices';
 import { STAND_REF_HEIGHT, standUrl, type StandExpression } from '../data/portraits';
 import { playBgm } from './audio';
 import { h, onTap } from './dom';
 import { emoteSvg } from './emotes';
+import { blip, cutVoice } from './voice';
 import { reducedMotion } from './motion';
 import { sfx } from './sfx';
 import { playTitleCard, type TitleCard } from './titleCard';
@@ -27,6 +29,10 @@ for (const [file, url] of Object.entries(bgFiles).sort(([a], [b]) => (a.endsWith
 export const bgUrl = (id: string) => BG.get(id);
 
 const TYPE_MS = 32;
+/** 말소리를 내지 않는 글자 (띄어쓰기·문장부호) */
+const SILENT = /[\s.,!?…~·\-—–'"“”‘’()[\]『』「」:;]/;
+/** 이 글자 뒤에는 살짝 쉬었다가 다음 글자 */
+const STOP = /[.?!…]/;
 /** 오토 모드: 글자가 다 나온 뒤 이만큼 + 글자당 시간 기다렸다 넘긴다 */
 const AUTO_BASE_MS = 1100;
 const AUTO_PER_CHAR_MS = 45;
@@ -392,8 +398,10 @@ export function playScript(opts: ScriptOptions): void {
 
   // ── 대사
   function stopTyping() {
-    window.clearInterval(typing);
+    window.clearTimeout(typing);
     typing = 0;
+    // 탭해서 한 번에 띄우면 말소리도 바로 멈춘다
+    cutVoice();
     text.textContent = full;
     next.hidden = false;
     scheduleAuto();
@@ -478,14 +486,39 @@ export function playScript(opts: ScriptOptions): void {
     log.push({ name: speaker, color: member?.color, text: full, kind: member || line.n ? 'line' : line.s === 'me' ? 'me' : 'narration' });
     text.textContent = '';
     next.hidden = true;
-    let i = 0;
-    window.clearInterval(typing);
+    window.clearTimeout(typing);
     window.clearTimeout(autoTimer);
-    typing = window.setInterval(() => {
+    typeLine(voiceFor(line, member ? (line.e ?? 'neutral') : undefined));
+  }
+
+  /**
+   * 한 글자씩 타이핑 + 말소리.
+   * - 소리는 (띄어쓰기·문장부호를 뺀) 글자 몇 개에 한 번 (voices.json의 every), 매번 음높이를 살짝 흔든다
+   * - 마침표·물음표 뒤엔 잠깐 쉬고, 물음표로 끝나는 대사는 마지막 소리를 올린다
+   */
+  function typeLine(voice: ReturnType<typeof voiceFor>) {
+    const chars = [...full];
+    const step = voice?.charMs ?? TYPE_MS;
+    const ask = /[?？]\s*$/.test(full);
+    let lastVoiced = -1;
+    chars.forEach((c, k) => !SILENT.test(c) && (lastVoiced = k));
+    let i = 0;
+    let voiced = 0;
+    const tick = () => {
+      const c = chars[i];
       i += 1;
-      text.textContent = full.slice(0, i);
-      if (i >= full.length) stopTyping();
-    }, TYPE_MS);
+      text.textContent = chars.slice(0, i).join('');
+      if (voice && c && !SILENT.test(c)) {
+        if (ask && i - 1 === lastVoiced) blip(voice, QUESTION_LIFT);
+        else if (voiced % voice.every === 0) blip(voice);
+        voiced += 1;
+      }
+      if (i >= chars.length) return stopTyping();
+      // 문장이 끝나는 부호 뒤(부호가 이어지면 마지막 부호 뒤)에서 살짝 쉰다
+      const pause = STOP.test(c) && !STOP.test(chars[i]) ? VOICE_PAUSE_MS : 0;
+      typing = window.setTimeout(tick, step + pause);
+    };
+    typing = window.setTimeout(tick, step);
   }
 
   function showChoices(line: ScriptLine) {
@@ -544,7 +577,8 @@ export function playScript(opts: ScriptOptions): void {
   }
 
   function end(completed: boolean) {
-    window.clearInterval(typing);
+    window.clearTimeout(typing);
+    cutVoice();
     window.clearTimeout(autoTimer);
     window.clearTimeout(pending);
     timers.forEach((t) => window.clearTimeout(t));
@@ -598,8 +632,9 @@ export function playScript(opts: ScriptOptions): void {
   // 빨리 감기: 다음 선택지·CG(없으면 마지막 줄) 바로 앞까지
   onTap(skip, () => {
     if (waitingChoice) return;
-    window.clearInterval(typing);
+    window.clearTimeout(typing);
     typing = 0;
+    cutVoice();
     const stop = queue.findIndex((l, i) => i > index && (l.choice || l.cg));
     const target = (stop === -1 ? queue.length : stop) - 1;
     let lastBg = '';

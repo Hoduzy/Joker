@@ -35,6 +35,20 @@ export function openSettings(game: Game): void {
   });
   renderMute();
 
+  // 말소리: 대사가 타이핑될 때 부원마다 다른 짧은 소리 (효과음 볼륨을 따른다)
+  const voice = h('button', { class: 'toggle', type: 'button', role: 'switch' });
+  const renderVoice = () => {
+    const on = audioSettings().voice;
+    voice.classList.toggle('is-on', on);
+    voice.setAttribute('aria-checked', String(on));
+    voice.textContent = on ? '켜짐' : '꺼짐';
+  };
+  onTap(voice, () => {
+    setAudioSettings({ voice: !audioSettings().voice });
+    renderVoice();
+  });
+  renderVoice();
+
   const credits = h('button', { class: 'btn btn--ghost btn--small', type: 'button' }, '보기');
   onTap(credits, () =>
     openModal({
@@ -91,6 +105,7 @@ export function openSettings(game: Game): void {
     { class: 'settings' },
     h('div', { class: 'settings__row' }, h('span', {}, '🎵 배경음악'), slider('bgm', '배경음악 볼륨')),
     h('div', { class: 'settings__row' }, h('span', {}, '🔊 효과음'), slider('sfx', '효과음 볼륨')),
+    h('div', { class: 'settings__row' }, h('span', {}, '🗣️ 말소리'), voice),
     h('div', { class: 'settings__row' }, h('span', {}, '🔇 음소거'), mute),
     h('div', { class: 'settings__row' }, h('span', {}, '🎬 연출 줄이기'), motion),
     h('div', { class: 'settings__row' }, h('span', {}, '🎞️ 연출 테스트'), demo),
