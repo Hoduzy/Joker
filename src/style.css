@@ -1291,6 +1291,8 @@ a.btn {
 
 /* ── Gacha screen ──────────────────── */
 .gacha {
+  /* 해금 칸(.lock-gate, grid) 안에서 margin: auto면 내용 폭으로 줄어든다 → 가로를 꽉 채운 뒤 최대 960px */
+  width: 100%;
   max-width: 960px;
   margin: 0 auto;
 }
@@ -6283,6 +6285,15 @@ body {
 
   .gacha__buttons .btn {
     min-height: 64px;
+  }
+
+  /* 카드 부채꼴(카드 1장 + 0.62장씩 4장 ≈ 3.5장 폭)이 패널 안에 들어가게 화면 폭에 맞춘다 */
+  .gacha__banner {
+    padding: 18px 14px;
+  }
+
+  .gacha__showcase {
+    --card-w: min(23vw, 110px);
   }
 
   /* 부원 대사창: 탭 바로 위, 작게 */
