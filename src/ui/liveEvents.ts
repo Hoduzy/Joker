@@ -4,11 +4,10 @@ import type { Game } from '../core/game';
 import { BALANCE } from '../data/balance';
 import { getCard } from '../data/cards';
 import { FLAVOR, pick } from '../data/flavor';
-import { formatNumber } from '../utils/format';
 import type { Chat } from './chat';
 import { h } from './dom';
 import type { Studio } from './studio';
-import { gemIcon, toast } from './toast';
+import { startTuning } from './tuning';
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
@@ -16,7 +15,7 @@ const rand = (min: number, max: number) => min + Math.random() * (max - min);
 function blocked(): boolean {
   return (
     document.visibilityState !== 'visible' ||
-    !!document.querySelector('#modal, #sheet, .pull, .flyer, .accident, .story, .battle, .vn, .phone')
+    !!document.querySelector('#modal, #sheet, .pull, .flyer, .tuner, .story, .battle, .vn, .phone, .admin, .title-screen')
   );
 }
 
@@ -30,7 +29,7 @@ function assignedMembers(game: Game): string[] {
  * 방송 중 돌발 이벤트들을 돌린다.
  * - 말풍선: 배치된 부원이 각자 10~20초마다 한마디
  * - 레전드 사연: 1~3분마다 엽서가 화면을 가로지른다. 탭하면 30초간 청취자 ×3
- * - 방송사고: 가끔 노이즈. 5초 안에 탭하면 보너스, 놓치면 20초간 생산 절반
+ * - 방송사고: 전파 이탈. 다이얼로 주파수를 다시 잡는다 (ui/tuning.ts)
  */
 export function startLiveEvents(game: Game, studio: Studio, chat: Chat): { syncBubbles(): void } {
   // ── 말풍선
@@ -90,7 +89,7 @@ export function startLiveEvents(game: Game, studio: Studio, chat: Chat): { syncB
       return;
     }
     if (kind === 'legend') spawnPostcard(() => schedule('legend'));
-    else spawnAccident(() => schedule('accident'));
+    else startTuning(game, studio, chat, () => schedule('accident'));
   }
 
   // ── 레전드 사연 엽서
@@ -147,60 +146,10 @@ export function startLiveEvents(game: Game, studio: Studio, chat: Chat): { syncB
     setTimeout(close, 6000);
   }
 
-  // ── 방송사고
-  function spawnAccident(done: () => void) {
-    const seconds = Math.round(BALANCE.accident.windowMs / 1000);
-    const count = h('div', { class: 'accident__count' }, String(seconds));
-    const ring = h('div', { class: 'accident__ring' });
-    ring.style.setProperty('--window', `${BALANCE.accident.windowMs}ms`);
-    const overlay = h(
-      'div',
-      { class: 'accident', role: 'alertdialog', 'aria-label': '방송사고! 화면을 탭해서 복구하세요' },
-      h('div', { class: 'accident__noise' }),
-      h('div', { class: 'accident__bars' }),
-      h(
-        'div',
-        { class: 'accident__box' },
-        h('div', { class: 'accident__title' }, '📡 방송사고 발생!'),
-        h('div', { class: 'accident__timer' }, ring, count),
-        h('div', { class: 'accident__hint' }, '화면을 탭해서 복구하세요'),
-      ),
-    );
-    chat.burst('accident', 3);
-    let left = seconds;
-    let over = false;
-    const countdown = window.setInterval(() => {
-      left -= 1;
-      count.textContent = String(Math.max(0, left));
-    }, 1000);
-    const end = (fixed: boolean) => {
-      if (over) return;
-      over = true;
-      window.clearInterval(countdown);
-      window.clearTimeout(timeout);
-      const r = game.resolveAccident(fixed);
-      overlay.classList.add(fixed ? 'is-fixed' : 'is-failed');
-      if (fixed) {
-        sfx.victory();
-        toast(`복구 성공! 청취자 +${formatNumber(r.listeners)} · 전파석 +${r.stones}`, gemIcon());
-        chat.burst('accidentFixed', 2);
-      } else {
-        sfx.defeat();
-        toast(`복구 실패… ${BALANCE.accident.penaltyMs / 1000}초 동안 생산 절반`);
-        chat.burst('accidentFailed', 2);
-      }
-      setTimeout(() => {
-        overlay.remove();
-        done();
-      }, 400);
-    };
-    const timeout = window.setTimeout(() => end(false), BALANCE.accident.windowMs);
-    overlay.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      end(true);
-    });
-    document.body.append(overlay);
-  }
+  // 관리자 패널 '방송사고 지금 발생'
+  document.addEventListener('simya:accident', () => {
+    if (game.baseRate > 0 && !document.querySelector('.tuner')) startTuning(game, studio, chat, () => {});
+  });
 
   syncBubbles();
   schedule('legend', true);

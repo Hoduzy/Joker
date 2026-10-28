@@ -45,6 +45,7 @@ import {
 } from './events';
 import type { EventDef, EventMissionKind, EventRewards } from '../data/events';
 import { getCardStory, hasCardStory } from '../data/cardStories';
+import { gradeBoost, type AccidentGrade } from './accident';
 import { addCardBond, useCardTalk } from './cardBond';
 
 export type GameEvent =
@@ -83,7 +84,8 @@ export type GameEvent =
 
 export type EnhanceResult = 'success' | 'fail';
 
-export type BoostKind = 'legend' | 'accident';
+/** legend: 레전드 사연 ×3, accident: 방송사고 실패(생산 절반), tuned: 방송사고 빠른 복구 보너스 */
+export type BoostKind = 'legend' | 'accident' | 'tuned';
 
 export interface Boost {
   kind: BoostKind;
@@ -169,23 +171,27 @@ export class Game {
   }
 
   /**
-   * 방송사고 결과. 복구하면 청취자·전파석 보너스, 놓치면 일정 시간 생산 감소.
-   * 복구 보너스를 돌려준다.
+   * 방송사고(전파 이탈) 결과. 빨리 잡을수록 청취자 배수 (완벽 ×3 / 복구 ×2 / 겨우 복구 없음),
+   * 놓치면 일정 시간 생산 절반. 걸린 배수(없으면 null)를 돌려준다
    */
-  resolveAccident(fixed: boolean, now = Date.now()): { listeners: number; stones: number } {
+  resolveAccident(grade: AccidentGrade, now = Date.now()): { multiplier: number; durationMs: number } | null {
     this.advance(now);
-    if (!fixed) {
-      this.addBoost('accident', BALANCE.accident.penaltyMultiplier, BALANCE.accident.penaltyMs, now);
-      return { listeners: 0, stones: 0 };
+    const r = this.state.records;
+    const boost = gradeBoost(grade);
+    if (grade === 'fail') {
+      r.accidentsFailed += 1;
+      this.addBoost('accident', boost!.multiplier, boost!.durationMs, now);
+    } else {
+      r.accidentsFixed += 1;
+      if (grade === 'perfect') r.perfectFixes += 1;
+      this.track('accident');
+      // 실패 벌칙이 남아 있었으면 풀고, 보너스를 건다
+      this.boosts = this.boosts.filter((b) => b.kind !== 'accident');
+      if (boost) this.addBoost('tuned', boost.multiplier, boost.durationMs, now);
+      else this.emit({ type: 'boost' });
     }
-    this.track('accident');
-    const listeners = this.baseRate * BALANCE.accident.bonusSeconds;
-    const stones = BALANCE.accident.bonusStones;
-    this.addListeners(listeners);
-    this.state.stones += stones;
-    this.checkMilestones();
     this.commit();
-    return { listeners, stones };
+    return boost;
   }
 
   /** 레전드 사연 엽서가 오는 간격 배율 (장비 '레전드 사연 확률 %'만큼 자주 온다) */

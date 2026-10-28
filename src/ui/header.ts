@@ -10,7 +10,7 @@ import { popNumber } from './fx';
 import { sfx } from './sfx';
 import { currencyIcon } from './currency';
 
-const BOOST_LABEL = { legend: '📮 레전드 사연', accident: '📡 방송사고' } as const;
+const BOOST_LABEL = { legend: '📮 레전드 사연', accident: '📡 전파 이탈', tuned: '📻 복구 보너스' } as const;
 
 export interface HeaderActions {
   phone(): void;

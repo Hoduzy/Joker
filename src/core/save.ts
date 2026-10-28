@@ -10,6 +10,7 @@ import {
   createBond,
   createBox,
   createCheat,
+  createRecords,
   createEventProgress,
   createInitialState,
   type EventProgress,
@@ -97,6 +98,7 @@ export function migrate(data: unknown, now: number): GameState {
   // v8 → v9: 시즌 이벤트 진행 기록(events)·로비 캐릭터(lobbyCard) 추가 — 기본값은 normalize에서 채운다
   // v9 → v10: 카드 호감도(cardBond) 추가 — normalize에서 채운다
   // v10 → v11: 관리자 치트 기록(cheat) 추가 — normalize에서 채운다
+  // v11 → v12: 업적용 기록(records: 방송사고 복구·완벽 복구) 추가 — normalize에서 채운다
   return normalize(d, now);
 }
 
@@ -321,6 +323,7 @@ function normalize(d: Record<string, unknown>, now: number): GameState {
     lobbyCard: typeof d.lobbyCard === 'string' && ownedCards[d.lobbyCard] ? d.lobbyCard : null,
     cardBond: normalizeCardBond(d.cardBond, ownedCards),
     cheat: normalizeCheat(d.cheat),
+    records: normalizeRecords(d.records),
     lastTick: Math.min(num(d.lastTick, now), now),
   };
 }
@@ -360,6 +363,12 @@ function normalizeEvents(raw: unknown, now: number): GameState['events'] {
     };
   }
   return { force: r.force === true, progress };
+}
+
+function normalizeRecords(raw: unknown): GameState['records'] {
+  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  const n = (v: unknown) => Math.max(0, Math.floor(Number(v) || 0));
+  return { ...createRecords(), accidentsFixed: n(r.accidentsFixed), perfectFixes: n(r.perfectFixes), accidentsFailed: n(r.accidentsFailed) };
 }
 
 function normalizeCheat(raw: unknown): GameState['cheat'] {

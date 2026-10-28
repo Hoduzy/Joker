@@ -6,7 +6,7 @@ import { MEMBERS } from '../data/members';
 import { starterCardOf, type Rarity } from '../data/cards';
 import { SLOT_IDS, type SlotId } from '../data/slots';
 
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 
 export interface OwnedCard {
   /** 돌파 단계 0~5 */
@@ -67,6 +67,8 @@ export interface GameState {
   cardBond: Record<string, CardBondState>;
   /** 관리자 치트 (테스트용) */
   cheat: CheatState;
+  /** 업적용 누적 기록 */
+  records: RecordsState;
   /** 마지막으로 시간이 정산된 시각 (epoch ms) */
   lastTick: number;
 }
@@ -89,6 +91,17 @@ export interface EventProgress {
   ghost: { day: string; candyWins: number; wins: number };
   /** 끝난 뒤 남은 재화를 전파석으로 바꿨는지 */
   converted: boolean;
+}
+
+export interface RecordsState {
+  /** 방송사고(전파 이탈) 복구 횟수 · 그중 완벽 복구 · 놓친 횟수 */
+  accidentsFixed: number;
+  perfectFixes: number;
+  accidentsFailed: number;
+}
+
+export function createRecords(): RecordsState {
+  return { accidentsFixed: 0, perfectFixes: 0, accidentsFailed: 0 };
 }
 
 export interface CheatState {
@@ -262,6 +275,7 @@ export function createInitialState(now: number): GameState {
     lobbyCard: null,
     cardBond: {},
     cheat: createCheat(),
+    records: createRecords(),
     lastTick: now,
   };
 }

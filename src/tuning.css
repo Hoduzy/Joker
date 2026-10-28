@@ -1,0 +1,315 @@
+/* ══════════ 방송사고 = 전파 이탈: 다이얼로 주파수 맞추기 (ui/tuning.ts) ══════════ */
+.tuner {
+  --noise: 0.6;
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  pointer-events: none;
+}
+.tuner__noise,
+.tuner__bars {
+  position: absolute;
+  pointer-events: none;
+}
+.tuner__noise {
+  inset: -50%;
+  opacity: calc(var(--noise) * 0.8);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.4 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: noise 0.25s steps(4) infinite;
+  transition: opacity 0.15s linear;
+}
+.tuner__bars {
+  inset: 0;
+  opacity: calc(0.25 + var(--noise));
+  background:
+    repeating-linear-gradient(transparent 0 3px, rgba(0, 0, 0, 0.3) 3px 4px),
+    linear-gradient(transparent 30%, rgba(255, 60, 120, 0.22) 31%, rgba(60, 200, 255, 0.22) 33%, transparent 34%);
+  animation: glitch-bars 1.2s steps(6) infinite;
+}
+/* 화면 맨 위: 남은 시간 */
+.tuner__time {
+  position: absolute;
+  top: max(6px, env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.tuner__time-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6ee7a8, #ffcf5c);
+  transition: width 0.1s linear;
+}
+.tuner__time-fill.is-low {
+  background: linear-gradient(90deg, #ff4d6d, #ff8a5c);
+}
+.tuner__box {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(92vw, 340px);
+  padding: 16px 18px 14px;
+  border-radius: 24px;
+  background: rgba(13, 11, 30, 0.92);
+  border: 2px solid var(--live);
+  box-shadow: 0 0 40px rgba(255, 77, 109, 0.45);
+  pointer-events: auto;
+  animation: glitch-shake 0.3s steps(2) infinite;
+  touch-action: none;
+}
+.tuner__box.is-locked {
+  border-color: #6ee7a8;
+  box-shadow: 0 0 40px rgba(110, 231, 168, 0.55);
+  animation: none;
+}
+.tuner.is-calm .tuner__box,
+.reduce-motion .tuner__box {
+  animation: none;
+}
+.tuner__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tuner__alert {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 2px 0 #ff3c78, -2px 0 #3cc8ff;
+  animation: alert-blink 0.6s steps(2) infinite;
+}
+.tuner.is-calm .tuner__alert {
+  animation: none;
+}
+@keyframes alert-blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+.tuner__unstable {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ffcf5c;
+  color: #2b1d00;
+  font-size: 11px;
+  font-weight: 800;
+}
+.tuner__screen {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #0a1a12;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+.tuner__freq {
+  font-size: 42px;
+  line-height: 1;
+  color: #ffb45c;
+  text-shadow: 0 0 10px rgba(255, 180, 92, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+.tuner__box.is-locked .tuner__freq {
+  color: #7dffb2;
+  text-shadow: 0 0 12px rgba(125, 255, 178, 0.8);
+}
+.tuner__unit {
+  font-size: 14px;
+  color: #8fb39f;
+}
+.tuner__target {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 12px;
+  color: #8fb39f;
+  font-family: var(--font);
+}
+/* 신호 게이지 */
+.tuner__gauge {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  align-items: end;
+  gap: 4px;
+  width: 100%;
+  height: 26px;
+}
+.tuner__gauge i {
+  height: 30%;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.tuner__gauge i:nth-child(n + 4) {
+  height: 50%;
+}
+.tuner__gauge i:nth-child(n + 7) {
+  height: 75%;
+}
+.tuner__gauge i:nth-child(n + 9) {
+  height: 100%;
+}
+.tuner__gauge i.is-red {
+  background: #ff4d6d;
+}
+.tuner__gauge i.is-yellow {
+  background: #ffcf5c;
+}
+.tuner__gauge i.is-green {
+  background: #6ee7a8;
+  box-shadow: 0 0 8px #6ee7a8;
+}
+/* 다이얼 */
+.tuner__controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tuner__nudge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 18px;
+}
+.tuner__nudge:active {
+  background: rgba(255, 255, 255, 0.22);
+}
+.tuner__dial {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+  background: radial-gradient(circle at 50% 50%, #2a2448 0 58%, #15122a 59% 100%);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+.tuner__dial:active {
+  cursor: grabbing;
+}
+.tuner__ticks {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.35) 0 1.5deg, transparent 1.5deg 15deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 62%, #000 63%);
+  mask: radial-gradient(circle, transparent 0 62%, #000 63%);
+}
+.tuner__knob {
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(rgba(0, 0, 0, 0.25) 0 4deg, transparent 4deg 12deg),
+    radial-gradient(circle at 35% 30%, #8a80c8, #4a4180 70%);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
+}
+.tuner__grip {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  width: 6px;
+  height: 22%;
+  margin-left: -3px;
+  border-radius: 3px;
+  background: #ffcf5c;
+  box-shadow: 0 0 6px #ffcf5c;
+}
+.tuner__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(155, 140, 255, 0.15);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+.tuner__hint .face {
+  flex: none;
+}
+.tuner__help {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tuner__result {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  border-radius: inherit;
+  background: rgba(13, 11, 30, 0.9);
+  text-align: center;
+  animation: fade-in 0.2s ease;
+}
+.tuner__result strong {
+  font-size: 28px;
+}
+.tuner__result span {
+  font-size: 15px;
+  color: var(--muted);
+}
+.tuner.is-perfect .tuner__result strong {
+  color: #7dffb2;
+  text-shadow: 0 0 18px rgba(125, 255, 178, 0.9);
+}
+.tuner.is-good .tuner__result strong {
+  color: #ffcf5c;
+}
+.tuner.is-fail .tuner__result strong {
+  color: var(--down);
+}
+.tuner.is-over .tuner__noise,
+.tuner.is-over .tuner__bars {
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.tuner.is-fail.is-over .tuner__noise {
+  opacity: 0.35;
+}
+.tuner.is-closing {
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+/* 전파 이탈 중: ON AIR 램프 꺼짐 */
+body.is-offair .onair.is-live {
+  border-color: var(--muted);
+  color: var(--muted);
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+}
+/* 복구 실패 벌칙 동안: 화면이 살짝 지지직 (누를 수 있게 pointer-events 없음) */
+body.is-static::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 84;
+  pointer-events: none;
+  opacity: 0.12;
+  background: repeating-linear-gradient(transparent 0 3px, rgba(255, 255, 255, 0.5) 3px 4px);
+  animation: glitch-bars 1.4s steps(5) infinite;
+}
+.reduce-motion body.is-static::after,
+html.reduce-motion body.is-static::after {
+  animation: none;
+}

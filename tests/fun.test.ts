@@ -80,22 +80,24 @@ describe('legend story boost', () => {
 });
 
 describe('broadcast accident', () => {
-  it('gives a bonus when fixed', () => {
+  it('gives x3 / x2 / nothing by how fast it was fixed, and counts perfect fixes', () => {
     const g = lineupGame();
-    g.state.stones = 0;
-    g.state.listeners = 0;
-    const r = g.resolveAccident(true);
-    expect(r.stones).toBe(BALANCE.accident.bonusStones);
-    expect(g.state.stones).toBeGreaterThanOrEqual(BALANCE.accident.bonusStones);
-    expect(r.listeners).toBeCloseTo(g.baseRate * BALANCE.accident.bonusSeconds);
-    expect(g.multiplier()).toBe(1);
+    const now = Date.now();
+    expect(g.resolveAccident('perfect', now)?.multiplier).toBe(3);
+    expect(g.multiplier(now)).toBe(3);
+    expect(g.multiplier(now + BALANCE.accident.perfect.durationMs + 1)).toBe(1);
+    g.resolveAccident('good', now);
+    expect(g.multiplier(now)).toBe(2);
+    expect(g.resolveAccident('barely', now)).toBeNull();
+    expect(g.state.records).toEqual({ accidentsFixed: 3, perfectFixes: 1, accidentsFailed: 0 });
   });
 
   it('halves production for 20 seconds when missed', () => {
     const g = lineupGame();
     const now = Date.now();
-    g.resolveAccident(false, now);
+    g.resolveAccident('fail', now);
     expect(g.multiplier(now)).toBe(0.5);
+    expect(g.state.records.accidentsFailed).toBe(1);
     expect(g.multiplier(now + BALANCE.accident.penaltyMs + 1)).toBe(1);
   });
 
@@ -103,7 +105,7 @@ describe('broadcast accident', () => {
     const g = lineupGame();
     const now = Date.now();
     g.claimLegend(now);
-    g.resolveAccident(false, now);
+    g.resolveAccident('fail', now);
     expect(g.multiplier(now)).toBe(1.5);
   });
 });

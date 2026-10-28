@@ -121,16 +121,44 @@ export const BALANCE = {
     multiplier: 3,
   },
 
-  /** 방송사고: 노이즈가 뜨고 제한 시간 안에 탭하면 보너스, 놓치면 생산 감소 */
+  /**
+   * 방송사고: 전파가 원래 주파수에서 벗어난다. 다이얼을 돌려 되돌리고, 신호가 초록인 채로 holdMs 버티면 복구.
+   * 빨리 잡을수록 청취자 배수 (완벽 ×3 / 복구 ×2 / 겨우 복구 없음), 시간 안에 못 잡으면 생산 절반
+   */
   accident: {
     minIntervalMs: 2 * 60 * 1000,
     maxIntervalMs: 5 * 60 * 1000,
-    windowMs: 5000,
+    /** 원래 방송 주파수 (MHz) */
+    frequency: 89.7,
+    /** 다이얼 범위 */
+    dialMin: 84,
+    dialMax: 96,
+    /** 다이얼 한 바퀴 = 몇 MHz */
+    mhzPerTurn: 4,
+    /** 벗어나는 폭: offsetMin ~ (offsetMax + 송신탑 레벨당 offsetPerTower, 최대 offsetCap) */
+    offsetMin: 0.5,
+    offsetMax: 3,
+    offsetPerTower: 0.08,
+    offsetCap: 5,
+    /** 이 차이(MHz) 안이면 신호 초록 */
+    tolerance: 0.1,
+    /** 신호가 들리기 시작하는 차이 (이보다 멀면 노이즈뿐) */
+    hearRange: 1.2,
+    /** 초록으로 버텨야 하는 시간 */
+    holdMs: 1000,
+    timeLimitMs: 10_000,
+    /** 미래(기술 담당)를 엔지니어 자리에 배치하면 제한 시간 + 힌트 */
+    miraeBonusMs: 3000,
+    /** 불안정 신호(주파수가 혼자 흔들림) 확률: 송신탑 레벨당, 최대 */
+    unstablePerTower: 0.04,
+    unstableMax: 0.5,
+    /** 잡기 시작(초록이 된 순간)까지 걸린 시간으로 판정 */
+    perfectMs: 3000,
+    goodMs: 6000,
+    perfect: { multiplier: 3, durationMs: 30 * 1000 },
+    good: { multiplier: 2, durationMs: 30 * 1000 },
     penaltyMs: 20 * 1000,
     penaltyMultiplier: 0.5,
-    /** 복구 보너스: 지금 생산량 기준 이 시간(초)만큼 청취자 + 전파석 */
-    bonusSeconds: 60,
-    bonusStones: 20,
   },
 
   /** 부원 말풍선 */

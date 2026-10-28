@@ -16,6 +16,8 @@ import { h, memberSd, onTap, patchChildren } from './dom';
 export interface Studio extends Component {
   /** 배치된 부원 머리 위에 말풍선을 띄운다. 배치되어 있지 않으면 false */
   say(memberId: string, text: string, ms: number): boolean;
+  /** 배치된 부원 SD가 한 번 폴짝 (방송사고 복구 등) */
+  cheer(memberId: string): void;
 }
 
 /** 방송 슬롯 4개(DJ/엔지니어/작가/게스트). 카드 단위로 배치한다. */
@@ -131,9 +133,22 @@ export function createStudio(game: Game, onPoke: (memberId: string) => void): St
     return true;
   }
 
+  function cheer(memberId: string): void {
+    const index = SLOTS.findIndex((s) => {
+      const id = game.state.assignments[s.id];
+      return id && getCard(id)?.member === memberId;
+    });
+    const stage = (grid.children[index] as HTMLElement | undefined)?.querySelector('.slot__stage');
+    if (!stage) return;
+    stage.classList.remove('is-bounce');
+    void (stage as HTMLElement).offsetWidth;
+    stage.classList.add('is-bounce');
+  }
+
   return {
     el,
     say,
+    cheer,
     render() {
       patchChildren(grid, SLOTS.map(renderSlot));
       // 배치가 바뀌어 자리가 없어진 부원의 말풍선 정리

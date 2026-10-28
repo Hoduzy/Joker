@@ -137,7 +137,107 @@ function tuningNoise(dur: number, unstable: boolean): () => void {
   };
 }
 
+/**
+ * 방송사고 다이얼용 라디오 소리: 계속 도는 지지직 노이즈 + 맞출수록 또렷해지는 신호음.
+ * set(0~1)로 신호 세기를 바꾸고, stop()으로 멈춘다
+ */
+export function staticRadio(): { set(strength: number): void; stop(): void } {
+  const out = sfxOutput();
+  if (!out) return { set() {}, stop() {} };
+  const { ctx: c, bus } = out;
+  const t0 = c.currentTime;
+  const buf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  const band = c.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = 1400;
+  band.Q.value = 0.9;
+  const noiseGain = c.createGain();
+  noiseGain.gain.setValueAtTime(0.0001, t0);
+  noiseGain.gain.exponentialRampToValueAtTime(0.2, t0 + 0.08);
+  src.connect(band).connect(noiseGain).connect(bus);
+  // 신호음: 방송 캐리어 같은 두 음. 멀리 있을수록 음이 흔들리고 작다
+  const toneGain = c.createGain();
+  toneGain.gain.value = 0;
+  const o1 = c.createOscillator();
+  const o2 = c.createOscillator();
+  o1.type = 'sine';
+  o2.type = 'triangle';
+  o1.frequency.value = 523.25;
+  o2.frequency.value = 784;
+  o1.connect(toneGain);
+  o2.connect(toneGain);
+  toneGain.connect(bus);
+  src.start(t0);
+  o1.start(t0);
+  o2.start(t0);
+  let stopped = false;
+  return {
+    set(strength: number) {
+      if (stopped) return;
+      const now = c.currentTime;
+      const s = Math.max(0, Math.min(1, strength));
+      noiseGain.gain.setTargetAtTime(0.02 + 0.2 * (1 - s), now, 0.05);
+      band.frequency.setTargetAtTime(900 + Math.random() * 1600 * (1 - s), now, 0.08);
+      toneGain.gain.setTargetAtTime(0.09 * s * s, now, 0.05);
+      const wob = (1 - s) * 40 * Math.sin(now * 9);
+      o1.frequency.setTargetAtTime(523.25 + wob, now, 0.03);
+      o2.frequency.setTargetAtTime(784 + wob * 1.5, now, 0.03);
+    },
+    stop() {
+      if (stopped) return;
+      stopped = true;
+      const now = c.currentTime;
+      try {
+        noiseGain.gain.setTargetAtTime(0.0001, now, 0.04);
+        toneGain.gain.setTargetAtTime(0.0001, now, 0.04);
+        src.stop(now + 0.25);
+        o1.stop(now + 0.25);
+        o2.stop(now + 0.25);
+      } catch {
+        // 이미 끝남
+      }
+    },
+  };
+}
+
 export const sfx = {
+  /** 방송사고 경고음: 높낮이 두 음을 세 번 */
+  alarm() {
+    for (let i = 0; i < 3; i++) {
+      tone({ freq: 988, dur: 0.12, type: 'square', vol: 0.1, at: i * 0.32 });
+      tone({ freq: 740, dur: 0.12, type: 'square', vol: 0.1, at: i * 0.32 + 0.15 });
+    }
+    noise(0.35, 0.18, 0, 2400);
+  },
+  /** 다이얼 딸깍 */
+  dialTick() {
+    tone({ freq: 2400, to: 1800, dur: 0.018, type: 'square', vol: 0.05 });
+  },
+  /** 주파수가 딱 맞았을 때 짧은 확인음 */
+  locked() {
+    arp([C6, G6], 0.05, { dur: 0.1, type: 'sine', vol: 0.12 });
+  },
+  /** 방송사고 판정음: perfect는 화려하게 */
+  tuneResult(grade: 'perfect' | 'good' | 'barely' | 'fail') {
+    if (grade === 'perfect') {
+      arp([C5, E5, G5, C6, E6, G6, C7], 0.05, { dur: 0.35, type: 'square', vol: 0.13 });
+      [C6, E6, G6].forEach((f) => tone({ freq: f, dur: 1.1, type: 'triangle', vol: 0.14, at: 0.35 }));
+      arp([C7, G6, C7, E6, C7], 0.07, { dur: 0.12, type: 'sine', vol: 0.1, at: 0.45 });
+    } else if (grade === 'good') {
+      arp([C5, E5, G5, C6], 0.08, { dur: 0.22, type: 'square', vol: 0.12 });
+      tone({ freq: C6, dur: 0.6, type: 'triangle', vol: 0.12, at: 0.32 });
+    } else if (grade === 'barely') {
+      arp([E5, G5], 0.1, { dur: 0.2, type: 'triangle', vol: 0.15 });
+    } else {
+      noise(0.4, 0.22, 0, 900);
+      arp([G5, E5, C5], 0.16, { dur: 0.28, type: 'triangle', vol: 0.16, at: 0.1 });
+    }
+  },
   tap() {
     tone({ freq: 880, to: 1200, dur: 0.05, type: 'triangle', vol: 0.12 });
   },

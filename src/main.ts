@@ -5,6 +5,7 @@ import { mountAdminGear } from './ui/admin';
 import './style.css';
 import './event.css';
 import './admin.css';
+import './tuning.css';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('#app 요소가 없습니다');

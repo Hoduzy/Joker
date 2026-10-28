@@ -313,6 +313,10 @@ export function openAdminPanel(game: Game, tab: TabId = lastTab): void {
       onTap(b, () => away(() => game.skipTime(hr * 3_600_000)));
       return b;
     });
+    const accident = h('button', { class: 'admin-btn admin-btn--primary admin-btn--wide', type: 'button' }, '📡 방송사고(전파 이탈) 지금 발생');
+    // 방송실 화면에서 바로 (liveEvents가 이 이벤트를 듣는다). 아무도 배치 안 했으면 일어나지 않는다
+    onTap(accident, () => away(() => document.dispatchEvent(new CustomEvent('simya:accident'))));
+    const rec = s.records;
     const daily = h('button', { class: 'admin-btn admin-btn--primary admin-btn--wide', type: 'button' }, '📋 일일 미션 강제 초기화');
     onTap(daily, () => {
       apply('일일 미션·이벤트 일일 미션·대화/선물/교감 횟수 초기화', (st) => {
@@ -344,6 +348,7 @@ export function openAdminPanel(game: Game, tab: TabId = lastTab): void {
       'div',
       { class: 'admin-view' },
       h('div', { class: 'admin-card' }, h('div', { class: 'admin-card__head' }, h('strong', {}, '오프라인 보상 테스트'), h('small', {}, `그 시간만큼 자리를 비웠던 것처럼 (최대 ${BALANCE.offlineCapMs / 3_600_000}시간까지 보상)`)), h('div', { class: 'admin-row' }, ...skips)),
+      h('div', { class: 'admin-card' }, h('div', { class: 'admin-card__head' }, h('strong', {}, '방송사고 테스트'), h('small', {}, `복구 ${rec.accidentsFixed} · 완벽 ${rec.perfectFixes} · 실패 ${rec.accidentsFailed}`)), accident),
       h('div', { class: 'admin-card' }, daily),
       h(
         'div',
